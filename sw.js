@@ -8,7 +8,7 @@
 // кэшировался под 'index.html' — первый заход во вторую игру записал бы
 // её страницу вместо своей. Чужие переходы и файлы — мимо, в сеть (у
 // второй игры свой воркер с областью точнее, он и главный там).
-const V = 'bbg-57bcc7d2a9';
+const V = 'bbg-765a24ff83';
 const HOME = new URL('./', self.registration.scope).pathname;
 const own = u => u.pathname === HOME || u.pathname === HOME + 'index.html';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
