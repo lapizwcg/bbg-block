@@ -133,6 +133,7 @@ let COMBO_Y = 228;
 let TRAY_Y = 238;
 let SLOT_X = BX - 3, SLOT_W = (N * CELL + 6) / 3;
 const GEAR = { x: 162, y: 20, r: 10 };
+const HEART = { x: 18, y: 20, r: 10 };
 const cv = document.getElementById('cv');
 const ctx = cv.getContext('2d');
 const safeEl = document.getElementById('safe');
@@ -153,6 +154,7 @@ COMBO_Y = 228 + by;
 TRAY_Y = 238 + ty;
 SLOT_X = BX - 3;
 GEAR.x = OX + 162; GEAR.y = 20 + HY;
+HEART.x = OX + 18; HEART.y = 20 + HY;
 }
 let fitW = 0, fitH = 0;
 function fit() {
@@ -689,6 +691,7 @@ if (!G || !ovEl.hidden) return;
 SFX.unlock();
 const p = toLogic(ev);
 if (Math.hypot(p.x - GEAR.x, p.y - GEAR.y) < GEAR.r + 5) { openSettings(); return; }
+if (SUPPORT_URL && Math.hypot(p.x - HEART.x, p.y - HEART.y) < HEART.r + 5) { openSupport(); return; }
 if (G.over || ui.drag) return;
 if (p.y >= TRAY_Y - 4 && p.y <= TRAY_Y + TRAY_H + 8) {
 const slot = Math.min(2, Math.max(0, Math.floor((p.x - SLOT_X) / SLOT_W)));
@@ -1000,6 +1003,17 @@ ctx.textAlign = align || 'left'; ctx.textBaseline = 'middle';
 ctx.fillStyle = fill; ctx.fillText(str, x, y);
 }
 const easeOut = k => 1 - (1 - k) * (1 - k);
+function drawHeart(x, y) {
+const w = 7.2, top = y - 4.2, bot = y + 5.6;
+ctx.fillStyle = '#ff6f92';
+ctx.beginPath();
+ctx.moveTo(x, bot);
+ctx.bezierCurveTo(x - w * 1.35, y + 0.6, x - w * 0.95, top - 3.2, x, top + 1.4);
+ctx.bezierCurveTo(x + w * 0.95, top - 3.2, x + w * 1.35, y + 0.6, x, bot);
+ctx.fill();
+ctx.fillStyle = 'rgba(255,255,255,.45)';
+ctx.beginPath(); ctx.ellipse(x - 2.6, y - 2.1, 1.5, 0.9, -0.6, 0, Math.PI * 2); ctx.fill();
+}
 function drawGear(x, y) {
 ctx.fillStyle = COL.dim;
 for (let k = 0; k < 8; k++) {
@@ -1083,6 +1097,7 @@ ctx.fillStyle = bg; ctx.fillRect(0, 0, LW, LH);
 label(String(Math.round(ui.shown)), LW / 2, HY + 23, 22, COL.text, COL.textStroke);
 label(t('best') + '  ' + best, LW / 2, HY + 43, 8, COL.gold);
 drawGear(GEAR.x, GEAR.y);
+if (SUPPORT_URL) drawHeart(HEART.x, HEART.y);
 drawCombo();
 ctx.fillStyle = COL.board; rrect(BX - 3, BY - 3, N * CELL + 6, N * CELL + 6, 4); ctx.fill();
 const drag = ui.drag, dragS = drag ? SHAPES[G.tray[drag.slot]] : null;
