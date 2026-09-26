@@ -341,6 +341,7 @@ cells = cells.map(([x, y]) => [-y, x]);
 }
 rots.forEach((c, i) => out.push({
 id: name + (rots.length > 1 ? '_' + i : ''),
+form: formKey(c),
 cells: c,
 w: Math.max(...c.map(p => p[0])) + 1,
 h: Math.max(...c.map(p => p[1])) + 1,
@@ -350,6 +351,19 @@ weight: weight / rots.length
 }));
 }
 return out;
+}
+function formKey(cells) {
+let best = null;
+for (const mir of [false, true]) {
+let c = mir ? cells.map(([x, y]) => [-x, y]) : cells;
+for (let r = 0; r < 4; r++) {
+const mx = Math.min(...c.map(p => p[0])), my = Math.min(...c.map(p => p[1]));
+const k = c.map(([x, y]) => [x - mx, y - my]).sort((a, b) => a[1] - b[1] || a[0] - b[0]).join(';');
+if (best === null || k < best) best = k;
+c = c.map(([x, y]) => [-y, x]);
+}
+}
+return best;
 }
 const SHAPES = buildShapes();
 const POOLS = {};
@@ -371,7 +385,7 @@ const COMBO_GRACE = 3;
 const CLEAN_BONUS = 1000;
 const linePts = L => 100 * L * (L + 1) / 2;
 const EASY_ROW = 4, EASY_PREFILL = 2, EASY_COLOR = 5;
-const EASY_FIRST = ['i3_0', 'i3_0', 'i2_0'];
+const EASY_FIRST = ['i4_0', 'i3_0', 'dot'];
 const EASY_POOL = ['dot', 'i2_0', 'i3_0'];
 function newGame(seed, easy, mode) {
 const g = {
@@ -408,11 +422,21 @@ function pickEasy(g) {
 const id = EASY_POOL[Math.floor(rnd(g) * EASY_POOL.length)];
 return SHAPES.findIndex(s => s.id === id);
 }
+function pickDistinct(g, pick, taken, n) {
+const out = [], forms = new Set(taken);
+for (let k = 0; k < (n || 3); k++) {
+let i = pick(g);
+for (let a = 0; a < 60 && forms.has(SHAPES[i].form); a++) i = pick(g);
+forms.add(SHAPES[i].form);
+out.push(i);
+}
+return out;
+}
 function refill(g) {
 let tray;
 const pick = g.easy ? pickEasy : pickShape;
 for (let a = 0; a <= REROLL; a++) {
-tray = [pick(g), pick(g), pick(g)];
+tray = pickDistinct(g, pick, []);
 if (tray.some(i => fitsAnywhere(g.board, SHAPES[i]))) break;
 }
 g.tray = tray;
@@ -1430,6 +1454,19 @@ if (!byCanon.has(canon(mir))) noMirror.push(f.id);
 }
 ok('у каждой формы сложной есть зеркало', !noMirror.length, noMirror.join(' ') ||
 SHAPES.filter(f => f.id.split('_')[0].endsWith('m')).map(f => f.id.split('_')[0]).filter((v, i, a) => a.indexOf(v) === i).join(' '));
+const fm = id => SHAPES[shape(id)].form;
+ok('форма: Г = L, S = Z, повороты — одна форма',
+fm('l4_0') === fm('j4_2') && fm('s4_0') === fm('z4_1') && fm('l3_0') === fm('l3_3') && fm('i2_0') === fm('i2_1') &&
+fm('l4_0') !== fm('t4_0'));
+let dupTrays = 0;
+for (let k = 0; k < 300; k++)
+for (const mode of [undefined, 'hard']) {
+const e = newGame(5000 + k, false, mode);
+if (new Set(e.tray.map(i => SHAPES[i].form)).size !== 3) dupTrays++;
+}
+const et = newGame(77, true).tray;
+ok('тройка — три разные формы (600 выдач, обе сложности, обучение)',
+!dupTrays && new Set(et.map(i => SHAPES[i].form)).size === 3, dupTrays + ' повторов');
 ok('за рамку 3x3 выходит только палка 4',
 SHAPES.every(f => (f.w <= 3 && f.h <= 3) || f.id.startsWith('i4_')), SHAPES.length + ' фигур');
 for (const mode of ['normal', 'hard']) {
@@ -1476,12 +1513,12 @@ const repl = unpackRun(JSON.stringify(gone));
 ok('пропавшая фигура заменяется, партия цела', repl && repl.g.tray[0] >= 0 && repl.g.score === g.score);
 ok('битое сохранение → null', unpackRun('{oops') === null && unpackRun('{"v":2,"g":{}}') === null);
 g = newGame(21, true);
-ok('обучение: ряд начат, первая тройка 3+3+2',
+ok('обучение: ряд начат, первая тройка 4+3+1',
 g.tray.map(i => SHAPES[i].id).join() === EASY_FIRST.join() &&
 g.board.slice(EASY_ROW * N, EASY_ROW * N + N).filter(v => v).length === EASY_PREFILL);
 ok('обучение детерминировано', hashG(newGame(21, true)) === hashG(g) && hashG(g) !== hashG(newGame(21)));
-place(g, 0, 2, EASY_ROW); place(g, 1, 5, EASY_ROW);
-r = place(g, 2, 8, EASY_ROW);
+place(g, 0, 2, EASY_ROW); place(g, 1, 6, EASY_ROW);
+r = place(g, 2, 9, EASY_ROW);
 ok('обучение: линия третьим ходом, режим выключен', r && r.lines === 1 && !g.easy && g.board.every(v => !v));
 g = newGame(22, true);
 place(g, 0, 0, 0); place(g, 1, 0, 2); place(g, 2, 0, 6);
