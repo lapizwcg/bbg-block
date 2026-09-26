@@ -3,7 +3,7 @@
 // нет сети — из кэша: игра открывается и без интернета. Остальные файлы
 // (манифест, иконки) — из кэша. Имя кэша — хеш index.html: новая версия
 // ставит новый кэш, старые удаляются при активации.
-const V = 'bbg-b333d20782';
+const V = 'bbg-d2c0744a2d';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
                'icon-maskable-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', e => {
