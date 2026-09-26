@@ -124,13 +124,13 @@ padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)"
 (function () {
 const DW = 180, DH = 320;
 const N = 10, CELL = 16;
-const TRAY_H = 70;
-const TRAY_CELL = 8;
+const TRAY_H = 90;
+const TRAY_GAP = 4;
 let LW = DW, LH = DH, SCALE = 4;
 let OX = 0, HY = 0;
-let BX = 10, BY = 58;
-let COMBO_Y = 228;
-let TRAY_Y = 238;
+let BX = 10, BY = 60;
+let COMBO_Y = 49;
+let TRAY_Y = 224;
 let SLOT_X = BX - 3, SLOT_W = (N * CELL + 6) / 3;
 const GEAR = { x: 162, y: 20, r: 10 };
 const HEART = { x: 18, y: 20, r: 10 };
@@ -147,11 +147,11 @@ SCALE = cv.width / LW;
 OX = (LW - DW) / 2;
 const top = safeTop / k, bot = safeBot / k;
 const extra = Math.max(0, LH - DH - top - bot);
-HY = top + extra * 0.2;
-const by = top + extra * 0.45, ty = top + extra * 0.75;
-BX = OX + 10; BY = 58 + by;
-COMBO_Y = 228 + by;
-TRAY_Y = 238 + ty;
+HY = top + extra * 0.3;
+const gy = top + extra * 0.7;
+BX = OX + 10; BY = 60 + gy;
+COMBO_Y = 49 + gy;
+TRAY_Y = BY + N * CELL + TRAY_GAP;
 SLOT_X = BX - 3;
 GEAR.x = OX + 162; GEAR.y = 20 + HY;
 HEART.x = OX + 18; HEART.y = 20 + HY;
@@ -671,6 +671,9 @@ const r = cv.getBoundingClientRect();
 return { x: (ev.clientX - r.left) * LW / r.width, y: (ev.clientY - r.top) * LH / r.height };
 }
 function dragCenter(d) { return { x: d.x, y: d.y - d.lift }; }
+function traySize(s) {
+return Math.min(CELL, (SLOT_W - 6) / s.w, (TRAY_H - 8) / s.h);
+}
 function updateTarget() {
 const d = ui.drag;
 ui.target = null; ui.preview = null;
@@ -723,7 +726,8 @@ const d = ui.drag;
 if (!d) return;
 if (!(ok && ui.target && doPlace(d.slot, ui.target.x, ui.target.y))) {
 const c = dragCenter(d);
-const size = TRAY_CELL + (CELL - TRAY_CELL) * easeOut(Math.min(1, d.t / 0.08));
+const ts = traySize(SHAPES[G.tray[d.slot]]);
+const size = ts + (CELL - ts) * easeOut(Math.min(1, d.t / 0.08));
 ui.back = { slot: d.slot, x: c.x, y: c.y, size, t: 0 };
 SFX.play('back');
 }
@@ -1080,7 +1084,7 @@ const alpha = p < 0.1 ? p / 0.1 : p > 0.85 ? (1 - p) / 0.15 : 1;
 const x0 = SLOT_X + SLOT_W * (slot + 0.5), y0 = TRAY_Y + TRAY_H / 2;
 const x1 = BX + (gx + s.w / 2) * CELL, y1 = BY + (gy + s.h / 2) * CELL;
 const cx = x0 + (x1 - x0) * mv, cy = y0 + (y1 - y0) * mv;
-const size = TRAY_CELL + (CELL - TRAY_CELL) * mv;
+const ts = traySize(s), size = ts + (CELL - ts) * mv;
 ctx.globalAlpha = 0.25 * alpha;
 for (const [ax, ay] of s.cells) block(BX + (gx + ax) * CELL + 0.5, BY + (gy + ay) * CELL + 0.5, CELL - 1, s.color);
 drawShape(s, cx, cy, size, s.color, 0.6 * alpha);
@@ -1129,8 +1133,8 @@ ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
 const bg = ctx.createLinearGradient(0, 0, 0, LH);
 bg.addColorStop(0, COL.bgTop); bg.addColorStop(1, COL.bgBot);
 ctx.fillStyle = bg; ctx.fillRect(0, 0, LW, LH);
-label(String(Math.round(ui.shown)), LW / 2, HY + 23, 22, COL.text, COL.textStroke);
-label(t('best') + '  ' + best, LW / 2, HY + 43, 8, COL.gold);
+label(String(Math.round(ui.shown)), LW / 2, HY + 20, 22, COL.text, COL.textStroke);
+label(t('best') + '  ' + best, LW / 2, HY + 37, 8, COL.gold);
 drawGear(GEAR.x, GEAR.y);
 if (SUPPORT_URL) drawHeart(HEART.x, HEART.y);
 drawCombo();
@@ -1182,7 +1186,7 @@ const si = G.tray[k];
 if (si < 0 || (drag && drag.slot === k) || (ui.back && ui.back.slot === k)) continue;
 const s = SHAPES[si];
 const ci = fitsAnywhere(G.board, s) ? s.color : GREY;
-drawShape(s, SLOT_X + SLOT_W * (k + 0.5), TRAY_Y + TRAY_H / 2, TRAY_CELL, ci);
+drawShape(s, SLOT_X + SLOT_W * (k + 0.5), TRAY_Y + TRAY_H / 2, traySize(s), ci);
 }
 for (const f of ui.floats) {
 const k = f.t / FLOAT_LIFE;
@@ -1204,12 +1208,13 @@ if (ui.back && G.tray[ui.back.slot] >= 0) {
 const b = ui.back, k = easeOut(Math.min(1, b.t / BACK_LIFE));
 const tx = SLOT_X + SLOT_W * (b.slot + 0.5), ty = TRAY_Y + TRAY_H / 2;
 drawShape(SHAPES[G.tray[b.slot]], b.x + (tx - b.x) * k, b.y + (ty - b.y) * k,
-b.size + (TRAY_CELL - b.size) * k, SHAPES[G.tray[b.slot]].color);
+b.size + (traySize(SHAPES[G.tray[b.slot]]) - b.size) * k, SHAPES[G.tray[b.slot]].color);
 }
 drawTutorHand();
 if (drag && dragS) {
 const c = dragCenter(drag);
-const size = TRAY_CELL + (CELL - TRAY_CELL) * easeOut(Math.min(1, drag.t / 0.08));
+const ts = traySize(dragS);
+const size = ts + (CELL - ts) * easeOut(Math.min(1, drag.t / 0.08));
 drawShape(dragS, c.x, c.y, size, dragS.color, ui.target ? 1 : 0.85);
 }
 if (ui.target && ui.preview && ui.preview.res.lines) {
