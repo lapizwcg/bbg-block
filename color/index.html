@@ -1236,17 +1236,15 @@ return;
 const rem = comboRemaining(), on = rem > 0, k = rem / COMBO_MS;
 ctx.fillStyle = COL.panel; rrect(BX - 3, y - 6, N * CELL + 6, 12, 4); ctx.fill();
 text(t('comboBar'), BX + 2, y + 0.3, 6.5, on ? COL.dim : COL.faint);
-let x0 = BX + 30;
-if (on) {
 ctx.font = '800 6.5px "Segoe UI", Roboto, system-ui, sans-serif';
 const nx = BX + 5 + ctx.measureText(t('comboBar')).width;
-text(String(G.combo), nx, y + 0.3, 9, '#ff9d3c');
+const wNone = ctx.measureText(t('comboNone')).width;
 ctx.font = '800 9px "Segoe UI", Roboto, system-ui, sans-serif';
-x0 = Math.max(x0, nx + ctx.measureText(String(G.combo)).width + 4);
-}
-const right = on ? t('comboNext') + (G.combo + 1) : t('comboNone');
+const x0 = nx + ctx.measureText('00').width + 4;
 ctx.font = '800 7px "Segoe UI", Roboto, system-ui, sans-serif';
-const x1 = BX + N * CELL - 6 - ctx.measureText(right).width;
+const x1 = BX + N * CELL - 6 - Math.max(ctx.measureText(t('comboNext') + '00').width, wNone);
+if (on) text(String(G.combo), nx, y + 0.3, 9, '#ff9d3c');
+const right = on ? t('comboNext') + (G.combo + 1) : t('comboNone');
 const w = Math.max(10, x1 - x0), h = 5, by = y - h / 2;
 ctx.fillStyle = COL.pipOff; rrect(x0, by, w, h, h / 2); ctx.fill();
 if (on) {
