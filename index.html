@@ -295,9 +295,39 @@ const FAMILIES = [
 ['a6',   ['.#.', '###', '#.#'],          1.2, 6, true],
 ['s5',   ['.##', '.#.', '##.'],          1.2, 2, true]
 ];
+function picCells(pic) {
+const cells = [];
+pic.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === '#') cells.push([x, y]); }));
+return cells;
+}
+function canon(pic) {
+let cells = picCells(pic);
+const keys = [];
+for (let r = 0; r < 4; r++) {
+const mx = Math.min(...cells.map(c => c[0])), my = Math.min(...cells.map(c => c[1]));
+keys.push(cells.map(([x, y]) => [x - mx, y - my]).sort((a, b) => a[1] - b[1] || a[0] - b[0]).join(';'));
+cells = cells.map(([x, y]) => [-y, x]);
+}
+return keys.sort()[0];
+}
+function withMirrors(fams) {
+const out = fams.slice(), seen = new Set(fams.map(f => canon(f[1])));
+for (const [name, pic, weight, color, hard] of fams) {
+if (!hard) continue;
+const w = Math.max(...pic.map(r => r.length));
+const mir = pic.map(r => [...r.padEnd(w, '.')].reverse().join(''));
+const c = canon(mir);
+if (seen.has(c)) continue;
+seen.add(c);
+const i = out.findIndex(f => f[0] === name);
+out[i] = [name, pic, weight / 2, color, hard];
+out.push([name + 'm', mir, weight / 2, (color + 3) % 7, true]);
+}
+return out;
+}
 function buildShapes() {
 const out = [];
-for (const [name, pic, weight, color, hard] of FAMILIES) {
+for (const [name, pic, weight, color, hard] of withMirrors(FAMILIES)) {
 let cells = [];
 pic.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === '#') cells.push([x, y]); }));
 const rots = [], seen = new Set();
@@ -792,6 +822,7 @@ cv.addEventListener('pointercancel', ev => {
 if (ui.hud && ev.pointerId === ui.hud.id) { ui.hud = null; needDraw = true; }
 });
 function doPlace(slot, gx, gy) {
+const comboBefore = G.combo;
 const res = place(G, slot, gx, gy);
 if (!res) return false;
 const s = res.s;
@@ -814,7 +845,7 @@ x: BX + (gx + s.w / 2) * CELL, y: BY + (gy + s.h / 2) * CELL,
 text: '+' + res.gained, t: 0, big: res.lines > 0
 });
 const lines = [];
-if (res.combo >= 2) lines.push({ text: t('combo') + res.combo, color: '#ff9d3c', size: 15 });
+if (res.combo >= 2 && res.combo !== comboBefore) lines.push({ text: t('combo') + res.combo, color: '#ff9d3c', size: 15 });
 if (res.lines >= 2) lines.push({ text: t(res.lines >= 5 ? 'p5' : 'p' + res.lines), color: '#7dffa4', size: 13 });
 if (res.clean) lines.push({ text: t('clean') + ' +' + CLEAN_BONUS, color: COL.gold, size: 13 });
 let rec = false;
@@ -1357,6 +1388,24 @@ ok('сложная: новые фигуры выпадают', hh > 40 && hh < 2
 ok('сложная детерминирована и отличается', hashG(newGame(77, false, 'hard')) === hashG(newGame(77, false, 'hard')) &&
 hashG(newGame(77, false, 'hard')) !== hashG(newGame(77)));
 ok('фигур: обычная 33, всего ' + SHAPES.length, POOLS.normal.idx.length === 33);
+const byCanon = new Map();
+for (const f of SHAPES) {
+const fam = f.id.split('_')[0];
+const pic = []; for (let y = 0; y < f.h; y++) { let r = ''; for (let x = 0; x < f.w; x++) r += f.cells.some(c => c[0] === x && c[1] === y) ? '#' : '.'; pic.push(r); }
+const c = canon(pic);
+if (!byCanon.has(c)) byCanon.set(c, new Set());
+byCanon.get(c).add(fam);
+}
+const dupFams = [...byCanon.values()].filter(set => set.size > 1).map(set => [...set].join('='));
+ok('нет двух семейств с одной формой', !dupFams.length, dupFams.join(' ') || byCanon.size + ' форм');
+let noMirror = [];
+for (const f of SHAPES.filter(f => f.hard)) {
+const pic = []; for (let y = 0; y < f.h; y++) { let r = ''; for (let x = 0; x < f.w; x++) r += f.cells.some(c => c[0] === x && c[1] === y) ? '#' : '.'; pic.push(r); }
+const mir = pic.map(r => [...r].reverse().join(''));
+if (!byCanon.has(canon(mir))) noMirror.push(f.id);
+}
+ok('у каждой формы сложной есть зеркало', !noMirror.length, noMirror.join(' ') ||
+SHAPES.filter(f => f.id.split('_')[0].endsWith('m')).map(f => f.id.split('_')[0]).filter((v, i, a) => a.indexOf(v) === i).join(' '));
 ok('все фигуры в рамке 3x3', SHAPES.every(f => f.w <= 3 && f.h <= 3), SHAPES.length + ' фигур');
 const wL3 = SHAPES.filter(s => s.id.startsWith('l3')).reduce((s, f) => s + f.weight, 0);
 ok('вес уголка = 3 на все повороты', Math.abs(wL3 - 3) < 1e-9, SHAPES.length + ' фигур в пуле');
