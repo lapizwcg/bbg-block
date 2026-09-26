@@ -66,6 +66,11 @@ border: 0; border-radius: 10px; padding: 10px 22px; cursor: pointer;
 background: linear-gradient(var(--btn1, #4f8cff), var(--btn2, #3563d8));
 box-shadow: 0 3px 0 var(--btn3, #22408f);
 }
+.card button.link { display: block; margin: 14px auto 0; padding: 4px 8px; font-size: 14px;
+font-weight: 600; background: none; box-shadow: none; color: var(--gold); opacity: .85;
+text-decoration: underline; text-underline-offset: 3px; }
+.card button.link:active { transform: none; box-shadow: none; }
+.card button.sup { background: linear-gradient(#ff7a9a, #e0466e); box-shadow: 0 3px 0 #9c2848; }
 .card button.alt { background: linear-gradient(var(--alt1), var(--alt2)); box-shadow: 0 3px 0 var(--alt3); }
 .card button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--btn3, #22408f); }
 .card.set { min-width: 250px; padding: 18px 20px 18px; }
@@ -198,6 +203,7 @@ settings: 'Настройки', sound: 'Звук', vib: 'Вибрация',
 noVib: 'нет на устройстве', restart: 'Начать заново', close: 'Закрыть',
 tut1: 'Перетащи фигуру на поле', tut2: 'Собери ряд или столбец целиком',
 tutDone: 'Отлично! Так и играй', app: 'Приложение', install: 'Установить',
+support: 'Поддержать ♥', supportAsk: 'Нравится игра? Поддержи автора ♥', author: 'Автор',
 lang: 'Язык', theme: 'Тема',
 th_juicy: 'Сочная', th_wood: 'Дерево', th_night: 'Ночь', th_day: 'День'
 },
@@ -212,6 +218,7 @@ settings: 'Settings', sound: 'Sound', vib: 'Vibration',
 noVib: 'not supported', restart: 'Start over', close: 'Close',
 tut1: 'Drag a piece onto the board', tut2: 'Fill a whole row or column',
 tutDone: 'Great! Keep going', app: 'App', install: 'Install',
+support: 'Support ♥', supportAsk: 'Enjoying the game? Support the author ♥', author: 'Author',
 lang: 'Language', theme: 'Theme',
 th_juicy: 'Juicy', th_wood: 'Wood', th_night: 'Night', th_day: 'Day'
 },
@@ -226,6 +233,7 @@ settings: 'Ajustes', sound: 'Sonido', vib: 'Vibración',
 noVib: 'no disponible', restart: 'Empezar de nuevo', close: 'Cerrar',
 tut1: 'Arrastra una pieza al tablero', tut2: 'Completa una fila o columna',
 tutDone: '¡Genial! Sigue así', app: 'App', install: 'Instalar',
+support: 'Apoyar ♥', supportAsk: '¿Te gusta el juego? Apoya al autor ♥', author: 'Autor',
 lang: 'Idioma', theme: 'Tema',
 th_juicy: 'Jugosa', th_wood: 'Madera', th_night: 'Noche', th_day: 'Día'
 }
@@ -419,6 +427,11 @@ g.board.every(v => Number.isInteger(v) && v >= 0 && v <= 7) &&
 Array.isArray(g.tray) && g.tray.length === 3 &&
 g.tray.every(i => Number.isInteger(i) && i >= -1 && i < SHAPES.length) &&
 Number.isFinite(g.score) && Number.isFinite(g.rng);
+}
+let SUPPORT_URL = '';
+function openSupport() {
+if (!SUPPORT_URL) return;
+try { window.open(SUPPORT_URL, '_blank', 'noopener'); } catch (e) { location.href = SUPPORT_URL; }
 }
 const KEY_RUN = 'bb_run', KEY_BEST = 'bb_best';
 stDel('bb_stars');
@@ -785,8 +798,9 @@ openOverlay(
 '<div class="big">' + G.score + '</div>' +
 (rec ? '<div class="rec">' + t('record') + '</div>'
 : '<div class="sub">' + t('bestIs') + best + '</div>') +
-'<div class="btns"><button data-act="again">' + t('again') + '</button></div>',
-{ again: () => startGame(randomSeed()) });
+'<div class="btns"><button data-act="again">' + t('again') + '</button></div>' +
+(SUPPORT_URL ? '<button class="link" data-act="support">' + t('supportAsk') + '</button>' : ''),
+{ again: () => startGame(randomSeed()), support: openSupport });
 }
 let installEvt = null;
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
@@ -801,6 +815,7 @@ t('th_' + id) + '" aria-label="' + t('th_' + id) + '"><img alt="" src="' + theme
 const actions = {
 vib: () => { settings.vib = !settings.vib; saveSettings(); buzz(30); openSettings(); },
 restart: () => askRestart(),
+support: openSupport,
 install: () => {
 const e = installEvt;
 if (!e) return;
@@ -824,6 +839,7 @@ openOverlay(
 : '<span class="ctl" style="opacity:.6;font-weight:400">' + t('noVib') + '</span>') +
 '<span>' + t('lang') + '</span><div class="seg ctl">' + langBtns + '</div>' +
 (installEvt ? '<span>' + t('app') + '</span><button class="ctl" data-act="install">' + t('install') + '</button>' : '') +
+(SUPPORT_URL ? '<span>' + t('author') + '</span><button class="ctl sup" data-act="support">' + t('support') + '</button>' : '') +
 '</div>' +
 '<div class="blk"><h3>' + t('theme') + '</h3><div class="themes">' + themeBtns + '</div></div>' +
 '<div class="btns"><button class="alt" data-act="restart">' + t('restart') + '</button>' +
@@ -1284,7 +1300,8 @@ return bad ? 'ПРОВАЛОВ: ' + bad : 'ВСЁ OK (' + res.length + ')';
 }
 if (QS.has('dbg')) {
 window.BB = { get G() { return G; }, get ui() { return ui; },
-get layout() { return { LW, LH, OX, BX, BY, TRAY_Y, TRAY_H, SLOT_X, SLOT_W, CELL }; }, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings };
+get layout() { return { LW, LH, OX, BX, BY, TRAY_Y, TRAY_H, SLOT_X, SLOT_W, CELL }; },
+get supportUrl() { return SUPPORT_URL; }, set supportUrl(v) { SUPPORT_URL = v; }, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings };
 window.bbCheck = bbCheck;
 }
 addEventListener('resize', fit);
