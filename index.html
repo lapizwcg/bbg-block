@@ -182,7 +182,7 @@ if (NATIVE) { try { NATIVE.del(k); } catch (e) {} }
 try { localStorage.removeItem(k); } catch (e) {}
 }
 const KEY_SET = 'bb_settings';
-const settings = { volume: 0.7, vib: true, lang: '', theme: 'juicy', tutDone: false };
+const settings = { volume: 0.7, vib: true, lang: '', theme: 'juicy', tutDone: false, diff: 'normal' };
 try {
 const sv = JSON.parse(stGet(KEY_SET)) || {};
 if (typeof sv.sound === 'boolean' && sv.volume == null) sv.volume = sv.sound ? 0.7 : 0;
@@ -207,7 +207,9 @@ tut1: 'Перетащи фигуру на поле', tut2: 'Собери ряд 
 tutDone: 'Отлично! Так и играй', app: 'Приложение', install: 'Установить',
 support: 'Поддержать ♥', supportAsk: 'Нравится игра? Поддержи автора ♥', author: 'Автор',
 lang: 'Язык', theme: 'Тема',
-th_juicy: 'Сочная', th_wood: 'Дерево', th_night: 'Ночь', th_day: 'День'
+th_juicy: 'Сочная', th_wood: 'Дерево', th_night: 'Ночь', th_day: 'День',
+diff: 'Сложность', d_normal: 'Обычная', d_hard: 'Сложная', hardTag: 'СЛОЖНО',
+diffQ: 'Сложность сменится в новой партии', diffNow: 'Начать новую', diffLater: 'Позже'
 },
 en: {
 best: 'BEST', over: 'No moves left', score: 'Score', record: 'New high score!',
@@ -222,7 +224,9 @@ tut1: 'Drag a piece onto the board', tut2: 'Fill a whole row or column',
 tutDone: 'Great! Keep going', app: 'App', install: 'Install',
 support: 'Support ♥', supportAsk: 'Enjoying the game? Support the author ♥', author: 'Author',
 lang: 'Language', theme: 'Theme',
-th_juicy: 'Juicy', th_wood: 'Wood', th_night: 'Night', th_day: 'Day'
+th_juicy: 'Juicy', th_wood: 'Wood', th_night: 'Night', th_day: 'Day',
+diff: 'Difficulty', d_normal: 'Normal', d_hard: 'Hard', hardTag: 'HARD',
+diffQ: 'Difficulty changes with a new game', diffNow: 'New game', diffLater: 'Later'
 },
 es: {
 best: 'RÉCORD', over: 'Sin movimientos', score: 'Puntos', record: '¡Nuevo récord!',
@@ -237,7 +241,9 @@ tut1: 'Arrastra una pieza al tablero', tut2: 'Completa una fila o columna',
 tutDone: '¡Genial! Sigue así', app: 'App', install: 'Instalar',
 support: 'Apoyar ♥', supportAsk: '¿Te gusta el juego? Apoya al autor ♥', author: 'Autor',
 lang: 'Idioma', theme: 'Tema',
-th_juicy: 'Jugosa', th_wood: 'Madera', th_night: 'Noche', th_day: 'Día'
+th_juicy: 'Jugosa', th_wood: 'Madera', th_night: 'Noche', th_day: 'Día',
+diff: 'Dificultad', d_normal: 'Normal', d_hard: 'Difícil', hardTag: 'DIFÍCIL',
+diffQ: 'La dificultad cambia en una partida nueva', diffNow: 'Nueva partida', diffLater: 'Después'
 }
 };
 const LANGS = ['ru', 'en', 'es'];
@@ -275,11 +281,19 @@ const FAMILIES = [
 ['l5',   ['#..', '#..', '###'],          1.5, 0],
 ['t4',   ['###', '.#.'],                 2,   6],
 ['s4',   ['.##', '##.'],                 1,   2],
-['z4',   ['##.', '.##'],                 1,   4]
+['z4',   ['##.', '.##'],                 1,   4],
+['tri6', ['#..', '##.', '###'],          1.2, 0, true],
+['hx6',  ['#..', '###', '##.'],          1.2, 5, true],
+['u5',   ['##', '#.', '##'],             1.2, 1, true],
+['w5',   ['#..', '##.', '.##'],          1.2, 3, true],
+['p5',   ['###', '##.'],                 1.2, 2, true],
+['hy6',  ['.#.', '###', '##.'],          1.2, 4, true],
+['f5',   ['##.', '.##', '.#.'],          1.2, 6, true],
+['h7',   ['###', '.#.', '###'],          1.2, 5, true]
 ];
 function buildShapes() {
 const out = [];
-for (const [name, pic, weight, color] of FAMILIES) {
+for (const [name, pic, weight, color, hard] of FAMILIES) {
 let cells = [];
 pic.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === '#') cells.push([x, y]); }));
 const rots = [], seen = new Set();
@@ -297,20 +311,26 @@ cells: c,
 w: Math.max(...c.map(p => p[0])) + 1,
 h: Math.max(...c.map(p => p[1])) + 1,
 color,
+hard: !!hard,
 weight: weight / rots.length
 }));
 }
 return out;
 }
 const SHAPES = buildShapes();
-const TOTAL_W = SHAPES.reduce((s, f) => s + f.weight, 0);
+const POOLS = {};
+for (const mode of ['normal', 'hard']) {
+const idx = SHAPES.map((s, i) => i).filter(i => mode === 'hard' || !SHAPES[i].hard);
+POOLS[mode] = { idx, total: idx.reduce((a, i) => a + SHAPES[i].weight, 0) };
+}
 function pickShape(g) {
-let r = rnd(g) * TOTAL_W;
-for (let i = 0; i < SHAPES.length; i++) {
+const pool = POOLS[g.mode === 'hard' ? 'hard' : 'normal'];
+let r = rnd(g) * pool.total;
+for (const i of pool.idx) {
 r -= SHAPES[i].weight;
 if (r < 0) return i;
 }
-return SHAPES.length - 1;
+return pool.idx[pool.idx.length - 1];
 }
 const REROLL = 20;
 const COMBO_GRACE = 3;
@@ -319,7 +339,7 @@ const linePts = L => 100 * L * (L + 1) / 2;
 const EASY_ROW = 4, EASY_PREFILL = 2, EASY_COLOR = 5;
 const EASY_FIRST = ['i3_0', 'i3_0', 'i2_0'];
 const EASY_POOL = ['dot', 'i2_0', 'i3_0'];
-function newGame(seed, easy) {
+function newGame(seed, easy, mode) {
 const g = {
 v: 1, seed: seed >>> 0, rng: seed >>> 0,
 board: new Array(N * N).fill(0),
@@ -327,6 +347,7 @@ tray: [-1, -1, -1],
 score: 0, combo: 0, msc: 0,
 moves: 0, over: false
 };
+if (mode === 'hard') g.mode = 'hard';
 if (easy) {
 g.easy = true;
 for (let x = 0; x < EASY_PREFILL; x++) g.board[EASY_ROW * N + x] = EASY_COLOR + 1;
@@ -421,6 +442,7 @@ const mix = v => { h ^= v >>> 0; h = Math.imul(h, 0x01000193) >>> 0; };
 g.board.forEach(mix); g.tray.forEach(v => mix(v + 1));
 [g.score, g.combo, g.msc, g.moves, g.rng, g.over ? 1 : 0].forEach(mix);
 if (g.easy) { mix(0x45415359); mix(1); }
+if (g.mode === 'hard') { mix(0x48415244); mix(1); }
 return h.toString(16).padStart(8, '0');
 }
 function validG(g) {
@@ -428,7 +450,8 @@ return g && g.v === 1 && Array.isArray(g.board) && g.board.length === N * N &&
 g.board.every(v => Number.isInteger(v) && v >= 0 && v <= 7) &&
 Array.isArray(g.tray) && g.tray.length === 3 &&
 g.tray.every(i => Number.isInteger(i) && i >= -1 && i < SHAPES.length) &&
-Number.isFinite(g.score) && Number.isFinite(g.rng);
+Number.isFinite(g.score) && Number.isFinite(g.rng) &&
+(g.mode == null || g.mode === 'hard');
 }
 let SUPPORT_URL = 'https://send.monobank.ua/jar/6K1DTLciVs';
 function openSupport() {
@@ -436,6 +459,8 @@ if (!SUPPORT_URL) return;
 try { window.open(SUPPORT_URL, '_blank', 'noopener'); } catch (e) { location.href = SUPPORT_URL; }
 }
 const KEY_RUN = 'bb_run', KEY_BEST = 'bb_best';
+const bestKey = mode => mode === 'hard' ? KEY_BEST + '_hard' : KEY_BEST;
+const loadBest = mode => Math.max(0, parseInt(stGet(bestKey(mode)), 10) || 0);
 stDel('bb_stars');
 function packRun(g, extra) {
 const snap = Object.assign({}, g, { tray: undefined });
@@ -464,7 +489,7 @@ function saveRun() {
 stSet(KEY_RUN, packRun(G, { bestAtStart: ui.bestAtStart, recordShown: ui.recordShown }));
 }
 function saveBest() {
-stSet(KEY_BEST, String(best));
+stSet(bestKey(G && G.mode), String(best));
 }
 function randomSeed() { return (Math.random() * 4294967296) >>> 0; }
 const SFX = (function () {
@@ -476,10 +501,12 @@ master.gain.value = settings.volume * GAIN;
 const lp = a.createBiquadFilter();
 lp.type = 'lowpass'; lp.frequency.value = 4500; lp.Q.value = 0.5;
 master.connect(lp); lp.connect(a.destination);
-const len = Math.floor(a.sampleRate * 1.4), ir = a.createBuffer(2, len, a.sampleRate);
+const len = Math.floor(a.sampleRate * 1.0), ir = a.createBuffer(2, len, a.sampleRate);
+const decay = Math.pow(0.001, 1 / len);
 for (let ch = 0; ch < 2; ch++) {
 const d = ir.getChannelData(ch);
-for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+let env = 1;
+for (let i = 0; i < len; i++) { d[i] = (Math.random() * 2 - 1) * env; env *= decay; }
 }
 const conv = a.createConvolver(), wet = a.createGain();
 conv.buffer = ir; wet.gain.value = 0.22;
@@ -634,7 +661,8 @@ tut: 0,
 tutT: 0
 };
 function startGame(seed) {
-G = newGame(seed, !settings.tutDone);
+G = newGame(seed, !settings.tutDone, settings.diff);
+best = loadBest(G.mode);
 ui.drag = ui.target = ui.preview = ui.back = null;
 ui.fx = []; ui.parts = []; ui.floats = []; ui.banners = []; ui.pops = [];
 ui.shown = 0; ui.overT = -1; ui.bestAtStart = best; ui.recordShown = false;
@@ -645,7 +673,7 @@ if (G.over) gameOver();
 needDraw = true;
 }
 function load() {
-best = Math.max(0, parseInt(stGet(KEY_BEST), 10) || 0);
+best = loadBest(settings.diff);
 if (QS.has('seed')) {
 startGame(parseInt(QS.get('seed'), 10) >>> 0);
 try {
@@ -657,6 +685,7 @@ return;
 const saved = unpackRun(stGet(KEY_RUN));
 if (saved && !saved.g.over) {
 G = saved.g;
+best = loadBest(G.mode);
 ui.bestAtStart = Number.isFinite(saved.bestAtStart) ? saved.bestAtStart : best;
 ui.recordShown = !!saved.recordShown;
 ui.shown = G.score;
@@ -700,6 +729,7 @@ ui.hud = { btn: hb, id: ev.pointerId, inside: true };
 SFX.play('pick');
 try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
 needDraw = true;
+if (hb === 'gear') requestAnimationFrame(() => { ui.hud = null; openSettings(); });
 return;
 }
 if (G.over || ui.drag) return;
@@ -752,7 +782,7 @@ if (!ui.hud || ev.pointerId !== ui.hud.id) return;
 const btn = ui.hud.btn, fire = hudHit(toLogic(ev)) === btn;
 ui.hud = null; needDraw = true;
 if (!fire) return;
-if (btn === 'gear') openSettings(); else openSupport();
+if (btn === 'heart') openSupport();
 });
 cv.addEventListener('pointercancel', ev => {
 if (ui.hud && ev.pointerId === ui.hud.id) { ui.hud = null; needDraw = true; }
@@ -844,6 +874,8 @@ function openSettings() {
 const v = Math.round(settings.volume * 100);
 const langBtns = LANGS.map(l =>
 '<button class="' + (l === lang ? '' : 'alt') + '" data-act="lang_' + l + '">' + l.toUpperCase() + '</button>').join('');
+const diffBtns = ['normal', 'hard'].map(d =>
+'<button class="' + (settings.diff === d ? '' : 'alt') + '" data-act="diff_' + d + '">' + t('d_' + d) + '</button>').join('');
 const themeBtns = THEME_IDS.map(id =>
 '<button class="' + (id === settings.theme ? 'sel' : '') + '" data-act="theme_' + id + '" title="' +
 t('th_' + id) + '" aria-label="' + t('th_' + id) + '"><img alt="" src="' + themeThumb(id) + '"></button>').join('');
@@ -861,6 +893,16 @@ e.userChoice.finally(() => { if (!ovEl.hidden) openSettings(); });
 close: () => { closeOverlay(); needDraw = true; }
 };
 LANGS.forEach(l => { actions['lang_' + l] = () => { setLang(l); openSettings(); }; });
+['normal', 'hard'].forEach(d => { actions['diff_' + d] = () => {
+if (settings.diff === d) return;
+settings.diff = d; saveSettings();
+if ((G.mode || 'normal') === d) { openSettings(); return; }
+if (G.moves === 0 || G.over) { startGame(randomSeed()); openSettings(); return; }
+openOverlay('<h2>' + t('diffQ') + '</h2>' +
+'<div class="btns"><button data-act="now">' + t('diffNow') + '</button>' +
+'<button class="alt" data-act="later">' + t('diffLater') + '</button></div>',
+{ now: () => startGame(randomSeed()), later: () => openSettings() });
+}; });
 THEME_IDS.forEach(id => { actions['theme_' + id] = () => {
 settings.theme = id; saveSettings(); applyTheme(id); openSettings();
 }; });
@@ -872,6 +914,7 @@ openOverlay(
 '<span>' + t('vib') + '</span>' +
 (canVibrate ? '<button class="sw ctl' + (settings.vib ? ' on' : '') + '" data-act="vib" aria-label="' + t('vib') + '"></button>'
 : '<span class="ctl" style="opacity:.6;font-weight:400">' + t('noVib') + '</span>') +
+'<span>' + t('diff') + '</span><div class="seg ctl">' + diffBtns + '</div>' +
 '<span>' + t('lang') + '</span><div class="seg ctl">' + langBtns + '</div>' +
 (installEvt ? '<span>' + t('app') + '</span><button class="ctl" data-act="install">' + t('install') + '</button>' : '') +
 (SUPPORT_URL ? '<span>' + t('author') + '</span><button class="ctl sup" data-act="support">' + t('support') + '</button>' : '') +
@@ -1139,7 +1182,7 @@ const bg = ctx.createLinearGradient(0, 0, 0, LH);
 bg.addColorStop(0, COL.bgTop); bg.addColorStop(1, COL.bgBot);
 ctx.fillStyle = bg; ctx.fillRect(0, 0, LW, LH);
 label(String(Math.round(ui.shown)), LW / 2, HY + 20, 22, COL.text, COL.textStroke);
-label(t('best') + '  ' + best, LW / 2, HY + 37, 8, COL.gold);
+label(t('best') + '  ' + best + (G.mode === 'hard' ? '  ·  ' + t('hardTag') : ''), LW / 2, HY + 37, 8, COL.gold);
 drawGear(GEAR.x, GEAR.y);
 if (SUPPORT_URL) drawHeart(HEART.x, HEART.y);
 drawCombo();
@@ -1302,6 +1345,14 @@ ok('за край — отказ', place(g, 0, 9, 9) === null);
 g = newGame(777);
 const g2 = JSON.parse(JSON.stringify(g));
 ok('сохранение туда-обратно', validG(g2) && hashG(g2) === hashG(g));
+let hn = 0, hh = 0;
+const gn = newGame(501), gh = newGame(501, false, 'hard');
+for (let k = 0; k < 400; k++) { if (SHAPES[pickShape(gn)].hard) hn++; if (SHAPES[pickShape(gh)].hard) hh++; }
+ok('обычная: ни одной фигуры сложной', hn === 0, '400 выдач');
+ok('сложная: новые фигуры выпадают', hh > 40 && hh < 200, hh + ' из 400');
+ok('сложная детерминирована и отличается', hashG(newGame(77, false, 'hard')) === hashG(newGame(77, false, 'hard')) &&
+hashG(newGame(77, false, 'hard')) !== hashG(newGame(77)));
+ok('фигур: обычная 33, всего ' + SHAPES.length, POOLS.normal.idx.length === 33);
 ok('все фигуры в рамке 3x3', SHAPES.every(f => f.w <= 3 && f.h <= 3), SHAPES.length + ' фигур');
 const wL3 = SHAPES.filter(s => s.id.startsWith('l3')).reduce((s, f) => s + f.weight, 0);
 ok('вес уголка = 3 на все повороты', Math.abs(wL3 - 3) < 1e-9, SHAPES.length + ' фигур в пуле');
@@ -1364,7 +1415,7 @@ return bad ? 'ПРОВАЛОВ: ' + bad : 'ВСЁ OK (' + res.length + ')';
 if (QS.has('dbg')) {
 window.BB = { get G() { return G; }, get ui() { return ui; },
 get layout() { return { LW, LH, OX, BX, BY, TRAY_Y, TRAY_H, SLOT_X, SLOT_W, CELL }; },
-get supportUrl() { return SUPPORT_URL; }, set supportUrl(v) { SUPPORT_URL = v; }, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings };
+get supportUrl() { return SUPPORT_URL; }, set supportUrl(v) { SUPPORT_URL = v; }, draw, fit, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings };
 window.bbCheck = bbCheck;
 }
 addEventListener('resize', fit);
