@@ -308,7 +308,9 @@ const REROLL = 20;
 const COMBO_GRACE = 3;
 const CLEAN_BONUS = 1000;
 const linePts = L => 100 * L * (L + 1) / 2;
-function newGame(seed) {
+const EASY_FIRST = ['i5_0', 'i5_0', 'i3_0'];
+const EASY_POOL = ['dot', 'i2_0', 'i3_0', 'i4_0', 'i5_0'];
+function newGame(seed, easy) {
 const g = {
 v: 1, seed: seed >>> 0, rng: seed >>> 0,
 board: new Array(N * N).fill(0),
@@ -316,7 +318,10 @@ tray: [-1, -1, -1],
 score: 0, combo: 0, msc: 0,
 moves: 0, over: false
 };
-refill(g);
+if (easy) {
+g.easy = true;
+g.tray = EASY_FIRST.map(id => SHAPES.findIndex(s => s.id === id));
+} else refill(g);
 g.over = !anyFits(g);
 return g;
 }
@@ -334,10 +339,15 @@ return false;
 function anyFits(g) {
 return g.tray.some(i => i >= 0 && fitsAnywhere(g.board, SHAPES[i]));
 }
+function pickEasy(g) {
+const id = EASY_POOL[Math.floor(rnd(g) * EASY_POOL.length)];
+return SHAPES.findIndex(s => s.id === id);
+}
 function refill(g) {
 let tray;
+const pick = g.easy ? pickEasy : pickShape;
 for (let a = 0; a <= REROLL; a++) {
-tray = [pickShape(g), pickShape(g), pickShape(g)];
+tray = [pick(g), pick(g), pick(g)];
 if (tray.some(i => fitsAnywhere(g.board, SHAPES[i]))) break;
 }
 g.tray = tray;
@@ -378,6 +388,7 @@ cleared.push({ x: i % N, y: (i / N) | 0, c: g.board[i] - 1 });
 g.board[i] = 0;
 }
 g.combo = (g.combo > 0 && g.msc < COMBO_GRACE) ? g.combo + 1 : 1;
+delete g.easy;
 g.msc = 0;
 gained += linePts(lines) * g.combo;
 } else {
@@ -399,6 +410,7 @@ let h = 0x811c9dc5;
 const mix = v => { h ^= v >>> 0; h = Math.imul(h, 0x01000193) >>> 0; };
 g.board.forEach(mix); g.tray.forEach(v => mix(v + 1));
 [g.score, g.combo, g.msc, g.moves, g.rng, g.over ? 1 : 0].forEach(mix);
+if (g.easy) { mix(0x45415359); mix(1); }
 return h.toString(16).padStart(8, '0');
 }
 function validG(g) {
@@ -606,7 +618,7 @@ tut: 0,
 tutT: 0
 };
 function startGame(seed) {
-G = newGame(seed);
+G = newGame(seed, !settings.tutDone);
 ui.drag = ui.target = ui.preview = ui.back = null;
 ui.fx = []; ui.parts = []; ui.floats = []; ui.banners = []; ui.pops = [];
 ui.shown = 0; ui.overT = -1; ui.bestAtStart = best; ui.recordShown = false;
@@ -988,7 +1000,7 @@ if (ui.tut !== 1 || ui.drag || !ovEl.hidden) return;
 const slot = G.tray.findIndex(i => i >= 0);
 if (slot < 0) return;
 const s = SHAPES[G.tray[slot]];
-let gx = Math.floor((N - s.w) / 2), gy = Math.floor((N - s.h) / 2);
+let gx = G.easy ? 0 : Math.floor((N - s.w) / 2), gy = Math.floor((N - s.h) / 2);
 if (!fits(G.board, s, gx, gy)) {
 let found = false;
 for (let y = 0; y + s.h <= N && !found; y++)
@@ -1240,6 +1252,20 @@ gone.g.trayIds = ['nosuch', gone.g.trayIds[1], gone.g.trayIds[2]];
 const repl = unpackRun(JSON.stringify(gone));
 ok('пропавшая фигура заменяется, партия цела', repl && repl.g.tray[0] >= 0 && repl.g.score === g.score);
 ok('битое сохранение → null', unpackRun('{oops') === null && unpackRun('{"v":2,"g":{}}') === null);
+g = newGame(21, true);
+ok('обучение: первая тройка 5+5+3', g.tray.map(i => SHAPES[i].id).join() === EASY_FIRST.join());
+ok('обучение детерминировано', hashG(newGame(21, true)) === hashG(g) && hashG(g) !== hashG(newGame(21)));
+place(g, 0, 0, 5);
+r = place(g, 1, 5, 5);
+ok('обучение: линия вторым ходом, режим выключен', r && r.lines === 1 && !g.easy);
+g = newGame(22, true);
+place(g, 0, 0, 0); place(g, 1, 0, 2); place(g, 2, 0, 4);
+ok('обучение: без линии — дальше только палки и точка',
+g.easy && g.tray.every(i => EASY_POOL.includes(SHAPES[i].id)), g.tray.map(i => SHAPES[i].id).join(' '));
+let easyBad = 0;
+for (let k = 0; k < 40; k++) { const e = newGame(1000 + k, true); e.board[0] = 1; refill(e);
+if (!e.tray.every(i => EASY_POOL.includes(SHAPES[i].id))) easyBad++; }
+ok('обучение: 40 выдач — только лёгкий пул', !easyBad, easyBad + ' чужих');
 const keys = Object.keys(STRINGS.ru);
 for (const l of LANGS) {
 const miss = keys.filter(k => !(k in STRINGS[l]));
@@ -1257,7 +1283,8 @@ const bad = res.filter(x => x.итог !== 'OK').length;
 return bad ? 'ПРОВАЛОВ: ' + bad : 'ВСЁ OK (' + res.length + ')';
 }
 if (QS.has('dbg')) {
-window.BB = { get G() { return G; }, get ui() { return ui; }, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings };
+window.BB = { get G() { return G; }, get ui() { return ui; },
+get layout() { return { LW, LH, OX, BX, BY, TRAY_Y, TRAY_H, SLOT_X, SLOT_W, CELL }; }, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings };
 window.bbCheck = bbCheck;
 }
 addEventListener('resize', fit);
