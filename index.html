@@ -124,13 +124,13 @@ padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)"
 (function () {
 const DW = 180, DH = 320;
 const N = 10, CELL = 16;
-const TRAY_H = 90;
+const TRAY_H = 62;
 const TRAY_GAP = 4;
 let LW = DW, LH = DH, SCALE = 4;
 let OX = 0, HY = 0;
-let BX = 10, BY = 60;
-let COMBO_Y = 49;
-let TRAY_Y = 224;
+let BX = 10, BY = 74;
+let COMBO_Y = 63;
+let TRAY_Y = 238;
 let SLOT_X = BX - 3, SLOT_W = (N * CELL + 6) / 3;
 const GEAR = { x: 162, y: 20, r: 10 };
 const HEART = { x: 18, y: 20, r: 10 };
@@ -149,8 +149,8 @@ const top = safeTop / k, bot = safeBot / k;
 const extra = Math.max(0, LH - DH - top - bot);
 HY = top + extra * 0.3;
 const gy = top + extra * 0.7;
-BX = OX + 10; BY = 60 + gy;
-COMBO_Y = 49 + gy;
+BX = OX + 10; BY = 74 + gy;
+COMBO_Y = 63 + gy;
 TRAY_Y = BY + N * CELL + TRAY_GAP;
 SLOT_X = BX - 3;
 GEAR.x = OX + 162; GEAR.y = 20 + HY;
@@ -266,8 +266,6 @@ const FAMILIES = [
 ['dot',  ['#'],                          2,   6],
 ['i2',   ['##'],                         3,   4],
 ['i3',   ['###'],                        3,   5],
-['i4',   ['####'],                       2,   0],
-['i5',   ['#####'],                      1.5, 1],
 ['o2',   ['##', '##'],                   3,   2],
 ['o3',   ['###', '###', '###'],          1,   3],
 ['r23',  ['###', '###'],                 1,   1],
@@ -318,8 +316,9 @@ const REROLL = 20;
 const COMBO_GRACE = 3;
 const CLEAN_BONUS = 1000;
 const linePts = L => 100 * L * (L + 1) / 2;
-const EASY_FIRST = ['i5_0', 'i5_0', 'i3_0'];
-const EASY_POOL = ['dot', 'i2_0', 'i3_0', 'i4_0', 'i5_0'];
+const EASY_ROW = 4, EASY_PREFILL = 2, EASY_COLOR = 5;
+const EASY_FIRST = ['i3_0', 'i3_0', 'i2_0'];
+const EASY_POOL = ['dot', 'i2_0', 'i3_0'];
 function newGame(seed, easy) {
 const g = {
 v: 1, seed: seed >>> 0, rng: seed >>> 0,
@@ -330,6 +329,7 @@ moves: 0, over: false
 };
 if (easy) {
 g.easy = true;
+for (let x = 0; x < EASY_PREFILL; x++) g.board[EASY_ROW * N + x] = EASY_COLOR + 1;
 g.tray = EASY_FIRST.map(id => SHAPES.findIndex(s => s.id === id));
 } else refill(g);
 g.over = !anyFits(g);
@@ -1069,7 +1069,12 @@ if (ui.tut !== 1 || ui.drag || !ovEl.hidden) return;
 const slot = G.tray.findIndex(i => i >= 0);
 if (slot < 0) return;
 const s = SHAPES[G.tray[slot]];
-let gx = G.easy ? 0 : Math.floor((N - s.w) / 2), gy = Math.floor((N - s.h) / 2);
+let gx = Math.floor((N - s.w) / 2), gy = Math.floor((N - s.h) / 2);
+if (G.easy) {
+gy = EASY_ROW;
+gx = 0;
+while (gx + s.w <= N && !fits(G.board, s, gx, gy)) gx++;
+}
 if (!fits(G.board, s, gx, gy)) {
 let found = false;
 for (let y = 0; y + s.h <= N && !found; y++)
@@ -1297,6 +1302,7 @@ ok('за край — отказ', place(g, 0, 9, 9) === null);
 g = newGame(777);
 const g2 = JSON.parse(JSON.stringify(g));
 ok('сохранение туда-обратно', validG(g2) && hashG(g2) === hashG(g));
+ok('все фигуры в рамке 3x3', SHAPES.every(f => f.w <= 3 && f.h <= 3), SHAPES.length + ' фигур');
 const wL3 = SHAPES.filter(s => s.id.startsWith('l3')).reduce((s, f) => s + f.weight, 0);
 ok('вес уголка = 3 на все повороты', Math.abs(wL3 - 3) < 1e-9, SHAPES.length + ' фигур в пуле');
 g = newGame(55);
@@ -1324,13 +1330,15 @@ const repl = unpackRun(JSON.stringify(gone));
 ok('пропавшая фигура заменяется, партия цела', repl && repl.g.tray[0] >= 0 && repl.g.score === g.score);
 ok('битое сохранение → null', unpackRun('{oops') === null && unpackRun('{"v":2,"g":{}}') === null);
 g = newGame(21, true);
-ok('обучение: первая тройка 5+5+3', g.tray.map(i => SHAPES[i].id).join() === EASY_FIRST.join());
+ok('обучение: ряд начат, первая тройка 3+3+2',
+g.tray.map(i => SHAPES[i].id).join() === EASY_FIRST.join() &&
+g.board.slice(EASY_ROW * N, EASY_ROW * N + N).filter(v => v).length === EASY_PREFILL);
 ok('обучение детерминировано', hashG(newGame(21, true)) === hashG(g) && hashG(g) !== hashG(newGame(21)));
-place(g, 0, 0, 5);
-r = place(g, 1, 5, 5);
-ok('обучение: линия вторым ходом, режим выключен', r && r.lines === 1 && !g.easy);
+place(g, 0, 2, EASY_ROW); place(g, 1, 5, EASY_ROW);
+r = place(g, 2, 8, EASY_ROW);
+ok('обучение: линия третьим ходом, режим выключен', r && r.lines === 1 && !g.easy && g.board.every(v => !v));
 g = newGame(22, true);
-place(g, 0, 0, 0); place(g, 1, 0, 2); place(g, 2, 0, 4);
+place(g, 0, 0, 0); place(g, 1, 0, 2); place(g, 2, 0, 6);
 ok('обучение: без линии — дальше только палки и точка',
 g.easy && g.tray.every(i => EASY_POOL.includes(SHAPES[i].id)), g.tray.map(i => SHAPES[i].id).join(' '));
 let easyBad = 0;
