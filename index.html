@@ -289,10 +289,8 @@ const FAMILIES = [
 ['p5',   ['###', '##.'],                 1.2, 2, true],
 ['hy6',  ['.#.', '###', '##.'],          1.2, 4, true],
 ['f5',   ['##.', '.##', '.#.'],          1.2, 6, true],
-['h7',   ['###', '.#.', '###'],          1.2, 5, true],
 ['t5',   ['###', '.#.', '.#.'],          1.2, 0, true],
 ['s7',   ['##.', '###', '.##'],          1.2, 3, true],
-['a6',   ['.#.', '###', '#.#'],          1.2, 6, true],
 ['s5',   ['.##', '.#.', '##.'],          1.2, 2, true]
 ];
 function picCells(pic) {
@@ -1465,11 +1463,73 @@ bbCheck.last = res;
 const bad = res.filter(x => x.итог !== 'OK').length;
 return bad ? 'ПРОВАЛОВ: ' + bad : 'ВСЁ OK (' + res.length + ')';
 }
+function bbSim(opt) {
+opt = opt || {};
+const games = opt.games || 120, cap = opt.cap || 400;
+const fam = i => SHAPES[i].id.split('_')[0];
+const holes = b => {
+let h = 0;
+for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+if (b[y * N + x]) continue;
+if ([[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]].every(([a, c]) =>
+a < 0 || c < 0 || a >= N || c >= N || b[c * N + a])) h++;
+}
+return h;
+};
+const out = {};
+for (const mode of ['normal', 'hard']) {
+const tot = {}, lens = [];
+let score = 0, capped = 0;
+const add = (f, k, v) => { (tot[f] = tot[f] || { offer: 0, dead: 0, holes: 0, placed: 0 })[k] += v; };
+for (let k = 0; k < games; k++) {
+const g = newGame(7000 + k, false, mode);
+g.tray.forEach(i => add(fam(i), 'offer', 1));
+while (!g.over && g.moves < cap) {
+let best = null;
+g.tray.forEach((si, slot) => {
+if (si < 0) return;
+const sh = SHAPES[si];
+for (let y = 0; y + sh.h <= N; y++) for (let x = 0; x + sh.w <= N; x++) {
+if (!fits(g.board, sh, x, y)) continue;
+const c = { ...g, board: g.board.slice(), tray: g.tray.slice() };
+const r = place(c, slot, x, y);
+let contact = 0;
+for (const [cx, cy] of sh.cells) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+const a = x + cx + dx, b = y + cy + dy;
+if (a < 0 || b < 0 || a >= N || b >= N || g.board[b * N + a]) contact++;
+}
+const sc = r.lines * 50 + contact - holes(c.board) * 8;
+if (!best || sc > best.sc) best = { sc, slot, x, y };
+}
+});
+if (!best) break;
+const si = g.tray[best.slot], h0 = holes(g.board), last = g.tray.filter(i => i >= 0).length === 1;
+place(g, best.slot, best.x, best.y);
+add(fam(si), 'placed', 1); add(fam(si), 'holes', Math.max(0, holes(g.board) - h0));
+if (last) g.tray.forEach(i => i >= 0 && add(fam(i), 'offer', 1));
+}
+g.tray.forEach(i => i >= 0 && add(fam(i), 'dead', 1));
+lens.push(g.moves); score += g.score; if (g.moves >= cap) capped++;
+}
+lens.sort((a, b) => a - b);
+out[mode] = {
+ходов_среднее: Math.round(lens.reduce((a, b) => a + b, 0) / games), ходов_медиана: lens[games >> 1],
+счёт_среднее: Math.round(score / games), упёрлись_в_потолок: capped,
+формы: Object.entries(tot).map(([f, v]) => ({ форма: f, выдач: v.offer,
+проигрыш: +(100 * v.dead / Math.max(1, v.offer)).toFixed(1), дыр_на_ход: +(v.holes / Math.max(1, v.placed)).toFixed(2) }))
+.sort((a, b) => b.проигрыш - a.проигрыш)
+};
+console.log('[bbSim] ' + mode, out[mode].ходов_среднее, 'ходов');
+console.table(out[mode].формы);
+}
+return out;
+}
 if (QS.has('dbg')) {
 window.BB = { get G() { return G; }, get ui() { return ui; },
 get layout() { return { LW, LH, OX, BX, BY, TRAY_Y, TRAY_H, SLOT_X, SLOT_W, CELL }; },
 get supportUrl() { return SUPPORT_URL; }, set supportUrl(v) { SUPPORT_URL = v; }, draw, fit, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings };
 window.bbCheck = bbCheck;
+window.bbSim = bbSim;
 }
 addEventListener('resize', fit);
 addEventListener('orientationchange', fit);
