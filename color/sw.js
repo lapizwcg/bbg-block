@@ -8,7 +8,7 @@
 // кэшировался под 'index.html' — первый заход во вторую игру записал бы
 // её страницу вместо своей. Чужие переходы и файлы — мимо, в сеть (у
 // второй игры свой воркер с областью точнее, он и главный там).
-const V = 'bbg-54339b320c';
+const V = 'bbc-24280cd05c';
 const HOME = new URL('./', self.registration.scope).pathname;
 const own = u => u.pathname === HOME || u.pathname === HOME + 'index.html';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
@@ -18,7 +18,7 @@ self.addEventListener('install', e => {
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
-    .then(ks => Promise.all(ks.filter(k => k.startsWith('bbg-') && k !== V).map(k => caches.delete(k))))
+    .then(ks => Promise.all(ks.filter(k => k.startsWith('bbc-') && k !== V).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', e => {
