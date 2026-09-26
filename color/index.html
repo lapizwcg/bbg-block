@@ -203,7 +203,7 @@ p2: 'Хорошо!', p3: 'Отлично!', p4: 'Великолепно!', p5: '
 comboBar: 'КОМБО', comboNext: 'след. ×', comboNone: 'соедини цвета',
 settings: 'Настройки', sound: 'Звук', vib: 'Вибрация',
 noVib: 'нет на устройстве', restart: 'Начать заново', close: 'Закрыть',
-tut1: 'Перетащи фигуру на поле', tut2: 'Соедини 3+ блока одного цвета',
+junk: 'МУСОР', tut1: 'Перетащи фигуру на поле', tut2: 'Соедини 3+ блока одного цвета',
 tutDone: 'Отлично! Так и играй', app: 'Приложение', install: 'Установить',
 support: 'Поддержать ♥', supportAsk: 'Нравится игра? Поддержи автора ♥', author: 'Автор',
 lang: 'Язык', theme: 'Тема',
@@ -220,7 +220,7 @@ p2: 'Good!', p3: 'Great!', p4: 'Excellent!', p5: 'Amazing!',
 comboBar: 'COMBO', comboNext: 'next ×', comboNone: 'match colors',
 settings: 'Settings', sound: 'Sound', vib: 'Vibration',
 noVib: 'not supported', restart: 'Start over', close: 'Close',
-tut1: 'Drag a piece onto the board', tut2: 'Join 3+ blocks of one color',
+junk: 'JUNK', tut1: 'Drag a piece onto the board', tut2: 'Join 3+ blocks of one color',
 tutDone: 'Great! Keep going', app: 'App', install: 'Install',
 support: 'Support ♥', supportAsk: 'Enjoying the game? Support the author ♥', author: 'Author',
 lang: 'Language', theme: 'Theme',
@@ -237,7 +237,7 @@ p2: '¡Bien!', p3: '¡Genial!', p4: '¡Excelente!', p5: '¡Increíble!',
 comboBar: 'COMBO', comboNext: 'sig. ×', comboNone: 'une colores',
 settings: 'Ajustes', sound: 'Sonido', vib: 'Vibración',
 noVib: 'no disponible', restart: 'Empezar de nuevo', close: 'Cerrar',
-tut1: 'Arrastra una pieza al tablero', tut2: 'Une 3+ bloques del mismo color',
+junk: 'BASURA', tut1: 'Arrastra una pieza al tablero', tut2: 'Une 3+ bloques del mismo color',
 tutDone: '¡Genial! Sigue así', app: 'App', install: 'Instalar',
 support: 'Apoyar ♥', supportAsk: '¿Te gusta el juego? Apoya al autor ♥', author: 'Autor',
 lang: 'Idioma', theme: 'Tema',
@@ -373,6 +373,27 @@ const GROUP_MIN = 10;
 const COLORS = [0, 1, 2, 3, 4, 5, 6];
 let NCOL = 7;
 const CLEAR_PTS = 10;
+const JUNK = 8;
+const DRY_LIMIT = 3;
+const JUNK_PTS = 5;
+let JUNK_MAX = 2;
+const junkPool = () => SHAPES.map((s, i) => i).filter(i => !SHAPES[i].hard && SHAPES[i].cells.length <= JUNK_MAX);
+function pickJunk(g) {
+const idx = junkPool(), total = idx.reduce((a, i) => a + SHAPES[i].weight, 0);
+let r = rnd(g) * total;
+for (const i of idx) { r -= SHAPES[i].weight; if (r < 0) return i; }
+return idx[idx.length - 1];
+}
+function dropJunk(g) {
+const s = SHAPES[pickJunk(g)], spots = [];
+for (let y = 0; y + s.h <= N; y++)
+for (let x = 0; x + s.w <= N; x++)
+if (fits(g.board, s, x, y)) spots.push([x, y]);
+if (!spots.length) return false;
+const [x, y] = spots[Math.floor(rnd(g) * spots.length)];
+for (const [cx, cy] of s.cells) g.board[(y + cy) * N + x + cx] = JUNK;
+return { s, x, y };
+}
 const clearTier = n => n >= 30 ? 5 : n >= 24 ? 4 : n >= 18 ? 3 : n >= 14 ? 2 : 1;
 function pickColors(g) {
 const pool = COLORS.slice(0, NCOL), out = [];
@@ -389,6 +410,7 @@ v: 1, seed: seed >>> 0, rng: seed >>> 0,
 board: new Array(N * N).fill(0),
 tray: [-1, -1, -1],
 score: 0, combo: 0, comboLeft: 0,
+dry: 0,
 moves: 0, over: false
 };
 if (mode === 'hard') g.mode = 'hard';
@@ -455,7 +477,8 @@ group.add(j); stack.push(j);
 }
 }
 const touchesOld = group.size > placed.size;
-const cleared = [];
+const cleared = [], junkGone = [];
+let junkDrop = null;
 if (touchesOld && group.size >= GROUP_MIN) {
 for (const i of group) {
 cleared.push({ x: i % N, y: (i / N) | 0, c: col });
@@ -465,17 +488,30 @@ g.combo = (g.combo > 0 && g.comboLeft - elapsed > 0) ? g.combo + 1 : 1;
 g.comboLeft = COMBO_MS;
 delete g.easy;
 gained += CLEAR_PTS * cleared.length * g.combo;
+for (const c of cleared)
+for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+const nx = c.x + dx, ny = c.y + dy, j = ny * N + nx;
+if (nx < 0 || ny < 0 || nx >= N || ny >= N || g.board[j] !== JUNK) continue;
+g.board[j] = 0;
+junkGone.push({ x: nx, y: ny });
+}
+gained += JUNK_PTS * junkGone.length * g.combo;
+g.dry = 0;
 } else {
 g.comboLeft = Math.max(0, g.comboLeft - elapsed);
 if (g.comboLeft <= 0) g.combo = 0;
+if (!g.easy && ++g.dry >= DRY_LIMIT) {
+g.dry = 0;
+junkDrop = dropJunk(g);
+}
 }
 const lines = cleared.length ? clearTier(cleared.length) : 0;
 const clean = lines > 0 && g.board.every(v => !v);
 if (clean) gained += CLEAN_BONUS;
 g.score += gained;
 if (g.tray.every(i => i < 0)) refill(g);
-g.over = !anyFits(g);
-return { s, x, y, col, lines, cleared, gained, combo: g.combo, clean };
+g.over = junkDrop === false || !anyFits(g);
+return { s, x, y, col, lines, cleared, junkGone, junkDrop, gained, combo: g.combo, clean };
 }
 function predict(g, slot, x, y, ms) {
 return place({ ...g, board: g.board.slice(), tray: g.tray.slice(), tc: g.tc.slice() }, slot, x, y, ms);
@@ -484,14 +520,14 @@ function hashG(g) {
 let h = 0x811c9dc5;
 const mix = v => { h ^= v >>> 0; h = Math.imul(h, 0x01000193) >>> 0; };
 g.board.forEach(mix); g.tray.forEach(v => mix(v + 1)); g.tc.forEach(v => mix(v + 1));
-[g.score, g.combo, g.comboLeft, g.moves, g.rng, g.over ? 1 : 0].forEach(mix);
+[g.score, g.combo, g.comboLeft, g.dry, g.moves, g.rng, g.over ? 1 : 0].forEach(mix);
 if (g.easy) { mix(0x45415359); mix(1); }
 if (g.mode === 'hard') { mix(0x48415244); mix(1); }
 return h.toString(16).padStart(8, '0');
 }
 function validG(g) {
 return g && g.v === 1 && Array.isArray(g.board) && g.board.length === N * N &&
-g.board.every(v => Number.isInteger(v) && v >= 0 && v <= 7) &&
+g.board.every(v => Number.isInteger(v) && v >= 0 && v <= JUNK) && Number.isInteger(g.dry) &&
 Array.isArray(g.tray) && g.tray.length === 3 &&
 g.tray.every(i => Number.isInteger(i) && i >= -1 && i < SHAPES.length) &&
 Array.isArray(g.tc) && g.tc.length === 3 && g.tc.every(c => Number.isInteger(c) && c >= 0 && c < 7) &&
@@ -526,6 +562,7 @@ return i >= 0 ? i : pickShape(g);
 delete g.trayIds;
 }
 if (!Number.isFinite(g.comboLeft)) g.comboLeft = 0;
+if (!Number.isInteger(g.dry)) g.dry = 0;
 delete g.msc;
 if (!validG(g)) return null;
 saved.g = g;
@@ -612,6 +649,10 @@ voice(hz(m), 0.18, { vol: 0.12, glide: 1.5, gt: 0.07, at: 0.25 + i * 0.065 + Mat
 record() {
 [55, 60, 64, 67, 72].forEach((m, i) =>
 voice(hz(m), 0.2, { vol: 0.13, glide: 1.45, gt: 0.07, at: 0.2 + i * 0.09 }));
+},
+junk() {
+[[170, 0], [135, 0.08], [100, 0.16]].forEach(([f, at]) =>
+voice(f, 0.26, { vol: 0.2, glide: 0.6, gt: 0.2, at: 0.12 + at }));
 },
 tray() { voice(520, 0.14, { vol: 0.12, glide: 1.5, gt: 0.06, at: 0.08 }); },
 over() { [72, 67, 64, 60].forEach((m, i) => voice(hz(m), 0.5, { vol: 0.13, glide: 0.98, gt: 0.3, at: i * 0.2 })); },
@@ -706,6 +747,7 @@ parts: [],
 floats: [],
 banners: [],
 pops: [],
+drops: [],
 shown: 0,
 overT: -1,
 bestAtStart: 0,
@@ -719,7 +761,7 @@ function startGame(seed) {
 G = newGame(seed, !settings.tutDone, settings.diff);
 best = loadBest(G.mode);
 ui.drag = ui.target = ui.preview = ui.back = null;
-ui.fx = []; ui.parts = []; ui.floats = []; ui.banners = []; ui.pops = [];
+ui.fx = []; ui.parts = []; ui.floats = []; ui.banners = []; ui.pops = []; ui.drops = [];
 ui.shown = 0; ui.overT = -1; ui.bestAtStart = best; ui.recordShown = false; ui.sinceMove = 0;
 ui.tut = settings.tutDone ? 0 : 1; ui.tutT = 0;
 closeOverlay();
@@ -885,6 +927,15 @@ c: c.c, s: 2 + Math.random() * 3, t: -delay, life: 0.6 + Math.random() * 0.3
 });
 }
 }
+for (const j of res.junkGone) {
+const delay = Math.hypot(j.x + 0.5 - ox, j.y + 0.5 - oy) * 0.025;
+ui.fx.push({ x: j.x, y: j.y, c: GREY, t: -delay });
+}
+if (res.junkDrop) {
+const d = res.junkDrop;
+for (const [cx, cy] of d.s.cells) ui.drops.push({ x: d.x + cx, y: d.y + cy, t: -0.12 - cy * 0.03 });
+SFX.play('junk'); buzz([15, 30, 30]);
+}
 ui.floats.push({
 x: BX + (gx + s.w / 2) * CELL, y: BY + (gy + s.h / 2) * CELL,
 text: '+' + res.gained, t: 0, big: res.lines > 0
@@ -1023,7 +1074,7 @@ openOverlay(
 '<button class="alt" data-act="no">' + t('no') + '</button></div>',
 { yes: () => startGame(randomSeed()), no: () => { closeOverlay(); needDraw = true; } });
 }
-const FX_LIFE = 0.32, POP_LIFE = 0.18, FLOAT_LIFE = 0.9, BANNER_LIFE = 1.3, OVER_DELAY = 0.9, BACK_LIFE = 0.14;
+const DROP_LIFE = 0.22, FX_LIFE = 0.32, POP_LIFE = 0.18, FLOAT_LIFE = 0.9, BANNER_LIFE = 1.3, OVER_DELAY = 0.9, BACK_LIFE = 0.14;
 function comboRemaining() {
 return G && G.combo > 0 ? Math.max(0, G.comboLeft - ui.sinceMove) : 0;
 }
@@ -1046,6 +1097,10 @@ if (p.t > 0) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 260 * dt; }
 ui.parts = ui.parts.filter(p => p.t < p.life);
 for (const p of ui.pops) p.t += dt;
 ui.pops = ui.pops.filter(p => p.t < POP_LIFE);
+for (const d of ui.drops) d.t += dt;
+ui.drops = ui.drops.filter(d => d.t < DROP_LIFE);
+if (ui.drops.length) busy = true;
+if (G && !ui.tut && !G.easy && G.dry === DRY_LIMIT - 1 && ovEl.hidden) busy = true;
 for (const f of ui.floats) f.t += dt;
 ui.floats = ui.floats.filter(f => f.t < FLOAT_LIFE);
 for (const b of ui.banners) b.t += dt;
@@ -1268,6 +1323,28 @@ ctx.globalAlpha = 1;
 text(right, BX + N * CELL - 2, y + 0.3, 7, 'hsl(' + hue + ',90%,62%)', 'right');
 } else text(right, BX + N * CELL - 2, y + 0.3, 6.5, COL.faint, 'right');
 }
+function drawJunkMeter() {
+if (ui.tut || G.easy) return;
+const y = COMBO_Y - 12, pw = 6, gap = 2.5;
+ctx.font = '800 6px "Segoe UI", Roboto, system-ui, sans-serif';
+const label = t('junk'), lw = ctx.measureText(label).width;
+const total = lw + 4 + DRY_LIMIT * pw + (DRY_LIMIT - 1) * gap;
+let x = LW / 2 - total / 2;
+const warn = G.dry === DRY_LIMIT - 1;
+text(label, x, y + 0.3, 6, warn ? '#ff8a8a' : COL.faint);
+x += lw + 4;
+for (let k = 0; k < DRY_LIMIT; k++) {
+const lit = k < G.dry, last = k === G.dry && warn;
+if (lit) { block(x, y - pw / 2, pw, GREY); }
+else {
+ctx.globalAlpha = last ? 0.55 + 0.45 * Math.sin(performance.now() / 110) : 1;
+ctx.strokeStyle = last ? '#ff6b6b' : COL.faint; ctx.lineWidth = 0.8;
+rrect(x + 0.4, y - pw / 2 + 0.4, pw - 0.8, pw - 0.8, 1.2); ctx.stroke();
+ctx.globalAlpha = 1;
+}
+x += pw + gap;
+}
+}
 function drawShape(s, cx, cy, size, ci, alpha) {
 const x0 = cx - s.w * size / 2, y0 = cy - s.h * size / 2;
 ctx.globalAlpha = alpha ?? 1;
@@ -1284,6 +1361,7 @@ label(t('best') + '  ' + best + (G.mode === 'hard' ? '  ·  ' + t('hardTag') : '
 drawGear(GEAR.x, GEAR.y);
 if (SUPPORT_URL) drawHeart(HEART.x, HEART.y);
 drawCombo();
+drawJunkMeter();
 ctx.fillStyle = COL.board; rrect(BX - 3, BY - 3, N * CELL + 6, N * CELL + 6, 4); ctx.fill();
 const drag = ui.drag, dragS = drag ? SHAPES[G.tray[drag.slot]] : null;
 const hl = ui.preview ? ui.preview.hl : null;
@@ -1297,6 +1375,15 @@ if (!v) continue;
 let ci = v - 1;
 if (overRows >= 0 && N - 1 - y < overRows) ci = GREY;
 let s = CELL - 1, o = 0.5;
+const drop = ui.drops.find(d => d.x === x && d.y === y);
+if (drop) {
+if (drop.t < 0) continue;
+const k = easeOut(Math.min(1, drop.t / DROP_LIFE));
+ctx.globalAlpha = 0.4 + 0.6 * k;
+block(px + o, py + o - (1 - k) * 22, s, ci);
+ctx.globalAlpha = 1;
+continue;
+}
 const pop = ui.pops.find(p => p.x === x && p.y === y);
 if (pop) { const k = 1 + 0.18 * Math.sin(Math.PI * pop.t / POP_LIFE); o = 0.5 - (s * k - s) / 2; s *= k; }
 block(px + o, py + o, s, ci);
@@ -1456,6 +1543,41 @@ g = newGame(9); prep(g, RED, row(0, 9)); g.tray = [shape('dot'), shape('dot'), s
 place(g, 0, 9, 0, 0); place(g, 1, 5, 8, 6000);
 ok('комбо: пустой ход после 5 с — серия обнулилась', g.combo === 0 && g.comboLeft === 0);
 g = gc;
+g = newGame(40); prep(g, RED, []);
+g.tray = [shape('dot'), shape('dot'), shape('dot')]; g.tc = [RED, GRN, BLU];
+place(g, 0, 0, 0); place(g, 1, 3, 3);
+const j2 = g.board.filter(v => v === JUNK).length, d2 = g.dry;
+r = place(g, 2, 6, 6);
+const j3 = g.board.filter(v => v === JUNK).length;
+ok('мусор: 2 пустых хода — нет, 3-й — падает', j2 === 0 && d2 === 2 && r.junkDrop && j3 === r.junkDrop.s.cells.length && g.dry === 0,
+j3 + ' клеток');
+g = newGame(41); prep(g, RED, row(0, 8)); g.dry = 2;
+g.tray = [shape('i2_0'), shape('dot'), shape('dot')]; g.tc = [RED, GRN, BLU];
+r = place(g, 0, 8, 0);
+ok('мусор: соединение сбрасывает счётчик', r.cleared.length === 10 && g.dry === 0 && !r.junkDrop);
+g = newGame(42); prep(g, RED, row(0, 8));
+g.board[10] = JUNK; g.board[11] = JUNK; g.board[55] = JUNK;
+g.tray = [shape('i2_0'), shape('dot'), shape('dot')]; g.tc = [RED, GRN, BLU];
+r = place(g, 0, 8, 0);
+ok('мусор у группы уходит с ней, дальний остаётся', r.junkGone.length === 2 && g.board[55] === JUNK && !g.board[10],
+r.junkGone.length + ' ушло');
+ok('очки: мусор +' + JUNK_PTS + ' за блок', r.gained === 2 + CLEAR_PTS * 10 + JUNK_PTS * 2, r.gained);
+g = newGame(43); prep(g, RED, row(0, 7)); g.board[7] = JUNK;
+g.tray = [shape('i2_0'), shape('dot'), shape('dot')]; g.tc = [RED, GRN, BLU];
+r = place(g, 0, 8, 0);
+ok('мусор не соединяет группу', !r.cleared.length);
+g = newGame(44); for (let i = 0; i < N * N; i++) g.board[i] = ((i % N) + ((i / N) | 0)) % 2 ? JUNK : 0;
+g.dry = 2;
+g.tray = [shape('dot'), shape('dot'), shape('dot')]; g.tc = [RED, GRN, BLU];
+let overByJunk = false;
+for (let sd = 44; sd < 80 && !overByJunk; sd++) {
+const h = newGame(sd); h.board = g.board.slice(); h.dry = 2; h.tray = g.tray.slice(); h.tc = g.tc.slice();
+const rr = place(h, 0, 0, 0);
+if (rr && rr.junkDrop === false) overByJunk = h.over;
+}
+ok('мусору некуда упасть — конец партии', overByJunk);
+g = newGame(45, true); place(g, 0, 5, 0); place(g, 1, 5, 2); place(g, 2, 5, 7);
+ok('в обучении мусора нет', g.board.every(v => v !== JUNK) && g.easy);
 let sameCol = 0;
 for (let k = 0; k < 300; k++) { const e = newGame(3000 + k); refill(e); if (new Set(e.tc).size !== 3) sameCol++; }
 ok('тройка — три разных цвета (300 выдач)', !sameCol, sameCol + ' совпадений');
@@ -1529,7 +1651,7 @@ ok('прогноз не меняет мир', h0 === h1);
 ok('прогноз = ход', pr.gained === real.gained && pr.lines === real.lines && pr.combo === real.combo,
 '+' + pr.gained + ' ×' + pr.combo);
 let sfxErr = '';
-for (const n of ['pick', 'place', 'back', 'clear', 'clean', 'record', 'tray', 'over', 'probe'])
+for (const n of ['pick', 'place', 'back', 'clear', 'clean', 'record', 'tray', 'over', 'probe', 'junk'])
 try { SFX.play(n, 2, 3); } catch (e) { sfxErr += n + ' '; }
 ok('звуки без ошибок', !sfxErr, sfxErr || ('громкость ' + Math.round(settings.volume * 100) + '%'));
 g = newGame(314);
@@ -1643,7 +1765,8 @@ if (QS.has('dbg')) {
 window.BB = { get G() { return G; }, get ui() { return ui; },
 get layout() { const g = trayGeo(); return { LW, LH, OX, BX, BY, TRAY_Y, TRAY_H, SLOT_X, CELL, slotCx: g.cx, trayCell: g.cell }; },
 get supportUrl() { return SUPPORT_URL; }, set supportUrl(v) { SUPPORT_URL = v; }, draw, fit,
-get ncol() { return NCOL; }, set ncol(v) { NCOL = v; }, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings };
+get ncol() { return NCOL; }, set ncol(v) { NCOL = v; },
+get junkMax() { return JUNK_MAX; }, set junkMax(v) { JUNK_MAX = v; }, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings };
 window.bbCheck = bbCheck;
 window.bbSim = bbSim;
 }
