@@ -428,7 +428,7 @@ Array.isArray(g.tray) && g.tray.length === 3 &&
 g.tray.every(i => Number.isInteger(i) && i >= -1 && i < SHAPES.length) &&
 Number.isFinite(g.score) && Number.isFinite(g.rng);
 }
-let SUPPORT_URL = '';
+let SUPPORT_URL = 'https://send.monobank.ua/jar/6K1DTLciVs';
 function openSupport() {
 if (!SUPPORT_URL) return;
 try { window.open(SUPPORT_URL, '_blank', 'noopener'); } catch (e) { location.href = SUPPORT_URL; }
