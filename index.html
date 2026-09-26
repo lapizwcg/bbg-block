@@ -124,14 +124,14 @@ padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)"
 (function () {
 const DW = 180, DH = 320;
 const N = 10, CELL = 16;
-const TRAY_H = 62;
+const TRAY_H = 72;
 const TRAY_GAP = 4;
 let LW = DW, LH = DH, SCALE = 4;
 let OX = 0, HY = 0;
 let BX = 10, BY = 74;
 let COMBO_Y = 63;
 let TRAY_Y = 238;
-let SLOT_X = BX - 3, SLOT_W = (N * CELL + 6) / 3;
+let SLOT_X = BX - 3;
 const GEAR = { x: 162, y: 20, r: 10 };
 const HEART = { x: 18, y: 20, r: 10 };
 const cv = document.getElementById('cv');
@@ -273,6 +273,7 @@ const FAMILIES = [
 ['dot',  ['#'],                          2,   6],
 ['i2',   ['##'],                         3,   4],
 ['i3',   ['###'],                        3,   5],
+['i4',   ['####'],                       2,   0],
 ['o2',   ['##', '##'],                   3,   2],
 ['o3',   ['###', '###', '###'],          1,   3],
 ['r23',  ['###', '###'],                 1,   1],
@@ -733,8 +734,31 @@ const r = cv.getBoundingClientRect();
 return { x: (ev.clientX - r.left) * LW / r.width, y: (ev.clientY - r.top) * LH / r.height };
 }
 function dragCenter(d) { return { x: d.x, y: d.y - d.lift }; }
-function traySize(s) {
-return Math.min(CELL, (SLOT_W - 6) / s.w, (TRAY_H - 8) / s.h);
+const TRAY_PAD = 4;
+let slotCells = null, slotSig = '';
+function trayGeo() {
+const sig = G.tray.join(',');
+if (G.tray.every(i => i >= 0) ? sig !== slotSig : !slotCells) {
+slotSig = sig;
+slotCells = G.tray.map(i => i < 0 ? 3 : Math.max(2, SHAPES[i].w));
+}
+const W = N * CELL + 6, total = slotCells.reduce((a, b) => a + b, 0);
+const maxH = Math.max(1, ...G.tray.filter(i => i >= 0).map(i => SHAPES[i].h));
+const cell = Math.min(CELL, (W - 3 * TRAY_PAD) / total, (TRAY_H - 8) / maxH);
+const pad = (W - total * cell) / 3;
+const x0 = [], cx = [];
+let x = SLOT_X;
+for (let k = 0; k < 3; k++) {
+const w = slotCells[k] * cell + pad;
+x0.push(x); cx.push(x + w / 2); x += w;
+}
+x0.push(x);
+return { cell, x0, cx };
+}
+function slotAt(px) {
+const g = trayGeo();
+for (let k = 0; k < 3; k++) if (px < g.x0[k + 1]) return k;
+return 2;
 }
 function updateTarget() {
 const d = ui.drag;
@@ -767,7 +791,7 @@ return;
 }
 if (G.over || ui.drag) return;
 if (p.y >= TRAY_Y - 4 && p.y <= TRAY_Y + TRAY_H + 8) {
-const slot = Math.min(2, Math.max(0, Math.floor((p.x - SLOT_X) / SLOT_W)));
+const slot = slotAt(p.x);
 if (G.tray[slot] < 0) return;
 ui.drag = { slot, x: p.x, y: p.y, lift: ev.pointerType === 'mouse' ? 0 : 30, t: 0, id: ev.pointerId };
 ui.back = null;
@@ -789,7 +813,7 @@ const d = ui.drag;
 if (!d) return;
 if (!(ok && ui.target && doPlace(d.slot, ui.target.x, ui.target.y))) {
 const c = dragCenter(d);
-const ts = traySize(SHAPES[G.tray[d.slot]]);
+const ts = trayGeo().cell;
 const size = ts + (CELL - ts) * easeOut(Math.min(1, d.t / 0.08));
 ui.back = { slot: d.slot, x: c.x, y: c.y, size, t: 0 };
 SFX.play('back');
@@ -1163,10 +1187,10 @@ const p = (ui.tutT % TUT_CYCLE) / TUT_CYCLE;
 const ease = k => k < 0.5 ? 2 * k * k : 1 - 2 * (1 - k) * (1 - k);
 const mv = p < 0.15 ? 0 : p < 0.65 ? ease((p - 0.15) / 0.5) : 1;
 const alpha = p < 0.1 ? p / 0.1 : p > 0.85 ? (1 - p) / 0.15 : 1;
-const x0 = SLOT_X + SLOT_W * (slot + 0.5), y0 = TRAY_Y + TRAY_H / 2;
+const tg = trayGeo(), x0 = tg.cx[slot], y0 = TRAY_Y + TRAY_H / 2;
 const x1 = BX + (gx + s.w / 2) * CELL, y1 = BY + (gy + s.h / 2) * CELL;
 const cx = x0 + (x1 - x0) * mv, cy = y0 + (y1 - y0) * mv;
-const ts = traySize(s), size = ts + (CELL - ts) * mv;
+const ts = tg.cell, size = ts + (CELL - ts) * mv;
 ctx.globalAlpha = 0.25 * alpha;
 for (const [ax, ay] of s.cells) block(BX + (gx + ax) * CELL + 0.5, BY + (gy + ay) * CELL + 0.5, CELL - 1, s.color);
 drawShape(s, cx, cy, size, s.color, 0.6 * alpha);
@@ -1263,12 +1287,13 @@ ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
 }
 ctx.globalAlpha = 1;
 ctx.fillStyle = COL.panel; rrect(BX - 3, TRAY_Y, N * CELL + 6, TRAY_H, 4); ctx.fill();
+const tg = trayGeo();
 for (let k = 0; k < 3; k++) {
 const si = G.tray[k];
 if (si < 0 || (drag && drag.slot === k) || (ui.back && ui.back.slot === k)) continue;
 const s = SHAPES[si];
 const ci = fitsAnywhere(G.board, s) ? s.color : GREY;
-drawShape(s, SLOT_X + SLOT_W * (k + 0.5), TRAY_Y + TRAY_H / 2, traySize(s), ci);
+drawShape(s, tg.cx[k], TRAY_Y + TRAY_H / 2, tg.cell, ci);
 }
 for (const f of ui.floats) {
 const k = f.t / FLOAT_LIFE;
@@ -1288,14 +1313,14 @@ y += 20;
 }
 if (ui.back && G.tray[ui.back.slot] >= 0) {
 const b = ui.back, k = easeOut(Math.min(1, b.t / BACK_LIFE));
-const tx = SLOT_X + SLOT_W * (b.slot + 0.5), ty = TRAY_Y + TRAY_H / 2;
+const tg2 = trayGeo(), tx = tg2.cx[b.slot], ty = TRAY_Y + TRAY_H / 2;
 drawShape(SHAPES[G.tray[b.slot]], b.x + (tx - b.x) * k, b.y + (ty - b.y) * k,
-b.size + (traySize(SHAPES[G.tray[b.slot]]) - b.size) * k, SHAPES[G.tray[b.slot]].color);
+b.size + (tg2.cell - b.size) * k, SHAPES[G.tray[b.slot]].color);
 }
 drawTutorHand();
 if (drag && dragS) {
 const c = dragCenter(drag);
-const ts = traySize(dragS);
+const ts = trayGeo().cell;
 const size = ts + (CELL - ts) * easeOut(Math.min(1, drag.t / 0.08));
 drawShape(dragS, c.x, c.y, size, dragS.color, ui.target ? 1 : 0.85);
 }
@@ -1386,7 +1411,7 @@ ok('обычная: ни одной фигуры сложной', hn === 0, '400
 ok('сложная: новые фигуры выпадают', hh > 40 && hh < 200, hh + ' из 400');
 ok('сложная детерминирована и отличается', hashG(newGame(77, false, 'hard')) === hashG(newGame(77, false, 'hard')) &&
 hashG(newGame(77, false, 'hard')) !== hashG(newGame(77)));
-ok('фигур: обычная 33, всего ' + SHAPES.length, POOLS.normal.idx.length === 33);
+ok('фигур: обычная 35, всего ' + SHAPES.length, POOLS.normal.idx.length === 35);
 const byCanon = new Map();
 for (const f of SHAPES) {
 const fam = f.id.split('_')[0];
@@ -1405,7 +1430,25 @@ if (!byCanon.has(canon(mir))) noMirror.push(f.id);
 }
 ok('у каждой формы сложной есть зеркало', !noMirror.length, noMirror.join(' ') ||
 SHAPES.filter(f => f.id.split('_')[0].endsWith('m')).map(f => f.id.split('_')[0]).filter((v, i, a) => a.indexOf(v) === i).join(' '));
-ok('все фигуры в рамке 3x3', SHAPES.every(f => f.w <= 3 && f.h <= 3), SHAPES.length + ' фигур');
+ok('за рамку 3x3 выходит только палка 4',
+SHAPES.every(f => (f.w <= 3 && f.h <= 3) || f.id.startsWith('i4_')), SHAPES.length + ' фигур');
+for (const mode of ['normal', 'hard']) {
+const pool = POOLS[mode].idx.map(i => SHAPES[i]);
+const k = cs => { const mx = Math.min(...cs.map(c => c[0])), my = Math.min(...cs.map(c => c[1]));
+return cs.map(([x, y]) => [x - mx, y - my]).sort((a, b) => a[1] - b[1] || a[0] - b[0]).join(';'); };
+const keys = new Set(pool.map(f => k(f.cells)));
+const miss = [];
+for (const f of pool) {
+let c = f.cells, m = f.cells.map(([x, y]) => [-x, y]);
+for (let r = 0; r < 4; r++) {
+if (!keys.has(k(c))) miss.push(f.id + ' поворот ' + r * 90);
+if (!keys.has(k(m))) miss.push(f.id + ' зеркало ' + r * 90);
+c = c.map(([x, y]) => [-y, x]); m = m.map(([x, y]) => [-y, x]);
+}
+}
+ok((mode === 'hard' ? 'сложная' : 'обычная') + ': все повороты и зеркала на месте', !miss.length,
+miss.join(', ') || pool.length + ' фигур');
+}
 const wL3 = SHAPES.filter(s => s.id.startsWith('l3')).reduce((s, f) => s + f.weight, 0);
 ok('вес уголка = 3 на все повороты', Math.abs(wL3 - 3) < 1e-9, SHAPES.length + ' фигур в пуле');
 g = newGame(55);
@@ -1527,7 +1570,7 @@ return out;
 }
 if (QS.has('dbg')) {
 window.BB = { get G() { return G; }, get ui() { return ui; },
-get layout() { return { LW, LH, OX, BX, BY, TRAY_Y, TRAY_H, SLOT_X, SLOT_W, CELL }; },
+get layout() { const g = trayGeo(); return { LW, LH, OX, BX, BY, TRAY_Y, TRAY_H, SLOT_X, CELL, slotCx: g.cx, trayCell: g.cell }; },
 get supportUrl() { return SUPPORT_URL; }, set supportUrl(v) { SUPPORT_URL = v; }, draw, fit, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings };
 window.bbCheck = bbCheck;
 window.bbSim = bbSim;
