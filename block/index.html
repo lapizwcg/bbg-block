@@ -454,25 +454,44 @@ go(board, left);
 return Math.min(found, cap);
 }
 const trayPlaceable = (board, tray) => traySolutions(board, tray, 1) > 0;
-const TIGHT = { normal: 12, hard: 14 };
-const SOL_CAP = 64;
+const TUNE = { CANDS: 20, RAMP: 80, WAVE: 36, BASE: 1.0, AMP: 0.25, RESCUE_FILL: 0.7, SOL_CAP: 200 };
 let fairMiss = 0;
+const trayDifficulty = m => Math.min(1, Math.min(1, m / TUNE.RAMP) * (TUNE.BASE + TUNE.AMP * Math.sin(2 * Math.PI * m / TUNE.WAVE)));
+function canClear(board, tray) {
+for (const i of tray) {
+const sh = SHAPES[i];
+for (let y = 0; y + sh.h <= N; y++) for (let x = 0; x + sh.w <= N; x++) {
+if (!fits(board, sh, x, y)) continue;
+const c = board.slice();
+for (const [cx, cy] of sh.cells) c[(y + cy) * N + x + cx] = 1;
+const { rows, cols } = fullLines(c);
+if (rows.length || cols.length) return true;
+}
+}
+return false;
+}
 function refill(g) {
 const pick = g.easy ? pickEasy : pickShape;
-let want = g.easy ? 1 : TIGHT[g.mode === 'hard' ? 'hard' : 'normal'];
-let tray = null, some = null, best = null, bestN = Infinity;
-for (let a = 0; a < FAIR_TRIES && want > 0; a++) {
+const cands = [];
+let tray = null, some = null;
+for (let a = 0; a < FAIR_TRIES && cands.length < (g.easy ? 1 : TUNE.CANDS); a++) {
 tray = pickDistinct(g, pick, []);
-const n = traySolutions(g.board, tray, g.easy ? 1 : SOL_CAP);
-if (n > 0) {
-if (n < bestN) { best = tray; bestN = n; }
-if (n === 1) break;
-want--;
-} else if (!some && tray.some(i => fitsAnywhere(g.board, SHAPES[i]))) some = tray;
+const n = traySolutions(g.board, tray, g.easy ? 1 : TUNE.SOL_CAP);
+if (n > 0) cands.push({ tray, n });
+else if (!some && tray.some(i => fitsAnywhere(g.board, SHAPES[i]))) some = tray;
 }
-if (best) { g.tray = best; return; }
-fairMiss++;
-g.tray = some || tray;
+if (!cands.length) { fairMiss++; g.tray = some || tray; return; }
+if (cands.length === 1) { g.tray = cands[0].tray; return; }
+cands.sort((a, b) => b.n - a.n);
+const fill = g.board.reduce((a, v) => a + (v ? 1 : 0), 0) / (N * N);
+if (fill >= TUNE.RESCUE_FILL) {
+const r = cands.find(c => canClear(g.board, c.tray));
+if (r) { g.tray = r.tray; return; }
+}
+let k = Math.round(trayDifficulty(g.moves) * (cands.length - 1));
+const u = rnd(g);
+if (u < 0.12) k -= 1; else if (u < 0.2) k -= 2;
+g.tray = cands[Math.max(0, Math.min(cands.length - 1, k))].tray;
 }
 function fullLines(board) {
 const rows = [], cols = [];
@@ -1599,7 +1618,7 @@ const b = new Array(N * N).fill(1);
 for (let y = 0; y < N; y++) b[y * N + (y * 3) % N] = 0;
 const one = new Array(N * N).fill(1); one[3 * N + 4] = 0;
 ok('тесная тройка: решения считаются (одна дырка — одно; пусто — простор)',
-traySolutions(one, [shape('dot')], SOL_CAP) === 1 && traySolutions(new Array(N * N).fill(0), [shape('i2_0')], SOL_CAP) === SOL_CAP);
+traySolutions(one, [shape('dot')], 64) === 1 && traySolutions(new Array(N * N).fill(0), [shape('i2_0')], 64) === 64);
 ok('честная тройка: раскладка только в верном порядке находится',
 trayPlaceable(b, [shape('i2_0'), shape('i3_0'), shape('dot')]) && !trayPlaceable(b, [shape('i2_0'), shape('i3_0'), shape('i4_0')]));
 const miss0 = fairMiss;
@@ -1695,7 +1714,7 @@ return out;
 if (QS.has('dbg')) {
 window.BB = { get G() { return G; }, get ui() { return ui; },
 get layout() { const g = trayGeo(); return { LW, LH, OX, BX, BY, TRAY_Y, TRAY_H, SLOT_X, CELL, slotCx: g.cx, trayCell: g.cell }; },
-get supportUrl() { return SUPPORT_URL; }, set supportUrl(v) { SUPPORT_URL = v; }, draw, fit, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings, TIGHT, traySolutions };
+get supportUrl() { return SUPPORT_URL; }, set supportUrl(v) { SUPPORT_URL = v; }, draw, fit, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings, traySolutions, TUNE };
 window.bbCheck = bbCheck;
 window.bbSim = bbSim;
 }
