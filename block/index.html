@@ -148,7 +148,7 @@ const top = safeTop / k, bot = safeBot / k;
 const extra = Math.max(0, LH - DH - top - bot);
 HY = top + extra * 0.3;
 const gy = top + extra * 0.7;
-const up = PORTAL ? 10 : 0;
+const up = PORTAL ? 12 : 0;
 BX = OX + 10; BY = 74 + gy - up;
 COMBO_Y = 63 + gy - up;
 TRAY_Y = BY + N * CELL + TRAY_GAP;
@@ -1075,7 +1075,7 @@ const s = res.s;
 ui.rotMode = false;
 if (res.starsGot) {
 stars += res.starsGot; saveStars();
-ui.floats.push({ x: ECO_X(), y: TRAY_Y + TRAY_H + 2, text: '+' + res.starsGot + '★', t: 0, big: true });
+ui.floats.push({ x: ECO_X(), y: TRAY_Y + TRAY_H + 4, text: '+' + res.starsGot + '★', t: 0, big: true });
 SFX.play('star');
 }
 for (const [cx, cy] of s.cells) ui.pops.push({ x: gx + cx, y: gy + cy, t: 0 });
@@ -1186,12 +1186,14 @@ Ads.start();
 saveRun();
 needDraw = true;
 }
-const ECO_H = 13;
-const ECO_X = () => BX + N * CELL - 22;
+const ECO_H = 20;
+const ECO_X = () => BX + 16;
 function ecoButtons() {
-const y = TRAY_Y + TRAY_H + 2, x0 = BX - 3;
-const b = { rot: { x: x0, y, w: 40, h: ECO_H }, swap: { x: x0 + 43, y, w: 40, h: ECO_H } };
-if (Ads.ok()) b.ad = { x: x0 + 86, y, w: 44, h: ECO_H };
+const y = TRAY_Y + TRAY_H + 4, h = 12, w = 36, gap = 4;
+const keys = ['rot', 'swap'].concat(Ads.ok() ? ['ad'] : []);
+const right = BX - 3 + N * CELL + 6 - 5;
+const b = {};
+keys.forEach((k, n) => { b[k] = { x: right - (keys.length - n) * (w + gap) + gap, y, w, h }; });
 return b;
 }
 function ecoHit(p) {
@@ -1233,35 +1235,66 @@ if (stars < ECO.rot) ui.rotMode = false;
 if (!ui.rotMode && G.over) showGameOver();
 needDraw = true;
 }
+const ECO_GOLD = ['#ffe27a', '#f5b83a', '#a8700f'], ECO_AD = ['#6fdc98', '#34a862', '#1f7a42'];
+function ecoIcon(kind, x, y, r, col) {
+ctx.save();
+ctx.strokeStyle = ctx.fillStyle = col; ctx.lineWidth = r * 0.34; ctx.lineCap = ctx.lineJoin = 'round';
+if (kind === 'rot') {
+ctx.beginPath(); ctx.arc(x, y, r, -Math.PI * 0.35, Math.PI * 1.25); ctx.stroke();
+const a = -Math.PI * 0.35, ex = x + Math.cos(a) * r, ey = y + Math.sin(a) * r;
+ctx.beginPath(); ctx.moveTo(ex + r * 0.55, ey - r * 0.05); ctx.lineTo(ex - r * 0.1, ey - r * 0.55); ctx.lineTo(ex - r * 0.15, ey + r * 0.35); ctx.closePath(); ctx.fill();
+} else if (kind === 'swap') {
+const d = r * 0.5;
+for (const [yy, dir] of [[y - d, 1], [y + d, -1]]) {
+ctx.beginPath(); ctx.moveTo(x - r * dir, yy); ctx.lineTo(x + r * dir, yy); ctx.stroke();
+ctx.beginPath(); ctx.moveTo(x + r * dir * 1.25, yy); ctx.lineTo(x + r * dir * 0.55, yy - r * 0.45); ctx.lineTo(x + r * dir * 0.55, yy + r * 0.45); ctx.closePath(); ctx.fill();
+}
+} else {
+ctx.beginPath(); ctx.moveTo(x - r * 0.6, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x - r * 0.6, y + r); ctx.closePath(); ctx.fill();
+}
+ctx.restore();
+}
 function drawEco() {
-const bs = ecoButtons(), sz = 6.5;
-const pill = (b, on, dim) => {
+const bs = ecoButtons(), x0 = BX - 3, w = N * CELL + 6, sy = TRAY_Y + TRAY_H;
+ctx.fillStyle = 'rgba(255,255,255,.07)'; ctx.fillRect(x0 + 6, sy, w - 12, 0.6);
+const wy = bs.rot.y;
+ctx.fillStyle = 'rgba(0,0,0,.32)'; rrect(x0 + 9, wy, 38, 12, 6); ctx.fill();
+ctx.strokeStyle = 'rgba(255,216,74,.35)'; ctx.lineWidth = 0.6; rrect(x0 + 9.3, wy + 0.3, 37.4, 11.4, 5.7); ctx.stroke();
+drawStar(x0 + 11, wy + 5.8, 6.6);
+label(String(stars), x0 + 31, wy + 6.4, 8.5, '#ffe27a', 'rgba(60,30,0,.55)');
+const chip = (b, pal, kind, price, dim, dark) => {
 ctx.globalAlpha = dim ? 0.45 : 1;
-ctx.fillStyle = on ? COL.gold : COL.alt[1]; rrect(b.x, b.y, b.w, b.h, 4); ctx.fill();
+ctx.fillStyle = pal[2]; rrect(b.x, b.y + 1.6, b.w, b.h, 5); ctx.fill();
+const g = ctx.createLinearGradient(0, b.y, 0, b.y + b.h);
+g.addColorStop(0, pal[0]); g.addColorStop(1, pal[1]);
+ctx.fillStyle = g; rrect(b.x, b.y, b.w, b.h, 5); ctx.fill();
+ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 0.6;
+rrect(b.x + 0.4, b.y + 0.4, b.w - 0.8, b.h - 0.8, 4.6); ctx.stroke();
+const ink = dark ? '#4a2c00' : '#fff';
+ecoIcon(kind, b.x + 8, b.y + b.h / 2, 3.3, ink);
+const A = dim ? 0.45 : 1;
+label(price, b.x + b.w / 2 + 3, b.y + b.h / 2 + 0.3, 7, ink, dark ? null : 'rgba(0,0,0,.25)', A);
+drawStar(b.x + b.w - 4.6, b.y + b.h / 2, 2.6, A);
 ctx.globalAlpha = 1;
 };
-pill(bs.rot, ui.rotMode, stars < ECO.rot && !ui.rotMode);
-text('↻ ' + ECO.rot + '★', bs.rot.x + bs.rot.w / 2, bs.rot.y + ECO_H / 2 + 0.4, sz, ui.rotMode ? '#3a2400' : '#fff', 'center');
-pill(bs.swap, false, stars < ECO.swap);
-text('⇄ ' + ECO.swap + '★', bs.swap.x + bs.swap.w / 2, bs.swap.y + ECO_H / 2 + 0.4, sz, '#fff', 'center');
-if (bs.ad) {
-ctx.fillStyle = '#34a862'; rrect(bs.ad.x, bs.ad.y, bs.ad.w, bs.ad.h, 4); ctx.fill();
-text('▶ +' + ECO.ad + '★', bs.ad.x + bs.ad.w / 2, bs.ad.y + ECO_H / 2 + 0.4, sz, '#fff', 'center');
+chip(bs.rot, ui.rotMode ? ECO_GOLD : TH.btn, 'rot', String(ECO.rot), stars < ECO.rot && !ui.rotMode, ui.rotMode);
+chip(bs.swap, TH.btn, 'swap', String(ECO.swap), stars < ECO.swap, false);
+if (bs.ad) chip(bs.ad, ECO_AD, 'ad', '+' + ECO.ad, false, false);
 }
-drawStar(ECO_X() - 6, bs.rot.y + ECO_H / 2, 4.2);
-text(String(stars), ECO_X() + 1, bs.rot.y + ECO_H / 2 + 0.4, 8, COL.gold, 'left');
-}
+const ICON_STAR = new Path2D('M9.15316 5.40838C10.4198 3.13613 11.0531 2 12 2C12.9469 2 13.5802 3.13612 14.8468 5.40837L15.1745 5.99623C15.5345 6.64193 15.7144 6.96479 15.9951 7.17781C16.2757 7.39083 16.6251 7.4699 17.3241 7.62805L17.9605 7.77203C20.4201 8.32856 21.65 8.60682 21.9426 9.54773C22.2352 10.4886 21.3968 11.4691 19.7199 13.4299L19.2861 13.9372C18.8096 14.4944 18.5713 14.773 18.4641 15.1177C18.357 15.4624 18.393 15.8341 18.465 16.5776L18.5306 17.2544C18.7841 19.8706 18.9109 21.1787 18.1449 21.7602C17.3788 22.3417 16.2273 21.8115 13.9243 20.7512L13.3285 20.4768C12.6741 20.1755 12.3469 20.0248 12 20.0248C11.6531 20.0248 11.3259 20.1755 10.6715 20.4768L10.0757 20.7512C7.77268 21.8115 6.62118 22.3417 5.85515 21.7602C5.08912 21.1787 5.21588 19.8706 5.4694 17.2544L5.53498 16.5776C5.60703 15.8341 5.64305 15.4624 5.53586 15.1177C5.42868 14.773 5.19043 14.4944 4.71392 13.9372L4.2801 13.4299C2.60325 11.4691 1.76482 10.4886 2.05742 9.54773C2.35002 8.60682 3.57986 8.32856 6.03954 7.77203L6.67589 7.62805C7.37485 7.4699 7.72433 7.39083 8.00494 7.17781C8.28555 6.96479 8.46553 6.64194 8.82547 5.99623L9.15316 5.40838Z');
 function drawStar(x, y, r, a) {
+const size = r * 2.3, k = size / 24;
+ctx.save();
 ctx.globalAlpha = a === undefined ? 1 : a;
-ctx.beginPath();
-for (let i = 0; i < 10; i++) {
-const rr = i % 2 ? r * 0.45 : r, an = -Math.PI / 2 + i * Math.PI / 5;
-ctx[i ? 'lineTo' : 'moveTo'](x + Math.cos(an) * rr, y + Math.sin(an) * rr);
-}
-ctx.closePath();
-ctx.fillStyle = '#ffd84a'; ctx.fill();
-ctx.strokeStyle = 'rgba(90,50,0,.8)'; ctx.lineWidth = Math.max(0.4, r * 0.14); ctx.stroke();
-ctx.globalAlpha = 1;
+ctx.translate(x - size / 2, y - size / 2 + r * 0.06); ctx.scale(k, k);
+const g = ctx.createLinearGradient(0, 2, 0, 22);
+g.addColorStop(0, '#fff4b0'); g.addColorStop(0.45, '#ffd23f'); g.addColorStop(1, '#f09a1a');
+ctx.lineJoin = 'round';
+ctx.strokeStyle = 'rgba(110,60,0,.85)'; ctx.lineWidth = 2.4; ctx.stroke(ICON_STAR);
+ctx.fillStyle = g; ctx.fill(ICON_STAR);
+ctx.fillStyle = 'rgba(255,255,255,.45)';
+ctx.beginPath(); ctx.ellipse(10.2, 8.6, 1.7, 2.6, -0.5, 0, Math.PI * 2); ctx.fill();
+ctx.restore();
 }
 let installEvt = null;
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
@@ -1646,7 +1679,7 @@ ctx.fillStyle = PAL[p.c].light;
 ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
 }
 ctx.globalAlpha = 1;
-ctx.fillStyle = COL.panel; rrect(BX - 3, TRAY_Y, N * CELL + 6, TRAY_H, 4); ctx.fill();
+ctx.fillStyle = COL.panel; rrect(BX - 3, TRAY_Y, N * CELL + 6, TRAY_H + (PORTAL ? ECO_H : 0), 4); ctx.fill();
 const tg = trayGeo();
 for (let k = 0; k < 3; k++) {
 const si = G.tray[k];
