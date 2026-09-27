@@ -777,7 +777,12 @@ function toLogic(ev) {
 const r = cv.getBoundingClientRect();
 return { x: (ev.clientX - r.left) * LW / r.width, y: (ev.clientY - r.top) * LH / r.height };
 }
-function dragCenter(d) { return { x: d.x, y: d.y - d.lift }; }
+const LIFT_GAP = 26;
+function dragCenter(d) {
+if (!d.lift) return { x: d.x, y: d.y };
+const s = SHAPES[G.tray[d.slot]];
+return { x: d.x, y: d.y - (s.h * CELL / 2 + LIFT_GAP) * easeOut(Math.min(1, d.t / 0.1)) };
+}
 const TRAY_PAD = 4;
 let slotCells = null, slotSig = '';
 function trayGeo() {
@@ -837,7 +842,7 @@ if (G.over || ui.drag) return;
 if (p.y >= TRAY_Y - 4 && p.y <= TRAY_Y + TRAY_H + 8) {
 const slot = slotAt(p.x);
 if (G.tray[slot] < 0) return;
-ui.drag = { slot, x: p.x, y: p.y, lift: ev.pointerType === 'mouse' ? 0 : 30, t: 0, id: ev.pointerId };
+ui.drag = { slot, x: p.x, y: p.y, lift: ev.pointerType !== 'mouse', t: 0, id: ev.pointerId };
 ui.back = null;
 SFX.play('pick');
 try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
@@ -1045,7 +1050,10 @@ function update(dt) {
 let busy = false;
 ui.clock = (ui.clock || 0) + dt;
 if (ui.target) busy = true;
-if (ui.drag && ui.drag.t < 1) { ui.drag.t += dt; busy = true; }
+if (ui.drag && ui.drag.t < 1) {
+ui.drag.t += dt; busy = true;
+if (ui.drag.t < 0.2) updateTarget();
+}
 if (ui.back) { ui.back.t += dt; busy = true; if (ui.back.t >= BACK_LIFE) ui.back = null; }
 if (ui.tut === 1 && !ui.drag && ovEl.hidden) { ui.tutT += dt; busy = true; }
 for (const f of ui.fx) f.t += dt;
@@ -1258,7 +1266,7 @@ const ts = tg.cell, size = ts + (CELL - ts) * mv;
 neonOutline(s.cells.map(([ax, ay]) => [gx + ax, gy + ay]), PAL[s.color], 0.8 * alpha);
 drawShape(s, cx, cy, size, s.color, 0.6 * alpha);
 const press = p < 0.15 ? p / 0.15 : 1;
-const fx = cx + 5, fy = cy + size * s.h / 2 + 6;
+const fx = cx + 5, fy = cy + size * s.h / 2 + 6 + (LIFT_GAP - 6) * mv;
 ctx.globalAlpha = 0.9 * alpha;
 ctx.fillStyle = '#fff';
 ctx.beginPath(); ctx.arc(fx, fy, 4, 0, Math.PI * 2); ctx.fill();
