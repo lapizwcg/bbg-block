@@ -197,7 +197,7 @@ if (NATIVE) { try { NATIVE.set(k, v); } catch (e) {} }
 try { localStorage.setItem(k, v); } catch (e) {}
 }
 const KEY_SET = 'bs_settings';
-const settings = { volume: 0.7, lang: '', theme: 'juicy', diff: 'normal' };
+const settings = { volume: 0.7, lang: '', theme: 'juicy', mode: 'learn' };
 try { Object.assign(settings, JSON.parse(stGet(KEY_SET)) || {}); } catch (e) {}
 settings.volume = Math.min(1, Math.max(0, +settings.volume || 0));
 function saveSettings() { stSet(KEY_SET, JSON.stringify(settings)); }
@@ -215,7 +215,7 @@ lang: 'Язык', theme: 'Тема', restart: 'Уровень заново', res
 yes: 'Да', no: 'Нет', close: 'Закрыть', app: 'Приложение', install: 'Установить',
 support: 'Поддержать ♥', supportAsk: 'Нравится игра? Поддержи автора ♥', author: 'Автор',
 th_juicy: 'Сочная', th_wood: 'Дерево', th_night: 'Ночь', th_day: 'День',
-diff: 'Сложность', d_easy: 'Лёгкая', d_normal: 'Обычная', d_hard: 'Сложная',
+mode: 'Режим', m_learn: 'Обучение', m_learn_s: 'звёзды и созвездия', m_arcade: 'Аркада', m_arcade_s: 'только головоломки', again: 'Ты уже знаешь это созвездие',
 k_tri: 'Треугольник', k_tri_f: 'Маленькое созвездие из трёх звёзд — и правда треугольник.',
 k_cas: 'Кассиопея', k_cas_f: 'Похожа на букву W. В северном полушарии её видно круглый год.',
 k_big: 'Большой Ковш', k_big_f: 'Часть Большой Медведицы. Две крайние звезды ковша указывают на Полярную звезду.',
@@ -264,7 +264,7 @@ lang: 'Language', theme: 'Theme', restart: 'Restart level', restartQ: 'Restart t
 yes: 'Yes', no: 'No', close: 'Close', app: 'App', install: 'Install',
 support: 'Support ♥', supportAsk: 'Enjoying the game? Support the author ♥', author: 'Author',
 th_juicy: 'Juicy', th_wood: 'Wood', th_night: 'Night', th_day: 'Day',
-diff: 'Difficulty', d_easy: 'Easy', d_normal: 'Normal', d_hard: 'Hard',
+mode: 'Mode', m_learn: 'Learn', m_learn_s: 'stars and constellations', m_arcade: 'Arcade', m_arcade_s: 'just puzzles', again: 'You already know this constellation',
 k_tri: 'Triangulum', k_tri_f: 'A small constellation of three stars — a real triangle.',
 k_cas: 'Cassiopeia', k_cas_f: 'Looks like the letter W. In the Northern Hemisphere you can see it all year round.',
 k_big: 'Big Dipper', k_big_f: 'Part of the Great Bear. The two end stars of the bowl point to the North Star.',
@@ -313,7 +313,7 @@ lang: 'Idioma', theme: 'Tema', restart: 'Reiniciar nivel', restartQ: '¿Reinicia
 yes: 'Sí', no: 'No', close: 'Cerrar', app: 'App', install: 'Instalar',
 support: 'Apoyar ♥', supportAsk: '¿Te gusta el juego? Apoya al autor ♥', author: 'Autor',
 th_juicy: 'Jugosa', th_wood: 'Madera', th_night: 'Noche', th_day: 'Día',
-diff: 'Dificultad', d_easy: 'Fácil', d_normal: 'Normal', d_hard: 'Difícil',
+mode: 'Modo', m_learn: 'Aprender', m_learn_s: 'estrellas y constelaciones', m_arcade: 'Arcade', m_arcade_s: 'solo rompecabezas', again: 'Ya conoces esta constelación',
 k_tri: 'Triángulo', k_tri_f: 'Una constelación pequeña de tres estrellas: un triángulo de verdad.',
 k_cas: 'Casiopea', k_cas_f: 'Parece la letra W. En el hemisferio norte se ve todo el año.',
 k_big: 'Osa Mayor (el Carro)', k_big_f: 'Las dos estrellas del extremo del carro señalan la Estrella Polar.',
@@ -411,42 +411,47 @@ x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x;
 return ((x ^ x >>> 14) >>> 0) / 4294967296;
 };
 }
-const DIFFS = {
-easy: { salt: 0x57A50001, size: '3–7 ★' },
-normal: { salt: 0x57A50002, size: '3–10 ★' },
-hard: { salt: 0x57A50003, size: '4–13 ★' }
+const MODES = {
+learn: { salt: 0x57A50002 },
+arcade: { salt: 0x57A50003 }
 };
-const DIFF_IDS = Object.keys(DIFFS);
+const MODE_IDS = Object.keys(MODES);
+const REAL_EVERY = 3;
 const ekey = (a, b) => a < b ? a + '-' + b : b + '-' + a;
 const degOf = (F, i) => F.e.filter(([a, b]) => a === i || b === i).length;
 const oddOf = F => F.s.map((_, i) => i).filter(i => degOf(F, i) % 2);
-function recipe(n, diff) {
-const k = diff === 'easy' ? 5 : diff === 'hard' ? 2 : 3;
-const nmax = diff === 'easy' ? 7 : diff === 'hard' ? 13 : 10;
-const N = Math.min(nmax, (diff === 'hard' ? 4 : 3) + Math.floor((n - 1) / k));
-const extra = Math.min(Math.floor(N * 0.8), Math.floor((n - 1) / (k + 1)));
+function recipe(n, mode) {
+if (mode === 'arcade') {
+const N = Math.min(13, 4 + Math.floor((n - 1) / 2));
+return {
+N, E: N - 1 + Math.min(Math.floor(N * 0.8), Math.floor((n - 1) / 3)), cross: Math.min(3, 1 + Math.floor(n / 15)),
+odd: n === 3 ? 2 : null, real: null,
+intro: n === 1 ? 'draw' : n === 3 ? 'odd' : null, hint: n === 1 ? 'h_draw' : null
+};
+}
+const N = Math.min(10, 3 + Math.floor((n - 1) / 4));
 const r = {
-N, E: N - 1 + extra, cross: diff === 'hard' ? 3 : diff === 'easy' ? 0 : 1 + Math.floor(n / 25),
-odd: n === 6 ? 2 : null, real: n % 5 === 0 ? ATLAS[(n / 5 - 1) % ATLAS.length] : null,
-intro: n === 1 ? 'draw' : n === 5 ? 'atlas' : n === 6 ? 'odd' : null,
-hint: n === 1 ? 'h_draw' : n % 5 === 0 ? 'h_atlas' : null
+N, E: N - 1 + Math.min(Math.floor(N * 0.8), Math.floor((n - 1) / 5)), cross: n < 20 ? 0 : Math.min(2, 1 + Math.floor((n - 20) / 30)),
+odd: n === 5 ? 2 : null, real: n % REAL_EVERY === 0 ? ATLAS[(n / REAL_EVERY - 1) % ATLAS.length] : null,
+intro: n === 1 ? 'draw' : n === REAL_EVERY ? 'atlas' : n === 5 ? 'odd' : null,
+hint: n === 1 ? 'h_draw' : n % REAL_EVERY === 0 ? 'h_atlas' : null
 };
 if (r.real && r.real.id === 'pol') { r.intro = 'polar'; r.hint = 'h_polar'; }
 if (r.real && r.real.id === 'ori') { r.intro = 'color'; r.hint = 'h_color'; }
 return r;
 }
-function genLevel(n, diff) {
-diff = DIFFS[diff] ? diff : 'normal';
-const rc = recipe(n, diff);
-if (rc.real) return { n, diff, s: rc.real.s.map(p => p.slice()), e: rc.real.e.map(q => q.slice()), real: rc.real.id, nm: rc.real.nm, sp: rc.real.sp, pointer: rc.real.pointer, intro: rc.intro, hint: rc.hint, lvl: n };
-const R = mulberry32(Math.imul(n, 0x9E3779B1) ^ DIFFS[diff].salt);
+function genLevel(n, mode) {
+mode = MODES[mode] ? mode : 'learn';
+const rc = recipe(n, mode);
+if (rc.real) return { n, mode, s: rc.real.s.map(p => p.slice()), e: rc.real.e.map(q => q.slice()), real: rc.real.id, nm: rc.real.nm, sp: rc.real.sp, pointer: rc.real.pointer, intro: rc.intro, hint: rc.hint, lvl: n };
+const R = mulberry32(Math.imul(n, 0x9E3779B1) ^ MODES[mode].salt);
 for (let a = 0; a < 3000; a++) {
 const F = tryGen(rc, R);
 if (F) {
 const xs = F.s.map(q => q[0]), ys = F.s.map(q => q[1]);
 const dx = 75 - (Math.min(...xs) + Math.max(...xs)) / 2, dy = 108 - (Math.min(...ys) + Math.max(...ys)) / 2;
 F.s.forEach(q => { q[0] += dx; q[1] += dy; });
-return Object.assign(F, { n, diff, real: null, intro: rc.intro, hint: rc.hint });
+return Object.assign(F, { n, mode, real: null, intro: rc.intro, hint: rc.hint });
 }
 }
 throw new Error('фигура ' + n + ' не построилась');
@@ -628,16 +633,16 @@ let seenIntro = new Set();
 try { seenIntro = new Set(JSON.parse(stGet('bs_seen') || '[]')); } catch (e) {}
 const ui = { hud: null };
 let barRect = null;
-const dkey = (k, d) => d === 'normal' ? k : k + '_' + d;
+const dkey = (k, d) => d === 'learn' ? k : k + '_' + d;
 const savedLevel = d => Math.max(1, parseInt(stGet(dkey('bs_level', d)), 10) || 1);
 function startLevel(n) {
-level = n; L = genLevel(n, settings.diff);
+level = n; L = genLevel(n, settings.mode);
 path = []; usedE = new Set(); finger = null; fade = null; hintOdd = 0; pid = null;
 won = false; winT = 0; winShown = false; foundNow = null;
 boardLayout(); save();
 if (L.intro && !seenIntro.has(L.intro)) setTimeout(() => { if (ovEl.hidden && L && L.n === n) showIntro(L.intro); }, 350);
 }
-function save() { stSet(dkey('bs_level', L.diff), String(level)); }
+function save() { stSet(dkey('bs_level', L.mode), String(level)); }
 function restart() { path = []; usedE = new Set(); fade = null; }
 function winLevel() {
 won = true; winT = 0; pid = null; finger = null;
@@ -1044,7 +1049,7 @@ const dt = lastT ? Math.min(0.05, time - lastT) : 0; lastT = time;
 drawSpace(time, dt);
 ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
 label(String(level), LW / 2, HY + 20, 22, '#f2f4ff', 'rgba(0,0,0,.35)');
-label(t('level') + (settings.diff !== 'normal' ? '  ·  ' + t('d_' + settings.diff).toUpperCase() : ''), LW / 2, HY + 37, 8, TH.gold);
+label(t('level') + (settings.mode === 'arcade' ? '  ·  ' + t('m_arcade').toUpperCase() : ''), LW / 2, HY + 37, 8, TH.gold);
 if (SUPPORT_URL) drawHudBtn(HEART.x, HEART.y, HEART_PAL, hudPressed('heart'), ICON_HEART);
 drawHudBtn(BOOKB.x, BOOKB.y, BOOK_PAL, hudPressed('book'), ICON_BOOK);
 if (bookNew) { ctx.fillStyle = '#fff'; disc(BOOKB.x + 10, BOOKB.y - 10, 3.4); ctx.fillStyle = '#ff4d6a'; disc(BOOKB.x + 10, BOOKB.y - 10, 2.4); }
@@ -1179,10 +1184,10 @@ if (nx) { usedI.add(nx[1]); st.push(nx[0]); } else out.push(st.pop());
 return out.reverse();
 }
 function showWin() {
-const got = foundNow ? ATLAS.find(a => a.id === foundNow) : null;
+const got = L.real ? ATLAS.find(a => a.id === L.real) : null;
 openOverlay(
 '<h2>' + t('done') + '</h2>' +
-(got ? '<div class="sub">' + t('newC') + '</div><img class="pic" alt="" style="max-width:170px;max-height:180px;display:block;margin:8px auto;border-radius:12px" src="' + figPic(got, 170, true, false, true) + '">' +
+(got ? '<div class="sub">' + t(foundNow ? 'newC' : 'again') + '</div><img class="pic" alt="" style="max-width:170px;max-height:180px;display:block;margin:8px auto;border-radius:12px" src="' + figPic(got, 170, true, false, true) + '">' +
 '<div class="sub"><b>' + t('k_' + got.id) + '</b></div><div class="txt">' + t('k_' + got.id + '_f') + '</div>' : '') +
 '<div class="btns"><button data-act="next">' + t('next') + ' ›</button></div>' +
 (SUPPORT_URL && level % 5 === 0 ? '<button class="link" data-act="support">' + t('supportAsk') + '</button>' : ''),
@@ -1295,8 +1300,8 @@ const langBtns = LANGS.map(l => '<button class="' + (l === lang ? '' : 'alt') + 
 const themeBtns = THEME_IDS.map(id =>
 '<button class="' + (id === settings.theme ? 'sel' : '') + '" data-act="theme_' + id + '" title="' +
 t('th_' + id) + '" aria-label="' + t('th_' + id) + '"><img alt="" src="' + themeThumb(id) + '"></button>').join('');
-const diffBtns = DIFF_IDS.map(d => '<button class="' + (d === settings.diff ? '' : 'alt') + '" data-act="diff_' + d + '">' +
-t('d_' + d) + '<small>' + DIFFS[d].size + '</small></button>').join('');
+const modeBtns = MODE_IDS.map(d => '<button class="' + (d === settings.mode ? '' : 'alt') + '" data-act="mode_' + d + '">' +
+t('m_' + d) + '<small>' + t('m_' + d + '_s') + '</small></button>').join('');
 const actions = {
 restart: () => openOverlay('<h2>' + t('restartQ') + '</h2><div class="btns"><button data-act="yes">' + t('yes') + '</button>' +
 '<button class="alt" data-act="no">' + t('no') + '</button></div>',
@@ -1312,10 +1317,10 @@ close: () => closeOverlay()
 };
 LANGS.forEach(l => { actions['lang_' + l] = () => { setLang(l); openSettings(); }; });
 THEME_IDS.forEach(id => { actions['theme_' + id] = () => { settings.theme = id; saveSettings(); applyTheme(id); openSettings(); }; });
-DIFF_IDS.forEach(d => { actions['diff_' + d] = () => {
-if (d === settings.diff) return;
+MODE_IDS.forEach(d => { actions['mode_' + d] = () => {
+if (d === settings.mode) return;
 save();
-settings.diff = d; saveSettings();
+settings.mode = d; saveSettings();
 startLevel(savedLevel(d), true);
 openSettings();
 }; });
@@ -1328,7 +1333,7 @@ openOverlay(
 (installEvt ? '<span>' + t('app') + '</span><button class="ctl" data-act="install">' + t('install') + '</button>' : '') +
 (SUPPORT_URL ? '<span>' + t('author') + '</span><button class="ctl sup" data-act="support">' + t('support') + '</button>' : '') +
 '</div>' +
-'<div class="blk"><h3>' + t('diff') + '</h3><div class="diffs">' + diffBtns + '</div></div>' +
+'<div class="blk"><h3>' + t('mode') + '</h3><div class="diffs">' + modeBtns + '</div></div>' +
 '<div class="blk"><h3>' + t('theme') + '</h3><div class="themes">' + themeBtns + '</div></div>' +
 '<div class="btns"><button class="alt" data-act="restart">' + t('restart') + '</button>' +
 '<button data-act="close">' + t('close') + '</button></div>',
@@ -1364,7 +1369,7 @@ ok('путь Эйлера: Домик — одной линией, с нижне
 ok('атлас: 12 созвездий, каждое связно и проходится одной линией, на трёх языках',
 ATLAS.length === 12 && ATLAS.every(F => connected(F) && oddOf(F).length <= 2 && validPath(F, eulerPath(F)) && LANGS.every(l => STRINGS[l]['k_' + F.id] && STRINGS[l]['k_' + F.id + '_f'])));
 let bad = [], det = true, tight = [];
-const lists = { normal: 200, easy: 120, hard: 120 };
+const lists = { learn: 240, arcade: 200 };
 for (const d in lists) for (let n = 1; n <= lists[d]; n++) {
 const F = genLevel(n, d);
 if (figSig(F) !== figSig(genLevel(n, d))) det = false;
@@ -1375,12 +1380,19 @@ const through = F.e.some(([a, b]) => F.s.some((q, k) => k !== a && k !== b && se
 if (minD < 29 || through || F.s.some(([x, y]) => x < 0 || y < 0 || x > 150 || y > 216)) tight.push(d + n);
 }
 }
-ok('один номер — одна фигура (440 уровней, три сложности)', det);
+ok('один номер — одна фигура (440 уровней, два режима)', det);
 ok('каждая фигура связна и проходится одной линией', !bad.length, bad.slice(0, 8).join(','));
 ok('звёзды не теснее 30, линии не идут сквозь звёзды, всё в поле', !tight.length, tight.slice(0, 8).join(','));
-ok('каждый пятый уровень — настоящее созвездие; 6-й — с «нечётными» звёздами',
-genLevel(5).real === 'tri' && genLevel(10).real === 'cas' && genLevel(15).real === 'big' && oddOf(genLevel(6)).length === 2);
-ok('уровни растут: 1-й — 3 звезды, 30-й — больше', genLevel(1).s.length === 3 && genLevel(31).s.length > 6, genLevel(31).s.length);
+const lrn = n => genLevel(n, 'learn'), arc = n => genLevel(n, 'arcade');
+ok('обучение: каждый третий — созвездие, все 12 к 36-му; 5-й — с «нечётными» звёздами',
+lrn(3).real === 'tri' && lrn(6).real === 'cas' && lrn(9).real === 'big' && lrn(36).real === 'sco' && lrn(39).real === 'tri' &&
+lrn(3).intro === 'atlas' && oddOf(lrn(5)).length === 2 && lrn(5).intro === 'odd');
+let arcBad = [];
+for (let n = 1; n <= 200; n++) { const F = arc(n); if (F.real || (F.intro && !['draw', 'odd'].includes(F.intro)) || (F.hint && F.hint !== 'h_draw')) arcBad.push(n); }
+ok('аркада: ни одного созвездия и урока — только «как играть»; 3-й — с «нечётными»', !arcBad.length && oddOf(arc(3)).length === 2, arcBad.slice(0, 8).join(','));
+ok('уровни растут: обучение с 3 звёзд, аркада быстрее — до 13',
+lrn(1).s.length === 3 && lrn(31).s.length > 6 && arc(1).s.length === 4 && arc(30).s.length === 13 && arc(10).s.length > lrn(10).s.length,
+lrn(31).s.length + '/' + arc(30).s.length);
 ok('имена: у каждой звезды атласа есть русское и латинское имя; рассказы — на трёх языках',
 ATLAS.every(F => F.nm.ru.length === F.s.length && F.nm.la.length === F.s.length && F.f.every(i => LANGS.every(l => STRINGS[l]['f_' + F.id + '_' + i]))));
 const P = ATLAS.find(a => a.id === 'pol'), [pm, pd, pp] = P.pointer.map(i => P.s[i]);
@@ -1395,8 +1407,8 @@ const tBad = ATLAS.flatMap(F => F.sp.split('').map((k, i) => ({ F, k, i, T: F.T[
 .filter(o => F.T.length !== F.sp.length || (o.T !== null && (o.T < TR[o.k][0] || o.T > TR[o.k][1])) || (o.T === null && F.f.includes(o.i)))
 .map(o => o.F.id + o.i));
 ok('температура: у каждой звезды своя, в пределах класса; у звёзд с рассказом — обязательно', !tBad.length, tBad.join(','));
-ok('уровень 25 — Орион с карточкой «цвет — температура»', genLevel(25).real === 'ori' && genLevel(25).intro === 'color');
-ok('уровень 20 — урок «Как найти Полярную» с карточкой', genLevel(20).real === 'pol' && genLevel(20).intro === 'polar' && INTRO_FIG.polar);
+ok('уровень 15 — Орион с карточкой «цвет — температура»', lrn(15).real === 'ori' && lrn(15).intro === 'color');
+ok('уровень 12 — урок «Как найти Полярную» с карточкой', lrn(12).real === 'pol' && lrn(12).intro === 'polar' && INTRO_FIG.polar);
 ok('строки: у EN и ES есть всё, что у RU', LANGS.every(l => Object.keys(STRINGS.ru).every(k => STRINGS[l][k])));
 const sum = hashStr(Array.from({ length: 100 }, (_, i) => figSig(genLevel(i + 1))).join('|'));
 const fail = res.filter(r => r.startsWith('FAIL'));
@@ -1415,7 +1427,7 @@ draw(time / 1000);
 if (QS.has('dbg')) {
 window.bsCheck = bsCheck;
 window.BS = { genLevel, eulerPath, get L() { return L; }, startLevel, restart, openBook, openSettings, showIntro,
-get atlas() { return atlas; }, SFX, settings, applyTheme, setLang, DIFFS, oddOf,
+get atlas() { return atlas; }, SFX, settings, applyTheme, setLang, MODES, oddOf,
 layout: () => ({ LW, LH, OX, BX, BY, T, SCALE, GY }) };
 }
 addEventListener('resize', fit);
@@ -1424,8 +1436,9 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { if 
 addEventListener('pagehide', () => { if (L) save(); });
 applyTheme(settings.theme);
 fit();
-if (!DIFFS[settings.diff]) settings.diff = 'normal';
-const startN = savedLevel(settings.diff);
+delete settings.diff;
+if (!MODES[settings.mode]) settings.mode = 'learn';
+const startN = savedLevel(settings.mode);
 const qLvl = parseInt(QS.get('lvl'), 10);
 if (qLvl > 0) {
 startLevel(qLvl, false);
