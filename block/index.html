@@ -73,6 +73,10 @@ text-decoration: underline; text-underline-offset: 3px; }
 .card button.sup { background: linear-gradient(#ff7a9a, #e0466e); box-shadow: 0 3px 0 #9c2848; }
 .card button.alt { background: linear-gradient(var(--alt1), var(--alt2)); box-shadow: 0 3px 0 var(--alt3); }
 .card button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--btn3, #22408f); }
+.card .stars { font-size: 16px; font-weight: 800; color: var(--gold, #ffd84a); margin: 10px 0 2px; }
+.card .offers { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.card button:disabled { opacity: .45; }
+.card button.ad { background: linear-gradient(#5fd08a, #34a862); box-shadow: 0 3px 0 #1f7a42; }
 .card.set { min-width: 250px; padding: 18px 20px 18px; }
 .set .blk { padding: 12px 14px; border-radius: 12px; background: rgba(0,0,0,.13); margin-top: 10px; }
 .set .grid { display: grid; grid-template-columns: auto 1fr; gap: 12px 16px; align-items: center;
@@ -115,6 +119,8 @@ padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)"
 <script>
 'use strict';
 (function () {
+const PORTAL = window.BB_PORTAL ||
+(/[?&]dbg\b/.test(location.search) && /[?&]portal\b/.test(location.search) ? 'test' : '');
 const DW = 180, DH = 320;
 const N = 10, CELL = 16;
 const TRAY_H = 72;
@@ -142,8 +148,9 @@ const top = safeTop / k, bot = safeBot / k;
 const extra = Math.max(0, LH - DH - top - bot);
 HY = top + extra * 0.3;
 const gy = top + extra * 0.7;
-BX = OX + 10; BY = 74 + gy;
-COMBO_Y = 63 + gy;
+const up = PORTAL ? 10 : 0;
+BX = OX + 10; BY = 74 + gy - up;
+COMBO_Y = 63 + gy - up;
 TRAY_Y = BY + N * CELL + TRAY_GAP;
 SLOT_X = BX - 3;
 GEAR.x = OX + 162; GEAR.y = 20 + HY;
@@ -202,7 +209,10 @@ support: 'Поддержать ♥', supportAsk: 'Нравится игра? П�
 lang: 'Язык', theme: 'Тема',
 th_juicy: 'Сочная', th_wood: 'Дерево', th_night: 'Ночь', th_day: 'День',
 diff: 'Сложность', d_normal: 'Обычная', d_hard: 'Сложная', hardTag: 'СЛОЖНО',
-diffQ: 'Сложность сменится в новой партии', diffNow: 'Начать новую', diffLater: 'Позже'
+diffQ: 'Сложность сменится в новой партии', diffNow: 'Начать новую', diffLater: 'Позже',
+noStars: 'Не хватает звёзд', noRot: 'Не вращается', turnIt: 'Коснись фигуры — повернётся',
+rotRescue: 'Повернуть фигуру', revive: 'Продолжить', revived: 'Новые фигуры!',
+adGet: '+10★ за рекламу', adFail: 'Реклама сейчас недоступна', adTest: 'Реклама (тест)'
 },
 en: {
 best: 'BEST', over: 'No moves left', score: 'Score', record: 'New high score!',
@@ -218,7 +228,10 @@ support: 'Support ♥', supportAsk: 'Enjoying the game? Support the author ♥',
 lang: 'Language', theme: 'Theme',
 th_juicy: 'Juicy', th_wood: 'Wood', th_night: 'Night', th_day: 'Day',
 diff: 'Difficulty', d_normal: 'Normal', d_hard: 'Hard', hardTag: 'HARD',
-diffQ: 'Difficulty changes with a new game', diffNow: 'New game', diffLater: 'Later'
+diffQ: 'Difficulty changes with a new game', diffNow: 'New game', diffLater: 'Later',
+noStars: 'Not enough stars', noRot: "Can't rotate", turnIt: 'Tap a piece to rotate it',
+rotRescue: 'Rotate a piece', revive: 'Continue', revived: 'Fresh pieces!',
+adGet: '+10★ for an ad', adFail: 'No ad available right now', adTest: 'Ad (test)'
 },
 es: {
 best: 'RÉCORD', over: 'Sin movimientos', score: 'Puntos', record: '¡Nuevo récord!',
@@ -234,7 +247,10 @@ support: 'Apoyar ♥', supportAsk: '¿Te gusta el juego? Apoya al autor ♥', au
 lang: 'Idioma', theme: 'Tema',
 th_juicy: 'Jugosa', th_wood: 'Madera', th_night: 'Noche', th_day: 'Día',
 diff: 'Dificultad', d_normal: 'Normal', d_hard: 'Difícil', hardTag: 'DIFÍCIL',
-diffQ: 'La dificultad cambia en una partida nueva', diffNow: 'Nueva partida', diffLater: 'Después'
+diffQ: 'La dificultad cambia en una partida nueva', diffNow: 'Nueva partida', diffLater: 'Después',
+noStars: 'Faltan estrellas', noRot: 'No gira', turnIt: 'Toca una pieza para girarla',
+rotRescue: 'Girar una pieza', revive: 'Continuar', revived: '¡Piezas nuevas!',
+adGet: '+10★ por un anuncio', adFail: 'No hay anuncio ahora', adTest: 'Anuncio (prueba)'
 }
 };
 const LANGS = ['ru', 'en', 'es'];
@@ -330,8 +346,10 @@ const key = norm.join(';');
 if (!seen.has(key)) { seen.add(key); rots.push(norm); }
 cells = cells.map(([x, y]) => [-y, x]);
 }
+const base = out.length;
 rots.forEach((c, i) => out.push({
 id: name + (rots.length > 1 ? '_' + i : ''),
+rot: base + (i + 1) % rots.length,
 form: formKey(c),
 cells: c,
 w: Math.max(...c.map(p => p[0])) + 1,
@@ -470,7 +488,7 @@ if (rows.length || cols.length) return true;
 }
 return false;
 }
-function refill(g) {
+function refill(g, loose) {
 const pick = g.easy ? pickEasy : pickShape;
 const cands = [];
 let tray = null, some = null;
@@ -483,6 +501,7 @@ else if (!some && tray.some(i => fitsAnywhere(g.board, SHAPES[i]))) some = tray;
 if (!cands.length) { fairMiss++; g.tray = some || tray; return; }
 if (cands.length === 1) { g.tray = cands[0].tray; return; }
 cands.sort((a, b) => b.n - a.n);
+if (loose) { g.tray = cands[0].tray; return; }
 const fill = g.board.reduce((a, v) => a + (v ? 1 : 0), 0) / (N * N);
 if (fill >= TUNE.RESCUE_FILL) {
 const r = cands.find(c => canClear(g.board, c.tray));
@@ -492,6 +511,53 @@ let k = Math.round(trayDifficulty(g.moves) * (cands.length - 1));
 const u = rnd(g);
 if (u < 0.12) k -= 1; else if (u < 0.2) k -= 2;
 g.tray = cands[Math.max(0, Math.min(cands.length - 1, k))].tray;
+}
+const STAR_P = 0.14, STAR_MAX = 4;
+function spawnStar(g, s, x, y) {
+g.stars = g.stars || [];
+g.sr = g.sr || { rng: (g.seed ^ 0x5eed57a2) >>> 0 };
+if (g.stars.length >= STAR_MAX || rnd(g.sr) >= STAR_P) return;
+const cells = s.cells.map(([cx, cy]) => (y + cy) * N + x + cx).filter(i => g.board[i] && !g.stars.includes(i));
+if (cells.length) g.stars.push(cells[Math.floor(rnd(g.sr) * cells.length)]);
+}
+function rotatePiece(g, slot) {
+const si = g.tray[slot];
+if (si == null || si < 0 || SHAPES[si].rot === si) return false;
+g.tray[slot] = SHAPES[si].rot;
+g.rots = (g.rots || 0) + 1;
+g.over = !anyFits(g);
+return true;
+}
+function rotationRescues(g) {
+return g.tray.some(si => {
+if (si < 0) return false;
+for (let k = 0, i = si; k < 3; k++) {
+i = SHAPES[i].rot;
+if (i === si) break;
+if (fitsAnywhere(g.board, SHAPES[i])) return true;
+}
+return false;
+});
+}
+function swapTray(g) {
+refill(g);
+g.swaps = (g.swaps || 0) + 1;
+g.over = !anyFits(g);
+}
+function revive(g) {
+refill(g, true);
+if (!anyFits(g)) {
+const cand = [];
+let total = 0;
+SHAPES.forEach((sh, i) => { if (fitsAnywhere(g.board, sh)) { cand.push(i); total += sh.weight; } });
+if (cand.length) g.tray = [0, 1, 2].map(() => {
+let r = rnd(g) * total, pick = cand[cand.length - 1];
+for (const i of cand) { r -= SHAPES[i].weight; if (r < 0) { pick = i; break; } }
+return pick;
+});
+}
+g.revives = (g.revives || 0) + 1;
+g.over = !anyFits(g);
 }
 function fullLines(board) {
 const rows = [], cols = [];
@@ -539,9 +605,16 @@ if (g.msc >= COMBO_GRACE) g.combo = 0;
 const clean = lines > 0 && g.board.every(v => !v);
 if (clean) gained += CLEAN_BONUS;
 g.score += gained;
+let starsGot = 0;
+if (g.stars && g.stars.length) {
+const before = g.stars.length;
+g.stars = g.stars.filter(i => g.board[i]);
+starsGot = before - g.stars.length;
+}
+if (g.eco && !dry) spawnStar(g, s, x, y);
 if (!dry && g.tray.every(i => i < 0)) refill(g);
 g.over = !anyFits(g);
-return { s, x, y, rows, cols, lines, cleared, gained, combo: g.combo, clean };
+return { s, x, y, rows, cols, lines, cleared, gained, combo: g.combo, clean, starsGot };
 }
 function predict(g, slot, x, y) {
 return place({ ...g, board: g.board.slice(), tray: g.tray.slice() }, slot, x, y, true);
@@ -553,6 +626,8 @@ g.board.forEach(mix); g.tray.forEach(v => mix(v + 1));
 [g.score, g.combo, g.msc, g.moves, g.rng, g.over ? 1 : 0].forEach(mix);
 if (g.easy) { mix(0x45415359); mix(1); }
 if (g.mode === 'hard') { mix(0x48415244); mix(1); }
+if (g.stars && g.stars.length) { mix(0x53544152); g.stars.forEach(mix); }
+[g.rots, g.swaps, g.revives].forEach((v, k) => { if (v) { mix(0x45434f00 + k); mix(v); } });
 return h.toString(16).padStart(8, '0');
 }
 function validG(g) {
@@ -561,7 +636,8 @@ g.board.every(v => Number.isInteger(v) && v >= 0 && v <= 7) &&
 Array.isArray(g.tray) && g.tray.length === 3 &&
 g.tray.every(i => Number.isInteger(i) && i >= -1 && i < SHAPES.length) &&
 Number.isFinite(g.score) && Number.isFinite(g.rng) &&
-(g.mode == null || g.mode === 'hard');
+(g.mode == null || g.mode === 'hard') &&
+(g.stars == null || (Array.isArray(g.stars) && g.stars.every(i => Number.isInteger(i) && i >= 0 && i < N * N)));
 }
 let SUPPORT_URL = 'https://send.monobank.ua/jar/6K1DTLciVs';
 function openSupport() {
@@ -571,7 +647,38 @@ try { window.open(SUPPORT_URL, '_blank', 'noopener'); } catch (e) { location.hre
 const KEY_RUN = 'bb_run', KEY_BEST = 'bb_best';
 const bestKey = mode => mode === 'hard' ? KEY_BEST + '_hard' : KEY_BEST;
 const loadBest = mode => Math.max(0, parseInt(stGet(bestKey(mode)), 10) || 0);
-stDel('bb_stars');
+if (!PORTAL) stDel('bb_stars');
+if (PORTAL) SUPPORT_URL = '';
+const ECO = { start: 6, rot: 3, swap: 5, revive: 10, ad: 10 };
+let stars = 0;
+if (PORTAL) { const v = stGet('bb_stars'); stars = v == null ? ECO.start : Math.max(0, parseInt(v, 10) || 0); }
+const saveStars = () => stSet('bb_stars', String(stars));
+const reviveCost = g => ECO.revive * ((g.revives || 0) + 1);
+const Ads = (function () {
+const none = { ok: () => false, rewarded() {}, start() {}, stop() {} };
+if (PORTAL === 'test') return {
+ok: () => true,
+rewarded(done) { note(t('adTest')); SFX.pause(); setTimeout(done, 1200); },
+start() {}, stop() {}
+};
+if (PORTAL !== 'crazygames' || !window.CrazyGames || !window.CrazyGames.SDK) return none;
+let sdk = null, playing = false;
+window.CrazyGames.SDK.init().then(() => { sdk = window.CrazyGames.SDK; needDraw = true; if (playing) sdk.game.gameplayStart(); }).catch(() => {});
+return {
+ok: () => !!sdk,
+rewarded(done) {
+if (!sdk) return;
+sdk.ad.requestAd('rewarded', {
+adStarted: () => SFX.pause(),
+adFinished: () => done(),
+adError: () => { note(t('adFail')); needDraw = true; }
+});
+},
+start() { playing = true; if (sdk) sdk.game.gameplayStart(); },
+stop() { playing = false; if (sdk) sdk.game.gameplayStop(); }
+};
+})();
+function note(text) { ui.banners = [{ lines: [{ text, color: '#ffe38a', size: 12 }], t: 0 }]; needDraw = true; }
 function packRun(g, extra) {
 const snap = Object.assign({}, g, { tray: undefined });
 snap.trayIds = g.tray.map(i => i < 0 ? null : SHAPES[i].id);
@@ -678,6 +785,7 @@ record() {
 voice(hz(m), 0.2, { vol: 0.13, glide: 1.45, gt: 0.07, at: 0.2 + i * 0.09 }));
 },
 tray() { voice(520, 0.14, { vol: 0.12, glide: 1.5, gt: 0.06, at: 0.08 }); },
+star() { [79, 84].forEach((m, i) => voice(hz(m), 0.16, { vol: 0.1, glide: 1.3, gt: 0.06, at: 0.15 + i * 0.08 })); },
 over() { [72, 67, 64, 60].forEach((m, i) => voice(hz(m), 0.5, { vol: 0.13, glide: 0.98, gt: 0.3, at: i * 0.2 })); },
 probe() { voice(660, 0.12, { vol: 0.12, glide: 1.3, gt: 0.05 }); }
 };
@@ -775,12 +883,15 @@ tutT: 0
 };
 function startGame(seed) {
 G = newGame(seed, !settings.tutDone, settings.diff);
+if (PORTAL) G.eco = true;
 best = loadBest(G.mode);
 ui.drag = ui.target = ui.preview = ui.back = null;
 ui.fx = []; ui.parts = []; ui.floats = []; ui.banners = []; ui.pops = [];
 ui.shown = 0; ui.overT = -1; ui.bestAtStart = best; ui.recordShown = false;
 ui.tut = settings.tutDone ? 0 : 1; ui.tutT = 0;
+ui.rotMode = false; ui.rotTap = null;
 closeOverlay();
+Ads.start();
 saveRun();
 if (G.over) gameOver();
 needDraw = true;
@@ -873,8 +984,17 @@ needDraw = true;
 if (hb === 'gear') requestAnimationFrame(() => { ui.hud = null; openSettings(); });
 return;
 }
-if (G.over || ui.drag) return;
-if (p.y >= TRAY_Y - 4 && p.y <= TRAY_Y + TRAY_H + 8) {
+if (ecoHit(p)) return;
+if (ui.drag || ui.rotTap) return;
+if (ui.rotMode && p.y >= TRAY_Y - 4 && p.y <= TRAY_Y + TRAY_H + 4) {
+const slot = slotAt(p.x);
+if (G.tray[slot] < 0) return;
+ui.rotTap = { slot, x: p.x, y: p.y, id: ev.pointerId, mouse: ev.pointerType === 'mouse' };
+try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
+return;
+}
+if (G.over) return;
+if (p.y >= TRAY_Y - 4 && p.y <= TRAY_Y + TRAY_H + (PORTAL ? 0 : 8)) {
 const slot = slotAt(p.x);
 if (G.tray[slot] < 0) return;
 ui.drag = { slot, x: p.x, y: p.y, lift: ev.pointerType !== 'mouse', t: 0, id: ev.pointerId };
@@ -906,6 +1026,25 @@ ui.drag = ui.target = ui.preview = null;
 needDraw = true;
 }
 cv.addEventListener('pointerup', ev => { if (ui.drag && ev.pointerId === ui.drag.id) endDrag(true); });
+cv.addEventListener('pointermove', ev => {
+const r = ui.rotTap;
+if (!r || ev.pointerId !== r.id) return;
+const p = toLogic(ev);
+if (Math.hypot(p.x - r.x, p.y - r.y) < 6 || G.over) return;
+ui.rotTap = null;
+ui.drag = { slot: r.slot, x: p.x, y: p.y, lift: !r.mouse, t: 0, id: r.id };
+ui.back = null;
+SFX.play('pick');
+updateTarget();
+needDraw = true;
+});
+cv.addEventListener('pointerup', ev => {
+const r = ui.rotTap;
+if (!r || ev.pointerId !== r.id) return;
+ui.rotTap = null;
+tapRotate(r.slot);
+});
+cv.addEventListener('pointercancel', ev => { if (ui.rotTap && ev.pointerId === ui.rotTap.id) ui.rotTap = null; });
 cv.addEventListener('pointercancel', ev => { if (ui.drag && ev.pointerId === ui.drag.id) endDrag(false); });
 function hudHit(p) {
 const R = HUD_BTN / 2 + 5;
@@ -933,6 +1072,12 @@ const comboBefore = G.combo;
 const res = place(G, slot, gx, gy);
 if (!res) return false;
 const s = res.s;
+ui.rotMode = false;
+if (res.starsGot) {
+stars += res.starsGot; saveStars();
+ui.floats.push({ x: ECO_X(), y: TRAY_Y + TRAY_H + 2, text: '+' + res.starsGot + '★', t: 0, big: true });
+SFX.play('star');
+}
 for (const [cx, cy] of s.cells) ui.pops.push({ x: gx + cx, y: gy + cy, t: 0 });
 const ox = gx + s.w / 2, oy = gy + s.h / 2;
 for (const c of res.cleared) {
@@ -982,6 +1127,8 @@ return true;
 let overTimer = 0;
 function gameOver() {
 ui.overT = 0;
+ui.rotMode = false;
+Ads.stop();
 clearTimeout(overTimer);
 const g = G;
 overTimer = setTimeout(() => { if (G === g && ovEl.hidden) showGameOver(); }, OVER_DELAY * 1000);
@@ -1004,9 +1151,117 @@ openOverlay(
 '<div class="big">' + G.score + '</div>' +
 (rec ? '<div class="rec">' + t('record') + '</div>'
 : '<div class="sub">' + t('bestIs') + best + '</div>') +
-'<div class="btns"><button data-act="again">' + t('again') + '</button></div>' +
+ecoOffers() +
+'<div class="btns"><button' + (PORTAL ? ' class="alt"' : '') + ' data-act="again">' + t('again') + '</button></div>' +
 (SUPPORT_URL ? '<button class="link" data-act="support">' + t('supportAsk') + '</button>' : ''),
-{ again: () => startGame(randomSeed()), support: openSupport });
+{
+again: () => startGame(randomSeed()), support: openSupport,
+rot: () => { closeOverlay(); ui.rotMode = true; note(t('turnIt')); },
+revive: () => {
+const cost = reviveCost(G);
+if (stars < cost) return;
+stars -= cost; saveStars();
+revive(G);
+resumeGame();
+SFX.play('tray');
+},
+ad: () => Ads.rewarded(() => { stars += ECO.ad; saveStars(); if (G.over) showGameOver(); })
+});
+}
+function ecoOffers() {
+if (!PORTAL) return '';
+const cost = reviveCost(G);
+return '<div class="stars">★ ' + stars + '</div><div class="offers">' +
+(stars >= ECO.rot && rotationRescues(G) ? '<button data-act="rot">↻ ' + t('rotRescue') + ' · ' + ECO.rot + '★</button>' : '') +
+'<button data-act="revive"' + (stars >= cost ? '' : ' disabled') + '>▶ ' + t('revive') + ' · ' + cost + '★</button>' +
+(Ads.ok() ? '<button class="ad" data-act="ad">' + t('adGet') + '</button>' : '') +
+'</div>';
+}
+function resumeGame() {
+clearTimeout(overTimer);
+ui.overT = -1;
+closeOverlay();
+note(t('revived'));
+Ads.start();
+saveRun();
+needDraw = true;
+}
+const ECO_H = 13;
+const ECO_X = () => BX + N * CELL - 22;
+function ecoButtons() {
+const y = TRAY_Y + TRAY_H + 2, x0 = BX - 3;
+const b = { rot: { x: x0, y, w: 40, h: ECO_H }, swap: { x: x0 + 43, y, w: 40, h: ECO_H } };
+if (Ads.ok()) b.ad = { x: x0 + 86, y, w: 44, h: ECO_H };
+return b;
+}
+function ecoHit(p) {
+if (!PORTAL || G.over) return false;
+const bs = ecoButtons();
+const k = Object.keys(bs).find(k => { const b = bs[k]; return p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y - 3 && p.y <= b.y + b.h + 3; });
+if (!k) return false;
+if (k === 'rot') {
+if (ui.rotMode) { ui.rotMode = false; }
+else if (stars < ECO.rot) { note(t('noStars')); SFX.play('back'); }
+else { ui.rotMode = true; note(t('turnIt')); SFX.play('pick'); }
+} else if (k === 'swap') {
+if (stars < ECO.swap) { note(t('noStars')); SFX.play('back'); }
+else {
+stars -= ECO.swap; saveStars();
+swapTray(G); ui.rotMode = false;
+note(t('revived')); SFX.play('tray');
+saveRun();
+if (G.over) { gameOver(); SFX.play('over'); }
+}
+} else if (k === 'ad') {
+Ads.rewarded(() => { stars += ECO.ad; saveStars(); note('+' + ECO.ad + '★'); SFX.play('star'); });
+}
+needDraw = true;
+return true;
+}
+function tapRotate(slot) {
+const si = G.tray[slot];
+if (si < 0) return;
+if (SHAPES[si].rot === si) { note(t('noRot')); SFX.play('back'); return; }
+if (stars < ECO.rot) { note(t('noStars')); SFX.play('back'); ui.rotMode = false; return; }
+const wasOver = G.over;
+rotatePiece(G, slot);
+stars -= ECO.rot; saveStars();
+SFX.play('pick');
+saveRun();
+if (wasOver && !G.over) { ui.rotMode = false; resumeGame(); }
+if (stars < ECO.rot) ui.rotMode = false;
+if (!ui.rotMode && G.over) showGameOver();
+needDraw = true;
+}
+function drawEco() {
+const bs = ecoButtons(), sz = 6.5;
+const pill = (b, on, dim) => {
+ctx.globalAlpha = dim ? 0.45 : 1;
+ctx.fillStyle = on ? COL.gold : COL.alt[1]; rrect(b.x, b.y, b.w, b.h, 4); ctx.fill();
+ctx.globalAlpha = 1;
+};
+pill(bs.rot, ui.rotMode, stars < ECO.rot && !ui.rotMode);
+text('↻ ' + ECO.rot + '★', bs.rot.x + bs.rot.w / 2, bs.rot.y + ECO_H / 2 + 0.4, sz, ui.rotMode ? '#3a2400' : '#fff', 'center');
+pill(bs.swap, false, stars < ECO.swap);
+text('⇄ ' + ECO.swap + '★', bs.swap.x + bs.swap.w / 2, bs.swap.y + ECO_H / 2 + 0.4, sz, '#fff', 'center');
+if (bs.ad) {
+ctx.fillStyle = '#34a862'; rrect(bs.ad.x, bs.ad.y, bs.ad.w, bs.ad.h, 4); ctx.fill();
+text('▶ +' + ECO.ad + '★', bs.ad.x + bs.ad.w / 2, bs.ad.y + ECO_H / 2 + 0.4, sz, '#fff', 'center');
+}
+drawStar(ECO_X() - 6, bs.rot.y + ECO_H / 2, 4.2);
+text(String(stars), ECO_X() + 1, bs.rot.y + ECO_H / 2 + 0.4, 8, COL.gold, 'left');
+}
+function drawStar(x, y, r, a) {
+ctx.globalAlpha = a === undefined ? 1 : a;
+ctx.beginPath();
+for (let i = 0; i < 10; i++) {
+const rr = i % 2 ? r * 0.45 : r, an = -Math.PI / 2 + i * Math.PI / 5;
+ctx[i ? 'lineTo' : 'moveTo'](x + Math.cos(an) * rr, y + Math.sin(an) * rr);
+}
+ctx.closePath();
+ctx.fillStyle = '#ffd84a'; ctx.fill();
+ctx.strokeStyle = 'rgba(90,50,0,.8)'; ctx.lineWidth = Math.max(0.4, r * 0.14); ctx.stroke();
+ctx.globalAlpha = 1;
 }
 let installEvt = null;
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
@@ -1365,6 +1620,7 @@ let s = CELL - 1, o = 0.5;
 const pop = ui.pops.find(p => p.x === x && p.y === y);
 if (pop) { const k = 1 + 0.18 * Math.sin(Math.PI * pop.t / POP_LIFE); o = 0.5 - (s * k - s) / 2; s *= k; }
 block(px + o, py + o, s, ci);
+if (G.stars && G.stars.includes(i)) drawStar(px + CELL / 2, py + CELL / 2, CELL * 0.3);
 }
 if (ui.target && dragS) {
 const P = PAL[dragS.color], pulse = 0.85 + 0.15 * Math.sin(ui.clock * 6);
@@ -1398,7 +1654,9 @@ if (si < 0 || (drag && drag.slot === k) || (ui.back && ui.back.slot === k)) cont
 const s = SHAPES[si];
 const ci = fitsAnywhere(G.board, s) ? s.color : GREY;
 drawShape(s, tg.cx[k], TRAY_Y + TRAY_H / 2, tg.cell, ci);
+if (ui.rotMode && s.rot !== si) text('↻', tg.cx[k], TRAY_Y + 7, 8, COL.gold, 'center');
 }
+if (PORTAL) drawEco();
 for (const f of ui.floats) {
 const k = f.t / FLOAT_LIFE;
 const size = f.big ? 11 : 8;
@@ -1639,6 +1897,33 @@ place(g, m.slot, m.x, m.y);
 }
 ok('честная тройка: у бота каждая выданная раскладывается', bad === fairMiss - miss0, dealt + ' троек, неразложимых ' + bad + ', поле забито ' + (fairMiss - miss0));
 }
+{
+const i2 = shape('i2_0');
+let li = shape('l3_0'); for (let k = 0; k < 4; k++) li = SHAPES[li].rot;
+ok('поворот: палка туда-обратно, уголок по кругу за 4, точка и квадрат на месте',
+SHAPES[i2].rot === shape('i2_1') && SHAPES[SHAPES[i2].rot].rot === i2 && li === shape('l3_0') &&
+SHAPES[shape('dot')].rot === shape('dot') && SHAPES[shape('o2')].rot === shape('o2'));
+const e = newGame(7);
+for (let x = 0; x < 9; x++) e.board[x] = 1;
+e.board[5 * N] = 1;
+e.stars = [3]; e.tray = [shape('dot'), -1, shape('dot')];
+const r = place(e, 0, 9, 0);
+ok('звезда: стёрта линия со звездой — +1, звезды на поле нет', r && r.starsGot === 1 && !e.stars.length);
+const play = () => {
+const g = newGame(4242); g.eco = true;
+for (let m = 0; m < 80 && !g.over; m++) { const ms = allMoves(g); if (!ms.length) break; place(g, ms[0].slot, ms[0].x, ms[0].y); }
+return { h: hashG(g), st: JSON.stringify(g.stars), sp: g.sr ? 1 : 0 };
+};
+const a1 = play(), a2 = play();
+ok('звёзды детерминированы и появляются', a1.h === a2.h && a1.st === a2.st && a1.sp === 1, a1.st);
+const v = newGame(9);
+for (let i = 0; i < N * N; i++) v.board[i] = 1;
+for (let y = 0; y < N; y++) v.board[y * N + (y * 3) % N] = 0;
+v.tray = [shape('i4_0'), shape('i4_1'), shape('o2')]; v.over = !anyFits(v);
+const wasOver = v.over;
+revive(v);
+ok('продолжение спасает забитое поле', wasOver && !v.over && v.revives === 1);
+}
 for (const id of THEME_IDS) {
 const th = THEMES[id];
 const good = th.colors.length === 7 && BLOCK_STYLES[th.style] &&
@@ -1714,7 +1999,8 @@ return out;
 if (QS.has('dbg')) {
 window.BB = { get G() { return G; }, get ui() { return ui; },
 get layout() { const g = trayGeo(); return { LW, LH, OX, BX, BY, TRAY_Y, TRAY_H, SLOT_X, CELL, slotCx: g.cx, trayCell: g.cell }; },
-get supportUrl() { return SUPPORT_URL; }, set supportUrl(v) { SUPPORT_URL = v; }, draw, fit, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings, traySolutions, TUNE };
+get supportUrl() { return SUPPORT_URL; }, set supportUrl(v) { SUPPORT_URL = v; }, draw, fit, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings,
+get stars() { return stars; }, set stars(v) { stars = v; saveStars(); }, ECO, PORTAL, showGameOver, traySolutions, TUNE };
 window.bbCheck = bbCheck;
 window.bbSim = bbSim;
 }
