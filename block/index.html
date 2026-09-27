@@ -631,7 +631,7 @@ const THEMES = {
 juicy: {
 style: 'juicy',
 colors: ['#e8484f', '#f5a524', '#f2d535', '#4cc36a', '#35b8e8', '#4d6ee8', '#a257e0'], grey: '#6b7089',
-bgTop: '#2a3a8c', bgBot: '#141b45', board: '#10163a', cell: '#1d2552', cellHi: '#26306a',
+bgTop: '#2a3a8c', bgBot: '#141b45', board: '#05071a',
 panel: 'rgba(8,12,34,.35)', text: '#f2f4ff', textStroke: 'rgba(0,0,0,.35)',
 gold: '#ffd84a', dim: '#9aa3d6', faint: 'rgba(154,163,214,.45)', pipOff: 'rgba(154,163,214,.18)',
 card: ['#26305e', '#1a2147'], cardText: '#e9ecff', btn: ['#4f8cff', '#3563d8', '#22408f'],
@@ -640,7 +640,7 @@ alt: ['#5b6385', '#454c6b', '#2d3249'], veil: 'rgba(6,9,26,.62)'
 wood: {
 style: 'wood',
 colors: ['#dcaa6e', '#dcaa6e', '#dcaa6e', '#dcaa6e', '#dcaa6e', '#dcaa6e', '#dcaa6e'], grey: '#7d6a58',
-bgTop: '#8a5a32', bgBot: '#4f2f18', board: '#3b2212', cell: '#4d2d17', cellHi: '#65401f',
+bgTop: '#8a5a32', bgBot: '#4f2f18', board: '#120903',
 panel: 'rgba(40,20,8,.4)', text: '#fff1d6', textStroke: 'rgba(60,30,10,.55)',
 gold: '#ffd27a', dim: '#e2bf93', faint: 'rgba(226,191,147,.45)', pipOff: 'rgba(226,191,147,.2)',
 card: ['#7a4c29', '#5a3419'], cardText: '#fff1d6', btn: ['#d9a15e', '#b97d3c', '#7c4f22'],
@@ -649,7 +649,7 @@ alt: ['#8c6a4d', '#6c4f37', '#4a3524'], veil: 'rgba(30,14,4,.6)'
 night: {
 style: 'night',
 colors: ['#ff4d8d', '#ffb13b', '#f6f05a', '#3cf0a0', '#3ad7ff', '#7c86ff', '#c35cff'], grey: '#5d5d82',
-bgTop: '#15122e', bgBot: '#06050f', board: '#0b0a1c', cell: '#15132c', cellHi: '#252250',
+bgTop: '#15122e', bgBot: '#06050f', board: '#020107',
 panel: 'rgba(20,18,50,.5)', text: '#ecebff', textStroke: 'rgba(0,0,0,.5)',
 gold: '#ffe36b', dim: '#9d9ad6', faint: 'rgba(157,154,214,.4)', pipOff: 'rgba(157,154,214,.16)',
 card: ['#1e1a40', '#110f26'], cardText: '#ecebff', btn: ['#8a5cff', '#6536e0', '#3e1f9a'],
@@ -658,7 +658,7 @@ alt: ['#3c3960', '#2b2848', '#1b1930'], veil: 'rgba(3,2,10,.7)'
 day: {
 style: 'day',
 colors: ['#ff7b86', '#ffac5c', '#ffd35c', '#72d487', '#5cc2f0', '#8193ff', '#c18bff'], grey: '#b3b8cc',
-bgTop: '#cfe0ff', bgBot: '#f6efff', board: '#b9c6ea', cell: '#dfe6fa', cellHi: '#f6f9ff',
+bgTop: '#cfe0ff', bgBot: '#f6efff', board: '#141934',
 panel: 'rgba(120,140,200,.18)', text: '#34406e', textStroke: 'rgba(255,255,255,.7)',
 gold: '#d9801a', dim: '#6b76a8', faint: 'rgba(107,118,168,.5)', pipOff: 'rgba(107,118,168,.2)',
 card: ['#ffffff', '#eef1fd'], cardText: '#34406e', btn: ['#6f8dff', '#4f6ae8', '#3549b0'],
@@ -1017,6 +1017,8 @@ openOverlay(
 const FX_LIFE = 0.32, POP_LIFE = 0.18, FLOAT_LIFE = 0.9, BANNER_LIFE = 1.3, OVER_DELAY = 0.9, BACK_LIFE = 0.14;
 function update(dt) {
 let busy = false;
+ui.clock = (ui.clock || 0) + dt;
+if (ui.target) busy = true;
 if (ui.drag && ui.drag.t < 1) { ui.drag.t += dt; busy = true; }
 if (ui.back) { ui.back.t += dt; busy = true; if (ui.back.t >= BACK_LIFE) ui.back = null; }
 if (ui.tut === 1 && !ui.drag && ovEl.hidden) { ui.tutT += dt; busy = true; }
@@ -1095,6 +1097,30 @@ c.globalAlpha = ga;
 }
 };
 function block(x, y, s, ci) { BLOCK_STYLES[TH.style](ctx, x, y, s, PAL[ci]); }
+function neonStroke(pathFn, P, a) {
+ctx.save();
+ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = ctx.lineJoin = 'round';
+for (const [w, col, al] of [[6, P.base, 0.14], [3.4, P.base, 0.32], [1.7, P.light, 0.75], [0.7, '#fff', 0.95]]) {
+ctx.globalAlpha = al * a; ctx.strokeStyle = col; ctx.lineWidth = w;
+ctx.beginPath(); pathFn(); ctx.stroke();
+}
+ctx.restore();
+}
+function neonOutline(cells, P, a) {
+const has = new Set(cells.map(([x, y]) => x + ',' + y));
+neonStroke(() => {
+for (const [x, y] of cells) {
+const x0 = BX + x * CELL + 0.5, y0 = BY + y * CELL + 0.5, x1 = x0 + CELL - 1, y1 = y0 + CELL - 1;
+if (!has.has(x + ',' + (y - 1))) { ctx.moveTo(x0, y0); ctx.lineTo(x1, y0); }
+if (!has.has(x + ',' + (y + 1))) { ctx.moveTo(x0, y1); ctx.lineTo(x1, y1); }
+if (!has.has((x - 1) + ',' + y)) { ctx.moveTo(x0, y0); ctx.lineTo(x0, y1); }
+if (!has.has((x + 1) + ',' + y)) { ctx.moveTo(x1, y0); ctx.lineTo(x1, y1); }
+}
+}, P, a);
+}
+function neonRect(x, y, w, h, P, a) {
+neonStroke(() => rr(ctx, x + 0.3, y + 0.3, w - 0.6, h - 0.6, 1.5), P, a);
+}
 const thumbCache = {};
 function themeThumb(id) {
 if (thumbCache[id]) return thumbCache[id];
@@ -1107,7 +1133,6 @@ g.addColorStop(0, th.bgTop); g.addColorStop(1, th.bgBot);
 x.fillStyle = g; x.fillRect(0, 0, 33, 12);
 x.fillStyle = th.board; rr(x, 3, 1.5, 27, 9, 1.5); x.fill();
 [[4, 0], [11.5, 3], [19, 5]].forEach(([bx, ci]) => {
-x.fillStyle = th.cell; x.fillRect(bx, 2.5, 7, 7);
 BLOCK_STYLES[th.style](x, bx + 0.25, 2.75, 6.5, pal[ci]);
 });
 return (thumbCache[id] = c.toDataURL());
@@ -1204,8 +1229,7 @@ const tg = trayGeo(), x0 = tg.cx[slot], y0 = TRAY_Y + TRAY_H / 2;
 const x1 = BX + (gx + s.w / 2) * CELL, y1 = BY + (gy + s.h / 2) * CELL;
 const cx = x0 + (x1 - x0) * mv, cy = y0 + (y1 - y0) * mv;
 const ts = tg.cell, size = ts + (CELL - ts) * mv;
-ctx.globalAlpha = 0.25 * alpha;
-for (const [ax, ay] of s.cells) block(BX + (gx + ax) * CELL + 0.5, BY + (gy + ay) * CELL + 0.5, CELL - 1, s.color);
+neonOutline(s.cells.map(([ax, ay]) => [gx + ax, gy + ay]), PAL[s.color], 0.8 * alpha);
 drawShape(s, cx, cy, size, s.color, 0.6 * alpha);
 const press = p < 0.15 ? p / 0.15 : 1;
 const fx = cx + 5, fy = cy + size * s.h / 2 + 6;
@@ -1264,8 +1288,6 @@ const overRows = ui.overT >= 0 ? Math.floor(ui.overT / (OVER_DELAY * 0.7) * N) :
 for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
 const i = y * N + x, v = G.board[i];
 const px = BX + x * CELL, py = BY + y * CELL;
-ctx.fillStyle = hl && hl.has(i) ? COL.cellHi : COL.cell;
-ctx.fillRect(px + 0.5, py + 0.5, CELL - 1, CELL - 1);
 if (!v) continue;
 let ci = v - 1;
 if (hl && hl.has(i)) ci = dragS.color;
@@ -1276,14 +1298,14 @@ if (pop) { const k = 1 + 0.18 * Math.sin(Math.PI * pop.t / POP_LIFE); o = 0.5 - 
 block(px + o, py + o, s, ci);
 }
 if (ui.target && dragS) {
-ctx.globalAlpha = 0.45;
-for (const [cx, cy] of dragS.cells) {
-const i = (ui.target.y + cy) * N + ui.target.x + cx;
-if (hl && hl.has(i)) ctx.globalAlpha = 0.9;
-block(BX + (ui.target.x + cx) * CELL + 0.5, BY + (ui.target.y + cy) * CELL + 0.5, CELL - 1, dragS.color);
-ctx.globalAlpha = 0.45;
-}
+const P = PAL[dragS.color], pulse = 0.85 + 0.15 * Math.sin(ui.clock * 6);
+if (ui.preview) for (const r of ui.preview.res.rows) neonRect(BX, BY + r * CELL, N * CELL, CELL, P, pulse);
+if (ui.preview) for (const c of ui.preview.res.cols) neonRect(BX + c * CELL, BY, CELL, N * CELL, P, pulse);
+const cells = dragS.cells.map(([cx, cy]) => [ui.target.x + cx, ui.target.y + cy]);
+ctx.globalAlpha = 0.16 * pulse; ctx.fillStyle = P.base;
+for (const [x, y] of cells) ctx.fillRect(BX + x * CELL + 0.5, BY + y * CELL + 0.5, CELL - 1, CELL - 1);
 ctx.globalAlpha = 1;
+neonOutline(cells, P, pulse);
 }
 for (const f of ui.fx) {
 const k = f.t < 0 ? 0 : f.t / FX_LIFE;
