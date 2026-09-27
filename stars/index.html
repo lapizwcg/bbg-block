@@ -639,7 +639,7 @@ function startLevel(n) {
 level = n; L = genLevel(n, settings.mode);
 path = []; usedE = new Set(); finger = null; fade = null; hintOdd = 0; pid = null;
 won = false; winT = 0; winShown = false; foundNow = null;
-boardLayout(); save();
+boardLayout(); save(); warmPics();
 if (L.intro && !seenIntro.has(L.intro)) setTimeout(() => { if (ovEl.hidden && L && L.n === n) showIntro(L.intro); }, 350);
 }
 function save() { stSet(dkey('bs_level', L.mode), String(level)); }
@@ -654,7 +654,7 @@ toast = { t: 0, id: L.real };
 setTimeout(() => SFX.play('found'), 350);
 }
 const lv = L;
-setTimeout(() => { if (L === lv && won && !winShown && ovEl.hidden) { winShown = true; showWin(); } }, 1200);
+setTimeout(() => { if (L === lv && won && !winShown && ovEl.hidden) { winShown = true; showWin(); } }, 700);
 }
 function update(dt) {
 if (won) winT += dt;
@@ -850,27 +850,45 @@ if (e.gamma == null) return;
 tilt.tx = Math.max(-1, Math.min(1, e.gamma / 30)); tilt.ty = Math.max(-1, Math.min(1, (e.beta - 45) / 30));
 });
 addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { tilt.tx = (e.clientX / innerWidth - 0.5) * 0.6; tilt.ty = (e.clientY / innerHeight - 0.5) * 0.6; } });
+const BG = document.createElement('canvas'), bgx = BG.getContext('2d');
+let VIG = null;
 function drawSpace(time, dt) {
 const Wc = cv.width, Hc = cv.height, k = Math.min(3, devicePixelRatio || 1), U = Math.max(Wc, Hc);
 tilt.x += (tilt.tx - tilt.x) * Math.min(1, dt * 2); tilt.y += (tilt.ty - tilt.y) * Math.min(1, dt * 2);
 const camX = Math.sin(time * 0.11) * 0.5 + Math.sin(time * 0.043) * 0.3 + tilt.x;
 const camY = Math.cos(time * 0.08) * 0.35 + tilt.y;
-ctx.setTransform(1, 0, 0, 1, 0, 0);
-ctx.fillStyle = '#02030a'; ctx.fillRect(0, 0, Wc, Hc);
+const bw = Math.ceil(Wc / 2), bh = Math.ceil(Hc / 2);
+if (BG.width !== bw || BG.height !== bh) { BG.width = bw; BG.height = bh; VIG = null; }
+const b = bgx;
+b.setTransform(0.5, 0, 0, 0.5, 0, 0); b.globalCompositeOperation = 'source-over'; b.globalAlpha = 1;
+b.fillStyle = '#02030a'; b.fillRect(0, 0, Wc, Hc);
 const sc = Math.max(Wc / SKY_W, Hc / SKY_H) * 1.16;
-ctx.drawImage(SKY, (Wc - SKY_W * sc) / 2 - camX * U * 0.02, (Hc - SKY_H * sc) / 2 - camY * U * 0.02, SKY_W * sc, SKY_H * sc);
-ctx.save();
-ctx.translate(Wc * 0.8 - camX * U * 0.025, Hc * 0.955 - camY * U * 0.025);
-ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.5;
-const gs = U * 0.16; ctx.drawImage(GALAXY, -gs / 2, -gs / 2, gs, gs);
-ctx.restore();
-ctx.globalCompositeOperation = 'lighter';
-ctx.globalAlpha = 0.35 + 0.1 * Math.sin(time * 0.3);
+b.drawImage(SKY, (Wc - SKY_W * sc) / 2 - camX * U * 0.02, (Hc - SKY_H * sc) / 2 - camY * U * 0.02, SKY_W * sc, SKY_H * sc);
+b.save();
+b.translate(Wc * 0.8 - camX * U * 0.025, Hc * 0.955 - camY * U * 0.025);
+b.rotate(-0.5 + time * 0.02);
+b.globalCompositeOperation = 'lighter'; b.globalAlpha = 0.5;
+const gs = U * 0.16; b.drawImage(GALAXY, -gs / 2, -gs / 2, gs, gs);
+b.restore();
+b.globalCompositeOperation = 'lighter';
+b.globalAlpha = 0.35 + 0.1 * Math.sin(time * 0.3);
 const ws = Math.max(Wc / 200, Hc / 360) * 1.35;
-ctx.drawImage(WISPS, (Wc - 200 * ws) / 2 - camX * U * 0.07, (Hc - 360 * ws) / 2 - camY * U * 0.07, 200 * ws, 360 * ws);
-ctx.globalAlpha = 1;
-const unit = Math.min(Wc, Hc) / 375;
+b.drawImage(WISPS, (Wc - 200 * ws) / 2 - camX * U * 0.07, (Hc - 360 * ws) / 2 - camY * U * 0.07, 200 * ws, 360 * ws);
+b.globalAlpha = 1;
 const cx = Wc / 2, cy = Hc / 2;
+for (const o of BOKEH) {
+const x = cx + (o.x - camX * 0.9) * Wc * 0.6, y = cy + (o.y - camY * 0.9) * Hc * 0.6, r = o.r * U;
+const a = 0.025 + 0.02 * Math.sin(time * 0.5 + o.p);
+const g = b.createRadialGradient(x, y, r * 0.2, x, y, r);
+g.addColorStop(0, 'rgba(' + o.c.join(',') + ',' + a.toFixed(3) + ')'); g.addColorStop(0.7, 'rgba(' + o.c.join(',') + ',' + (a * 0.7).toFixed(3) + ')');
+g.addColorStop(1, 'rgba(' + o.c.join(',') + ',0)');
+b.fillStyle = g; b.beginPath(); b.arc(x, y, r, 0, 7); b.fill();
+}
+b.globalCompositeOperation = 'source-over';
+ctx.setTransform(1, 0, 0, 1, 0, 0);
+ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+ctx.drawImage(BG, 0, 0, Wc, Hc);
+const unit = Math.min(Wc, Hc) / 375;
 for (const st of STARS3) {
 const px = (st.u - camX * 0.018 / st.d) * Wc, py = (st.v - camY * 0.018 / st.d) * Hc;
 if (px < -30 || py < -30 || px > Wc + 30 || py > Hc + 30) continue;
@@ -906,18 +924,14 @@ ctx.strokeStyle = g; ctx.lineWidth = 1.6 * k; ctx.lineCap = 'round';
 ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx - m.vx * tl, hy - m.vy * tl); ctx.stroke();
 if (m.t > m.life) meteor = null;
 }
-for (const b of BOKEH) {
-const x = cx + (b.x - camX * 0.9) * Wc * 0.6, y = cy + (b.y - camY * 0.9) * Hc * 0.6, r = b.r * U;
-const a = 0.025 + 0.02 * Math.sin(time * 0.5 + b.p);
-const g = ctx.createRadialGradient(x, y, r * 0.2, x, y, r);
-g.addColorStop(0, 'rgba(' + b.c.join(',') + ',' + a.toFixed(3) + ')'); g.addColorStop(0.7, 'rgba(' + b.c.join(',') + ',' + (a * 0.7).toFixed(3) + ')');
-g.addColorStop(1, 'rgba(' + b.c.join(',') + ',0)');
-ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
-}
-ctx.globalCompositeOperation = 'source-over';
-const vg = ctx.createRadialGradient(Wc / 2, Hc / 2, Math.min(Wc, Hc) * 0.35, Wc / 2, Hc / 2, Math.max(Wc, Hc) * 0.75);
+if (!VIG) {
+VIG = document.createElement('canvas'); VIG.width = bw; VIG.height = bh;
+const v = VIG.getContext('2d');
+const vg = v.createRadialGradient(bw / 2, bh / 2, Math.min(bw, bh) * 0.35, bw / 2, bh / 2, Math.max(bw, bh) * 0.75);
 vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,8,.55)');
-ctx.fillStyle = vg; ctx.fillRect(0, 0, Wc, Hc);
+v.fillStyle = vg; v.fillRect(0, 0, bw, bh);
+}
+ctx.drawImage(VIG, 0, 0, Wc, Hc);
 }
 const GOLD = [255, 214, 130];
 function glowLine(x0, y0, x1, y1, c, w, a) {
@@ -1157,7 +1171,29 @@ ovEl.hidden = false;
 }
 function closeOverlay() { ovEl.hidden = true; ovCard.innerHTML = ''; }
 ovEl.addEventListener('pointerdown', ev => { if (ev.target === ovEl && ovCard.classList.contains('book')) closeBook(); });
+const PICS = new WeakMap();
 function figPic(F, px, drawn, oddRings, names) {
+const key = [px, drawn, oddRings, names, names ? lang : ''].join('|');
+let m = PICS.get(F);
+if (!m) PICS.set(F, m = new Map());
+if (!m.has(key)) m.set(key, figPicDraw(F, px, drawn, oddRings, names));
+return m.get(key);
+}
+let warmQ = [];
+function warmPics() {
+const want = [];
+if (L && L.real) want.push([ATLAS.find(a => a.id === L.real), 170, true, false, true]);
+ATLAS.forEach(c => { if (atlas.has(c.id) || (L && L.real === c.id)) want.push([c, 72, true]); });
+if (!warmQ.length) setTimeout(warmStep, 400);
+warmQ = want;
+}
+function warmStep() {
+const a = warmQ.shift();
+if (!a) return;
+figPic(...a);
+setTimeout(warmStep, 30);
+}
+function figPicDraw(F, px, drawn, oddRings, names) {
 const xs = F.s.map(q => q[0]), ys = F.s.map(q => q[1]), pad = 16, padX = names ? 44 : 16;
 const x0 = Math.min(...xs) - padX, y0 = Math.min(...ys) - pad, w = Math.max(...xs) + padX - x0, h = Math.max(...ys) + pad - y0;
 const k = px / Math.max(w, h * 0.8), c2 = document.createElement('canvas');
