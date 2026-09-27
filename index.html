@@ -59,14 +59,15 @@ var GAMES = [
       d: { ru: 'Поворачивай зеркала, складывай свет', en: 'Turn the mirrors, add up the light', es: 'Gira los espejos, suma la luz' } }
 ];
 var T = {
-    ru: { tag: 'маленькие головоломки', play: 'Играть', foot: 'Без рекламы. Нравится? ', sup: 'Поддержи автора ♥' },
-    en: { tag: 'little puzzle games', play: 'Play', foot: 'No ads. Enjoying them? ', sup: 'Support the author ♥' },
-    es: { tag: 'pequeños rompecabezas', play: 'Jugar', foot: 'Sin anuncios. ¿Te gustan? ', sup: 'Apoya al autor ♥' }
+    ru: { title: 'BBG — игры', tag: 'маленькие головоломки', play: 'Играть', foot: 'Без рекламы. Нравится? ', sup: 'Поддержи автора ♥' },
+    en: { title: 'BBG — games', tag: 'little puzzle games', play: 'Play', foot: 'No ads. Enjoying them? ', sup: 'Support the author ♥' },
+    es: { title: 'BBG — juegos', tag: 'pequeños rompecabezas', play: 'Jugar', foot: 'Sin anuncios. ¿Te gustan? ', sup: 'Apoya al autor ♥' }
 };
 var n = (navigator.language || '').toLowerCase();
 var lang = /^(ru|uk|be)/.test(n) ? 'ru' : /^es/.test(n) ? 'es' : 'en';
 document.documentElement.lang = lang;
 var t = T[lang];
+document.title = t.title;
 document.getElementById('tag').textContent = t.tag;
 var list = document.getElementById('list');
 GAMES.forEach(function (g) {
