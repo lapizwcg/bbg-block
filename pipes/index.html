@@ -113,6 +113,7 @@ scrollbar-width: none; -ms-overflow-style: none; }
 .book .dot::after { content: ''; position: absolute; width: 30%; height: 30%; left: 20%; top: 20%;
 border-radius: 50%; background: rgba(255,255,255,.3); }
 .book .dot.q::after { display: none; }
+.book .dot.dk { box-shadow: 0 0 0 1.5px rgba(255,255,255,.35); }
 .book .dot.q { background: rgba(0,0,0,.25); box-shadow: none; display: flex; align-items: center; justify-content: center;
 font-weight: 800; opacity: .5; font-size: 14px; }
 .book .op { font-weight: 800; font-size: 17px; opacity: .6; width: 11px; text-align: center; }
@@ -199,13 +200,15 @@ ru: {
 level: 'УРОВЕНЬ', done: 'Готово!', next: 'Дальше', newF: 'Новая формула!',
 book: 'Книга цветов', of: ' из ', locked: 'ещё не открыто', extra: 'Ещё твои открытия',
 s_mix: 'Смешиваем краски', s_white: 'Белый делает светлее', s_brown: 'Противоположные дают коричневый',
-s_mach: 'Машины — скоро', m_filt: 'Фильтр', m_filtN: 'пропускает только свою краску',
-m_sep: 'Центрифуга', m_sepN: 'разделяет смесь',
+s_black: 'Чёрный делает темнее',
 h_rotate: 'Касайся труб — они поворачиваются. Доведи воду до колбы',
 h_mix: 'Две краски встретятся — получится новый цвет',
 h_star: 'У колбы-источника бывает несколько выходов — вода идёт во все',
 h_white: 'Белый делает цвет светлее',
 h_brown: 'Противоположные цвета вместе дают коричневый',
+h_black: 'Чёрный делает цвет темнее',
+h_gray: 'Чёрный и белый вместе — серый',
+h_filter: 'Фильтр пропускает только свою краску',
 h_all: 'Задействуй все трубы на поле',
 settings: 'Настройки', sound: 'Звук',
 lang: 'Язык', theme: 'Тема', restart: 'Уровень заново', restartQ: 'Начать уровень заново?',
@@ -214,19 +217,23 @@ support: 'Поддержать ♥', supportAsk: 'Нравится игра? П�
 th_juicy: 'Сочная', th_wood: 'Дерево', th_night: 'Ночь', th_day: 'День',
 diff: 'Сложность', d_easy: 'Лёгкая', d_normal: 'Обычная', d_hard: 'Сложная',
 c1: 'красный', c2: 'жёлтый', c4: 'синий', c3: 'оранжевый', c6: 'зелёный', c5: 'фиолетовый', c7: 'коричневый',
-c8: 'белый', c9: 'розовый', c10: 'светло-жёлтый', c12: 'голубой', c11: 'персиковый', c14: 'мятный', c13: 'сиреневый', c15: 'бежевый'
+c8: 'белый', c9: 'розовый', c10: 'светло-жёлтый', c12: 'голубой', c11: 'персиковый', c14: 'мятный', c13: 'сиреневый', c15: 'бежевый',
+c16: 'чёрный', c17: 'бордовый', c18: 'оливковый', c20: 'тёмно-синий', c19: 'кирпичный', c22: 'тёмно-зелёный',
+c21: 'баклажановый', c23: 'тёмно-коричневый', c24: 'серый', dark: 'тёмно-', grayish: 'серо-'
 },
 en: {
 level: 'LEVEL', done: 'Done!', next: 'Next', newF: 'New formula!',
 book: 'Color book', of: ' of ', locked: 'not found yet', extra: 'More of your finds',
 s_mix: 'Mixing paints', s_white: 'White makes it lighter', s_brown: 'Opposites make brown',
-s_mach: 'Machines — soon', m_filt: 'Filter', m_filtN: 'lets only its paint through',
-m_sep: 'Centrifuge', m_sepN: 'splits a mix',
+s_black: 'Black makes it darker',
 h_rotate: 'Tap pipes to turn them. Lead the water to the flask',
 h_mix: 'When two paints meet, a new color appears',
 h_star: 'A source flask can have several outlets — water flows out of all',
 h_white: 'White makes a color lighter',
 h_brown: 'Opposite colors together make brown',
+h_black: 'Black makes a color darker',
+h_gray: 'Black and white together make gray',
+h_filter: 'A filter lets only its own paint through',
 h_all: 'Use every pipe on the board',
 settings: 'Settings', sound: 'Sound',
 lang: 'Language', theme: 'Theme', restart: 'Restart level', restartQ: 'Restart this level?',
@@ -235,19 +242,23 @@ support: 'Support ♥', supportAsk: 'Enjoying the game? Support the author ♥',
 th_juicy: 'Juicy', th_wood: 'Wood', th_night: 'Night', th_day: 'Day',
 diff: 'Difficulty', d_easy: 'Easy', d_normal: 'Normal', d_hard: 'Hard',
 c1: 'red', c2: 'yellow', c4: 'blue', c3: 'orange', c6: 'green', c5: 'purple', c7: 'brown',
-c8: 'white', c9: 'pink', c10: 'light yellow', c12: 'light blue', c11: 'peach', c14: 'mint', c13: 'lilac', c15: 'beige'
+c8: 'white', c9: 'pink', c10: 'light yellow', c12: 'light blue', c11: 'peach', c14: 'mint', c13: 'lilac', c15: 'beige',
+c16: 'black', c17: 'maroon', c18: 'olive', c20: 'navy', c19: 'brick', c22: 'dark green',
+c21: 'eggplant', c23: 'dark brown', c24: 'gray', dark: 'dark ', grayish: 'grayish '
 },
 es: {
 level: 'NIVEL', done: '¡Listo!', next: 'Siguiente', newF: '¡Nueva fórmula!',
 book: 'Libro de colores', of: ' de ', locked: 'aún sin descubrir', extra: 'Más descubrimientos',
 s_mix: 'Mezclamos pinturas', s_white: 'El blanco aclara', s_brown: 'Los opuestos dan marrón',
-s_mach: 'Máquinas — pronto', m_filt: 'Filtro', m_filtN: 'deja pasar solo su pintura',
-m_sep: 'Centrífuga', m_sepN: 'separa la mezcla',
+s_black: 'El negro oscurece',
 h_rotate: 'Toca los tubos para girarlos. Lleva el agua al frasco',
 h_mix: 'Si dos pinturas se juntan, sale un color nuevo',
 h_star: 'Un frasco fuente puede tener varias salidas — el agua sale por todas',
 h_white: 'El blanco aclara el color',
 h_brown: 'Los colores opuestos juntos dan marrón',
+h_black: 'El negro oscurece el color',
+h_gray: 'Negro y blanco juntos dan gris',
+h_filter: 'El filtro deja pasar solo su pintura',
 h_all: 'Usa todos los tubos del tablero',
 settings: 'Ajustes', sound: 'Sonido',
 lang: 'Idioma', theme: 'Tema', restart: 'Reiniciar nivel', restartQ: '¿Reiniciar el nivel?',
@@ -256,7 +267,9 @@ support: 'Apoyar ♥', supportAsk: '¿Te gusta el juego? Apoya al autor ♥', au
 th_juicy: 'Jugosa', th_wood: 'Madera', th_night: 'Noche', th_day: 'Día',
 diff: 'Dificultad', d_easy: 'Fácil', d_normal: 'Normal', d_hard: 'Difícil',
 c1: 'rojo', c2: 'amarillo', c4: 'azul', c3: 'naranja', c6: 'verde', c5: 'morado', c7: 'marrón',
-c8: 'blanco', c9: 'rosa', c10: 'amarillo claro', c12: 'celeste', c11: 'melocotón', c14: 'menta', c13: 'lila', c15: 'beige'
+c8: 'blanco', c9: 'rosa', c10: 'amarillo claro', c12: 'celeste', c11: 'melocotón', c14: 'menta', c13: 'lila', c15: 'beige',
+c16: 'negro', c17: 'granate', c18: 'oliva', c20: 'azul marino', c19: 'ladrillo', c22: 'verde oscuro',
+c21: 'berenjena', c23: 'marrón oscuro', c24: 'gris', dark: ' oscuro', grayish: ' grisáceo'
 }
 };
 const LANGS = ['ru', 'en', 'es'];
@@ -271,18 +284,25 @@ document.documentElement.lang = lang;
 function t(k) { return STRINGS[lang][k] ?? STRINGS.en[k] ?? k; }
 const PAL = {
 1: '#e8404a', 2: '#f7c21a', 4: '#2f7bea', 3: '#f5821f', 6: '#3cbf5a', 5: '#9a48e0', 7: '#7b4a2c',
-8: '#f2f4fa', 9: '#ff8da1', 10: '#ffe98a', 12: '#8cc4ff', 11: '#ffbf85', 14: '#9fe8ae', 13: '#cda4f5', 15: '#dcc3a3'
+8: '#f2f4fa', 9: '#ff8da1', 10: '#ffe98a', 12: '#8cc4ff', 11: '#ffbf85', 14: '#9fe8ae', 13: '#cda4f5', 15: '#dcc3a3',
+16: '#2b2c36', 17: '#8a1f2e', 18: '#827a22', 20: '#1f3a7e', 19: '#944419', 22: '#1f6636', 21: '#4f2470', 23: '#3f2415',
+24: '#8f96a6'
 };
 const hex2rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const rgb2hex = a => '#' + a.map(c => Math.round(c).toString(16).padStart(2, '0')).join('');
+for (let c = 25; c < 32; c++) PAL[c] = rgb2hex(hex2rgb(PAL[c & 7]).map((v, i) => v + (hex2rgb(PAL[24])[i] - v) * 0.55));
 const RGB = {}; for (const k in PAL) RGB[k] = hex2rgb(PAL[k]);
+const isDark = c => { const [r, g, b] = RGB[c]; return r * 0.3 + g * 0.59 + b * 0.11 < 70; };
+const cname = c => STRINGS[lang]['c' + c] ? t('c' + c)
+: lang === 'es' ? t('c' + (c & 7)) + t('grayish') : t('grayish') + t('c' + (c & 7));
 const css = (a, al) => al === undefined ? 'rgb(' + a.map(Math.round).join(',') + ')' : 'rgba(' + a.map(Math.round).join(',') + ',' + al + ')';
 const mixTo = (a, to, k) => a.map(c => c + (to - c) * k);
 const BOOK = [
 { sec: 's_mix', items: [[1, 2], [2, 4], [1, 4]] },
 { sec: 's_white', items: [[1, 8], [2, 8], [4, 8], [3, 8], [6, 8], [5, 8], [7, 8]] },
-{ sec: 's_brown', items: [[1, 6], [2, 5], [3, 4]] }
+{ sec: 's_brown', items: [[1, 6], [2, 5], [3, 4]] },
+{ sec: 's_black', items: [[1, 16], [2, 16], [4, 16], [3, 16], [6, 16], [5, 16], [7, 16], [8, 16]] }
 ];
-const BOOK_MACH = [{ name: 'm_filt', note: 'm_filtN', outs: 1 }, { name: 'm_sep', note: 'm_sepN', outs: 2 }];
 const mixKey = ins => ins.slice().sort((a, b) => a - b).join('+');
 const BOOK_KEYS = BOOK.flatMap(s => s.items.map(mixKey));
 const orAll = a => a.reduce((x, c) => x | c, 0);
@@ -300,6 +320,7 @@ return ((x ^ x >>> 14) >>> 0) / 4294967296;
 }
 const MIX = [[1, 2], [2, 4], [1, 4]], TINT1 = [[1, 8], [2, 8], [4, 8]], TINT2 = [[3, 8], [6, 8], [5, 8]];
 const BROWN = [[1, 6], [2, 5], [4, 3]];
+const SHADE1 = [[1, 16], [2, 16], [4, 16]], SHADE2 = [[3, 16], [6, 16], [5, 16], [1, 6, 16]], GRAY = [[8, 16]];
 const DIFFS = {
 easy: { salt: 0x5EA5E0A1, size: '3×3–5×5' },
 normal: { salt: 0xB10C5EED, size: '3×3–6×8' },
@@ -314,6 +335,12 @@ const a = pick([1, 2, 4]), b = pick([1, 2, 4, 8].filter(c => c !== a));
 return { leaf: [b], mid: a, sinks: 2, want: [a, a | b].sort((x, y) => x - y) };
 };
 const any = () => { const u = R(); return u < 0.3 ? net(pick(MIX)) : u < 0.55 ? net(pick(TINT1.concat(TINT2))) : u < 0.75 ? net(pick(BROWN)) : star(); };
+const anyK = () => R() < 0.3 ? net(pick(SHADE1.concat(SHADE2, GRAY))) : any();
+const filtNet = () => {
+const f = pick([1, 2, 4, 8]);
+const src = pick([3, 5, 6, 9, 10, 12, 11, 14, 13, 17, 18, 20].filter(c => (c & f) && (c & ~f)));
+return { leaf: [src], mid: 0, sinks: 1, filt: f, want: [src & f] };
+};
 const P = [1, 2, 4];
 if (diff === 'easy') {
 if (n <= 3) return { c: 3, r: 3, nets: [net([[4, 1, 2][n - 1]])], hint: n === 1 ? 'h_rotate' : null };
@@ -322,8 +349,10 @@ if (n <= 12) return { c: 4, r: 4, nets: [net(pick(MIX))] };
 if (n <= 15) return { c: 4, r: 4, nets: [net(TINT1[n - 13])], hint: n === 13 ? 'h_white' : null };
 if (n <= 24) return { c: 4, r: 5, nets: [R() < 0.35 ? star() : net(pick(MIX.concat(TINT1)))], hint: n === 16 ? 'h_star' : null };
 if (n <= 27) return { c: 4, r: 5, nets: [net(BROWN[n - 25])], hint: n === 25 ? 'h_brown' : null };
-if (n <= 40) return { c: 5, r: 5, nets: [any()] };
-return { c: 5, r: 5, nets: R() < 0.5 ? [any()] : [net(pick(MIX)), net([pick(P)])] };
+if (n <= 30) return { c: 4, r: 5, nets: [net(SHADE1[n - 28])], hint: n === 28 ? 'h_black' : null };
+if (n === 31) return { c: 4, r: 5, nets: [net(GRAY[0])], hint: 'h_gray' };
+if (n <= 40) return { c: 5, r: 5, nets: [anyK()] };
+return { c: 5, r: 5, nets: R() < 0.5 ? [anyK()] : [net(pick(MIX)), net([pick(P)])] };
 }
 if (diff === 'hard') {
 const big = () => R() < 0.3 ? net(pick([[1, 4, 8], [1, 2, 8], [2, 4, 8], [1, 6, 8], [3, 4, 8]])) : any();
@@ -332,8 +361,11 @@ if (n <= 4) return { c: 4, r: 5, nets: [net(pick(MIX)), net(pick(MIX))], hint: n
 if (n <= 8) return { c: 5, r: 6, nets: [star(), net(pick(MIX))], hint: n === 5 ? 'h_star' : null };
 if (n <= 12) return { c: 5, r: 6, nets: [net(pick(TINT1.concat(TINT2))), star()], hint: n === 9 ? 'h_white' : null };
 if (n <= 16) return { c: 6, r: 7, nets: [net(pick(BROWN)), any(), any()], hint: n === 13 ? 'h_brown' : null };
-if (n <= 40) return { c: 6, r: 8, nets: [big(), any(), any()] };
-return { c: 6, r: 9, nets: [big(), big(), any(), any()] };
+if (n <= 19) return { c: 6, r: 7, nets: [net(SHADE1[n - 17]), any(), any()], hint: n === 17 ? 'h_black' : null };
+if (n === 20) return { c: 6, r: 7, nets: [net(GRAY[0]), any(), any()], hint: 'h_gray' };
+if (n <= 24) return { c: 6, r: 7, nets: [filtNet(), anyK(), any()], hint: n === 21 ? 'h_filter' : null };
+if (n <= 40) return { c: 6, r: 8, nets: [big(), R() < 0.5 ? filtNet() : anyK(), anyK()] };
+return { c: 6, r: 9, nets: [big(), filtNet(), anyK(), R() < 0.4 ? filtNet() : anyK()] };
 }
 if (n === 1) return { c: 3, r: 3, nets: [net([4])], hint: 'h_rotate' };
 if (n === 2) return { c: 3, r: 4, nets: [net([1])] };
@@ -343,9 +375,11 @@ if (n <= 11) return { c: 5, r: 5, nets: [star()], hint: n === 9 ? 'h_star' : nul
 if (n <= 14) return { c: 5, r: 5, nets: [net(TINT1[n - 12]), net([pick([1, 2, 4])])], hint: n === 12 ? 'h_white' : null };
 if (n <= 24) return { c: 5, r: 6, nets: [net(pick(MIX)), R() < 0.5 ? net(pick(TINT1.concat(TINT2))) : star()] };
 if (n <= 27) return { c: 5, r: 6, nets: [net(BROWN[n - 25]), net(pick(MIX))], hint: n === 25 ? 'h_brown' : null };
-if (n <= 44) return { c: 6, r: 7, nets: [any(), any(), net([pick([1, 2, 4])])] };
-const big = () => R() < 0.25 ? net(pick([[1, 4, 8], [1, 2, 8], [2, 4, 8], [1, 6, 8]])) : any();
-return { c: 6, r: 8, nets: [big(), any(), any()] };
+if (n <= 30) return { c: 5, r: 6, nets: [net(SHADE1[n - 28]), net(pick(MIX))], hint: n === 28 ? 'h_black' : null };
+if (n === 31) return { c: 5, r: 6, nets: [net(GRAY[0]), net(pick(MIX))], hint: 'h_gray' };
+if (n <= 44) return { c: 6, r: 7, nets: [anyK(), anyK(), net([pick([1, 2, 4])])] };
+const big = () => R() < 0.25 ? net(pick([[1, 4, 8], [1, 2, 8], [2, 4, 8], [1, 6, 8], [1, 6, 16]])) : anyK();
+return { c: 6, r: 8, nets: [big(), anyK(), anyK()] };
 }
 function hamPath(C, H, R) {
 const n = C * H, p = [];
@@ -424,7 +458,12 @@ const inner = trees[ni].filter(c => pop(mask[c]) >= 2);
 const c = inner[R() * inner.length | 0];
 tiles[c].type = 'src'; tiles[c].col = s.mid;
 }
+if (s.filt) {
+const straight = trees[ni].filter(c => tiles[c].type === 'pipe' && (mask[c] === 5 || mask[c] === 10));
+if (straight.length) tiles[straight[R() * straight.length | 0]].filt = s.filt;
+}
 });
+if (rc.nets.some((s, ni) => s.filt && !trees[ni].some(c => tiles[c].filt))) return null;
 const L = { n, C, H, tiles, hint: rc.hint || null, diff };
 const e0 = evalLevel(L);
 for (const s of e0.sinks) s.t.need = s.got;
@@ -459,7 +498,7 @@ a.adj.push(e); b.adj.push(e); edges.push(e); byKey.set(key, e);
 for (const t of L.tiles) if (t) {
 const m = arms(t), ds = dirsOf(m);
 const cx = t.x + 0.5, cy = t.y + 0.5, id = t.x + ',' + t.y + ':';
-if (t.type === 'pipe' && ds.length === 2) {
+if (t.type === 'pipe' && ds.length === 2 && !t.filt) {
 const a = mid(t.x, t.y, ds[0]), b = mid(t.x, t.y, ds[1]);
 if ((ds[1] - ds[0]) % 2 === 0) add(a, b, 1, f => [a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f], t, id + 's' + m, false);
 else {
@@ -473,6 +512,7 @@ add(a, b, Math.PI / 4, f => [ox + Math.cos(a0 + da * f) / 2, oy + Math.sin(a0 + 
 for (const d of ds) {
 const c = node('c' + t.x + ',' + t.y + (t.type === 'src' ? '#' + d : ''), cx, cy);
 if (t.type !== 'pipe') c.term = t;
+if (t.filt) c.filt = t.filt;
 const b = mid(t.x, t.y, d);
 add(c, b, 0.5, f => [cx + (b.x - cx) * f, cy + (b.y - cy) * f], t, id + d, false);
 }
@@ -484,10 +524,11 @@ function evalLevel(L) {
 const G = buildGraph(L), N = G.nodes.length;
 G.nodes.forEach((n, i) => { n.i = i; });
 const other = (e, n) => e.a === n ? e.b : e.a;
-const bitsOf = c => (c[0] ? 1 : 0) | (c[1] ? 2 : 0) | (c[2] ? 4 : 0) | (c[3] ? 8 : 0);
+const NB = 5;
+const bitsOf = c => c.reduce((a, v, b) => a | (v ? 1 << b : 0), 0);
 const own = n => {
-const c = [0, 0, 0, 0];
-if (n.term && n.term.type === 'src') for (let b = 0; b < 4; b++) if (n.term.col >> b & 1) c[b]++;
+const c = Array(NB).fill(0);
+if (n.term && n.term.type === 'src') for (let b = 0; b < NB; b++) if (n.term.col >> b & 1) c[b]++;
 return c;
 };
 const comp = new Int32Array(N).fill(-1), comps = [];
@@ -503,7 +544,7 @@ const w = other(e, n).i;
 if (!disc[w]) {
 dfs(w, e, ci);
 low[v] = Math.min(low[v], low[w]);
-for (let b = 0; b < 4; b++) subSrc[v][b] += subSrc[w][b];
+for (let b = 0; b < NB; b++) subSrc[v][b] += subSrc[w][b];
 subSink[v] += subSink[w];
 if (low[w] > disc[v]) e.bridge = { child: w, parent: v };
 } else low[v] = Math.min(low[v], disc[w]);
@@ -541,25 +582,49 @@ u = dist[e.a.i] <= dist[e.b.i] ? e.a : e.b; v = other(e, u); col = C.src;
 flows.push({ e, u, v, col });
 }
 for (const f of flows) f.ins = flows.filter(g => g.v === f.u && g.e !== f.e);
-const leaks = G.nodes.filter(n => n.adj.length === 1 && !n.term && comps[comp[n.i]].src);
+const hasFilt = L.tiles.some(q => q && q.filt);
+let wetFlows = flows;
+if (hasFilt) {
+const memo = new Map(), busy = new Set();
+const colOf = f => {
+if (memo.has(f)) return memo.get(f);
+if (busy.has(f)) return f.col;
+busy.add(f);
+let c = f.u.term && f.u.term.type === 'src' ? f.u.term.col
+: f.ins.length ? f.ins.reduce((a, g) => a | colOf(g), 0) : f.col;
+if (f.u.filt) c &= f.u.filt;
+busy.delete(f); memo.set(f, c);
+return c;
+};
+for (const f of flows) f.fc = colOf(f);
+for (const f of flows) f.col = f.fc;
+wetFlows = flows.filter(f => f.col);
+for (const f of wetFlows) f.ins = wetFlows.filter(g => g.v === f.u && g.e !== f.e);
+}
+const wetNode = new Set();
+for (const f of wetFlows) { wetNode.add(f.u); wetNode.add(f.v); }
+const leaks = G.nodes.filter(n => n.adj.length === 1 && !n.term && (hasFilt ? wetNode.has(n) : comps[comp[n.i]].src));
 const sinks = [];
 let srcOk = true;
 for (const n of G.nodes) if (n.term) {
 const C = comps[comp[n.i]];
-if (n.term.type === 'sink') sinks.push({ n, t: n.term, got: C.src, ok: C.src === n.term.need });
-else if (!C.sinks) srcOk = false;
+if (n.term.type === 'sink') {
+const got = hasFilt ? wetFlows.filter(f => f.v === n).reduce((a, f) => a | f.col, 0) : C.src;
+sinks.push({ n, t: n.term, got, ok: got === n.term.need });
+} else if (!C.sinks) srcOk = false;
 }
 const wetTile = new Set();
-for (const e of G.edges) if (comps[comp[e.a.i]].src) wetTile.add(e.tile);
+if (hasFilt) for (const f of wetFlows) wetTile.add(f.e.tile);
+else for (const e of G.edges) if (comps[comp[e.a.i]].src) wetTile.add(e.tile);
 const allWet = L.tiles.every(t => !t || wetTile.has(t));
 const mixes = [];
 for (const n of G.nodes) if (n.adj.length >= 3 && !n.term && comps[comp[n.i]].src) {
-const ins = [...new Set(flows.filter(g => g.v === n).map(g => g.col))];
+const ins = [...new Set(wetFlows.filter(g => g.v === n).map(g => g.col))];
 const out = orAll(ins);
 if (ins.length >= 2 && !ins.includes(out)) mixes.push({ n, ins: ins.sort((a, b) => a - b), out });
 }
 const win = sinks.length > 0 && sinks.every(s => s.ok) && !leaks.length && srcOk && allWet;
-return { G, flows, leaks, sinks, mixes, win, allWet, wetTile };
+return { G, flows: wetFlows, leaks, sinks, mixes, win, allWet, wetTile };
 }
 function rekey(key, prefix) {
 const part = key.slice(prefix.length);
@@ -956,6 +1021,16 @@ const p = pts[pts.length - 1], wob = 1 + Math.sin(time * 18) * 0.05;
 ctx.fillStyle = css(mixTo(s.rgb, 255, 0.45)); disc(p[0] - 0.03, p[1] - 0.03, 0.06 * wob);
 }
 });
+for (const tl of L.tiles) if (tl.filt) inTile(tl, () => {
+const x = tl.x + 0.5, y = tl.y + 0.5, horiz = !!(arms(tl) & 2);
+ctx.save(); ctx.translate(x, y); if (horiz) ctx.rotate(Math.PI / 2);
+ctx.fillStyle = TH.pipe[1]; rrect(-0.31, -0.085, 0.62, 0.17, 0.04); ctx.fill();
+ctx.fillStyle = PAL[tl.filt]; rrect(-0.29, -0.065, 0.58, 0.13, 0.03); ctx.fill();
+ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(-0.27, -0.055, 0.54, 0.03);
+ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 0.015;
+for (let i = -3; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(i * 0.07, -0.05); ctx.lineTo(i * 0.07, 0.05); ctx.stroke(); }
+ctx.restore();
+});
 for (const tl of L.tiles) inTile(tl, () => {
 for (const d of dirsOf(arms(tl))) {
 const x = tl.x + 0.5 + DX[d] * 0.455, y = tl.y + 0.5 + DY[d] * 0.455;
@@ -1043,6 +1118,10 @@ ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(x - R, top + 0.02, 2 * R, 
 ctx.restore();
 }
 if (t.type === 'sink') {
+if (isDark(t.need)) {
+ctx.lineWidth = 0.11; ctx.strokeStyle = 'rgba(255,255,255,.4)';
+ctx.beginPath(); ctx.arc(x, y, R - 0.02, 0, 7); ctx.stroke();
+}
 ctx.lineWidth = 0.07; ctx.strokeStyle = PAL[t.need];
 if (ok && lv > 0.5) { ctx.shadowColor = PAL[t.need]; ctx.shadowBlur = (6 + Math.sin(time * 4) * 3) * SCALE / 4; }
 ctx.beginPath(); ctx.arc(x, y, R - 0.02, 0, 7); ctx.stroke();
@@ -1077,6 +1156,7 @@ let w = 0; for (const it of items) w += typeof it === 'number' ? r * 2.3 : r * 1
 let cx = x - w / 2;
 for (const it of items) {
 if (typeof it === 'number') {
+if (isDark(it)) { ctx.fillStyle = 'rgba(255,255,255,.35)'; disc(cx + r * 1.15, y, r + 0.9); }
 ctx.fillStyle = PAL[it]; disc(cx + r * 1.15, y, r);
 ctx.fillStyle = 'rgba(255,255,255,.3)'; disc(cx + r * 0.85, y - r * 0.3, r * 0.3);
 cx += r * 2.3;
@@ -1162,7 +1242,7 @@ ovEl.hidden = false;
 }
 function closeOverlay() { ovEl.hidden = true; ovCard.innerHTML = ''; }
 ovEl.addEventListener('pointerdown', ev => { if (ev.target === ovEl && ovCard.classList.contains('book')) closeBook(); });
-const dotHtml = c => c ? '<span class="dot" style="background:' + PAL[c] + '"></span>' : '<span class="dot q">?</span>';
+const dotHtml = c => c ? '<span class="dot' + (isDark(c) ? ' dk' : '') + '" style="background:' + PAL[c] + '"></span>' : '<span class="dot q">?</span>';
 function eqHtml(ins, out, open) {
 const parts = [];
 ins.forEach((c, i) => { if (i) parts.push('<span class="op">+</span>'); parts.push(dotHtml(open ? c : 0)); });
@@ -1186,7 +1266,7 @@ for (const it of s.items) {
 const k = mixKey(it), o = book.has(k), out = orAll(it);
 if (o) open++;
 html += '<div class="row' + (fresh.has(k) ? ' fresh' : '') + '">' + eqHtml(it, out, o) +
-'<div class="nm">' + (o ? it.map(c => t('c' + c)).join(' + ') + '<br>= ' + t('c' + out) : t('locked')) + '</div></div>';
+'<div class="nm">' + (o ? it.map(cname).join(' + ') + '<br>= ' + cname(out) : t('locked')) + '</div></div>';
 }
 }
 const extra = [...book].filter(k => !BOOK_KEYS.includes(k));
@@ -1195,13 +1275,9 @@ html += '<div class="sec">' + t('extra') + '</div>';
 for (const k of extra) {
 const ins = k.split('+').map(Number), out = orAll(ins);
 html += '<div class="row' + (fresh.has(k) ? ' fresh' : '') + '">' + eqHtml(ins, out, true) +
-'<div class="nm">' + ins.map(c => t('c' + c)).join(' + ') + '<br>= ' + t('c' + out) + '</div></div>';
+'<div class="nm">' + ins.map(cname).join(' + ') + '<br>= ' + cname(out) + '</div></div>';
 }
 }
-html += '<div class="sec">' + t('s_mach') + '</div>';
-for (const m of BOOK_MACH)
-html += '<div class="row"><div class="eq">' + dotHtml(0) + '<span class="op">›</span>' + Array(m.outs).fill(dotHtml(0)).join('') +
-'</div><div class="nm">' + t(m.name) + '<br>' + t(m.note) + '</div></div>';
 openOverlay('<h2>' + t('book') + '</h2><div class="cnt">' + open + t('of') + BOOK_KEYS.length + '</div>' +
 '<div class="list">' + html + '</div><div class="btns"><button data-act="close">' + t('close') + '</button></div>',
 { close: closeBook }, 'book');
@@ -1290,7 +1366,7 @@ if (now - lastProbe > 90) { lastProbe = now; SFX.play('probe'); }
 r.onchange = () => { saveSettings(); if (settings.volume <= 0) SFX.pause(); };
 }
 function hashStr(s) { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16).padStart(8, '0'); }
-const levelSig = L => L.C + 'x' + L.H + ':' + L.tiles.map(t => t.type[1] + t.base + '.' + t.rot + '.' + (t.col || t.need)).join(',');
+const levelSig = L => L.C + 'x' + L.H + ':' + L.tiles.map(t => t.type[1] + t.base + '.' + t.rot + '.' + (t.col || t.need) + (t.filt ? 'f' + t.filt : '')).join(',');
 const solved = A => ({ ...A, tiles: A.tiles.map(t => ({ ...t, rot: 0 })) });
 function bpCheck() {
 const res = [];
@@ -1389,6 +1465,28 @@ ok('сложности различаются: ур. 30 — лёгкая мен�
 genLevel(30, 'easy').C * genLevel(30, 'easy').H < genLevel(30).C * genLevel(30).H &&
 genLevel(30, 'hard').C * genLevel(30, 'hard').H > genLevel(30).C * genLevel(30).H &&
 nets(50, 'hard') > nets(50, 'easy'));
+const blk = (a, b, need) => evalLevel(mk(3, 2, base.map(r => r[0] === 0 && r[2] === 'src' ? [0, 0, 'src', 2, a]
+: r[0] === 2 ? [2, 0, 'src', 8, b] : r[2] === 'sink' ? [1, 1, 'sink', 1, need] : r))).win;
+ok('чёрный: красный + чёрный -> бордовый, белый + чёрный -> серый, жёлтый + чёрный -> оливковый',
+blk(1, 16, 17) && blk(8, 16, 24) && blk(2, 16, 18) && !blk(1, 16, 1));
+ok('все 32 набора красок имеют цвет и имя', Array.from({ length: 31 }, (_, i) => i + 1).every(c => PAL[c] && cname(c)));
+const fl = (src, f, need) => {
+const A = mk(3, 1, [[0, 0, 'src', 2, src], [1, 0, 'pipe', 10, 0], [2, 0, 'sink', 8, need]]);
+A.tiles[1].filt = f;
+return evalLevel(A);
+};
+const f1 = fl(3, 1, 1), f2 = fl(4, 1, 4);
+ok('фильтр: оранжевый через красный -> красный; синий через красный — сток сухой',
+f1.win && f1.sinks[0].got === 1 && !f2.win && f2.sinks[0].got === 0);
+let fBad = [], fSeen = 0;
+for (let n = 21; n <= 60; n++) {
+const A = genLevel(n, 'hard');
+if (A.tiles.some(q => q.filt)) fSeen++;
+if (!evalLevel(solved(A)).win || evalLevel(A).win) fBad.push(n);
+}
+ok('«Сложная» 21–60: фильтры есть, уровни решаемы', fSeen >= 25 && !fBad.length, fSeen + ' с фильтром; плохие ' + fBad.join(','));
+ok('фильтров нет в Лёгкой и Обычной (1–150)',
+['easy', 'normal'].every(d => Array.from({ length: 150 }, (_, i) => genLevel(i + 1, d)).every(A => !A.tiles.some(q => q.filt))));
 const langOk = LANGS.every(l => Object.keys(STRINGS.ru).every(k => STRINGS[l][k]));
 ok('строки: у EN и ES есть всё, что у RU', langOk);
 const sum = hashStr(Array.from({ length: 100 }, (_, i) => levelSig(genLevel(i + 1))).join('|'));
