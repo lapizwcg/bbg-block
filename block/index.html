@@ -371,7 +371,8 @@ if (r < 0) return i;
 }
 return pool.idx[pool.idx.length - 1];
 }
-const REROLL = 20;
+const FAIR_TRIES = 60;
+const SOLVE_CAP = 30000;
 const COMBO_GRACE = 3;
 const CLEAN_BONUS = 1000;
 const linePts = L => 100 * L * (L + 1) / 2;
@@ -423,14 +424,39 @@ out.push(i);
 }
 return out;
 }
-function refill(g) {
-let tray;
-const pick = g.easy ? pickEasy : pickShape;
-for (let a = 0; a <= REROLL; a++) {
-tray = pickDistinct(g, pick, []);
-if (tray.some(i => fitsAnywhere(g.board, SHAPES[i]))) break;
+function trayPlaceable(board, tray) {
+let nodes = 0;
+const go = (b, left) => {
+if (left.length === 1) return fitsAnywhere(b, SHAPES[left[0]]);
+for (let k = 0; k < left.length; k++) {
+const sh = SHAPES[left[k]], rest = left.filter((_, j) => j !== k);
+for (let y = 0; y + sh.h <= N; y++) for (let x = 0; x + sh.w <= N; x++) {
+if (!fits(b, sh, x, y)) continue;
+if (++nodes > SOLVE_CAP) return true;
+const c = b.slice();
+for (const [cx, cy] of sh.cells) c[(y + cy) * N + x + cx] = 1;
+const { rows, cols } = fullLines(c);
+for (const r of rows) for (let q = 0; q < N; q++) c[r * N + q] = 0;
+for (const q of cols) for (let r = 0; r < N; r++) c[r * N + q] = 0;
+if (go(c, rest)) return true;
 }
-g.tray = tray;
+}
+return false;
+};
+const left = tray.filter(i => i >= 0);
+return !left.length || go(board, left);
+}
+let fairMiss = 0;
+function refill(g) {
+const pick = g.easy ? pickEasy : pickShape;
+let tray = null, some = null;
+for (let a = 0; a < FAIR_TRIES; a++) {
+tray = pickDistinct(g, pick, []);
+if (trayPlaceable(g.board, tray)) { g.tray = tray; return; }
+if (!some && tray.some(i => fitsAnywhere(g.board, SHAPES[i]))) some = tray;
+}
+fairMiss++;
+g.tray = some || tray;
 }
 function fullLines(board) {
 const rows = [], cols = [];
@@ -1543,6 +1569,29 @@ const keys = Object.keys(STRINGS.ru);
 for (const l of LANGS) {
 const miss = keys.filter(k => !(k in STRINGS[l]));
 ok('язык ' + l + ': все строки', !miss.length, miss.join(' ') || keys.length + ' строк');
+}
+{
+const b = new Array(N * N).fill(1);
+for (let y = 0; y < N; y++) b[y * N + (y * 3) % N] = 0;
+ok('честная тройка: раскладка только в верном порядке находится',
+trayPlaceable(b, [shape('i2_0'), shape('i3_0'), shape('dot')]) && !trayPlaceable(b, [shape('i2_0'), shape('i3_0'), shape('i4_0')]));
+const miss0 = fairMiss;
+let dealt = 0, bad = 0;
+for (let k = 0; k < 20; k++) {
+const g = newGame(900 + k), bot = { rng: 77 + k };
+let key = '';
+while (!g.over && g.moves < 300) {
+if (g.tray.every(i => i >= 0) && g.tray.join() !== key) {
+key = g.tray.join(); dealt++;
+if (!trayPlaceable(g.board, g.tray)) bad++;
+}
+const ms = allMoves(g);
+if (!ms.length) break;
+const m = ms[Math.floor(rnd(bot) * ms.length)];
+place(g, m.slot, m.x, m.y);
+}
+}
+ok('честная тройка: у бота каждая выданная раскладывается', bad === fairMiss - miss0, dealt + ' троек, неразложимых ' + bad + ', поле забито ' + (fairMiss - miss0));
 }
 for (const id of THEME_IDS) {
 const th = THEMES[id];
