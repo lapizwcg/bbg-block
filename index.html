@@ -89,13 +89,6 @@ background: linear-gradient(#fff, #dfe4f5); border: 0;
 box-shadow: 0 3px 0 rgba(0,0,0,.3), inset 0 -3px 0 rgba(0,0,0,.12); }
 .vol::-moz-range-thumb { width: 24px; height: 24px; border-radius: 7px; border: 0;
 background: linear-gradient(#fff, #dfe4f5); box-shadow: 0 3px 0 rgba(0,0,0,.3); }
-.sw { position: relative; width: 50px; height: 28px; border-radius: 14px; border: 0; padding: 0 !important;
-background: var(--alt2) !important; box-shadow: inset 0 2px 3px rgba(0,0,0,.35) !important; cursor: pointer; }
-.sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 7px;
-background: linear-gradient(#fff, #dfe4f5); box-shadow: 0 2px 0 rgba(0,0,0,.3); transition: left .15s; }
-.sw.on { background: linear-gradient(var(--btn1), var(--btn2)) !important; }
-.sw.on::after { left: 25px; }
-.sw:active { transform: none !important; }
 .seg { display: flex; gap: 6px; }
 .seg button { padding: 7px 12px !important; font-size: 14px !important; }
 .themes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -182,7 +175,7 @@ if (NATIVE) { try { NATIVE.del(k); } catch (e) {} }
 try { localStorage.removeItem(k); } catch (e) {}
 }
 const KEY_SET = 'bb_settings';
-const settings = { volume: 0.7, vib: true, lang: '', theme: 'juicy', tutDone: false, diff: 'normal' };
+const settings = { volume: 0.7, lang: '', theme: 'juicy', tutDone: false, diff: 'normal' };
 try {
 const sv = JSON.parse(stGet(KEY_SET)) || {};
 if (typeof sv.sound === 'boolean' && sv.volume == null) sv.volume = sv.sound ? 0.7 : 0;
@@ -190,6 +183,7 @@ delete sv.sound;
 Object.assign(settings, sv);
 } catch (e) {}
 settings.volume = Math.min(1, Math.max(0, +settings.volume || 0));
+delete settings.vib;
 function saveSettings() {
 stSet(KEY_SET, JSON.stringify(settings));
 }
@@ -201,8 +195,7 @@ restartSub: 'Текущая партия пропадёт', yes: 'Да', no: 'Н
 combo: 'Комбо ', clean: 'Поле чисто!',
 p2: 'Хорошо!', p3: 'Отлично!', p4: 'Великолепно!', p5: 'Невероятно!',
 comboBar: 'КОМБО', comboNext: 'след. ×', comboNone: 'собери линию',
-settings: 'Настройки', sound: 'Звук', vib: 'Вибрация',
-noVib: 'нет на устройстве', restart: 'Начать заново', close: 'Закрыть',
+settings: 'Настройки', sound: 'Звук', restart: 'Начать заново', close: 'Закрыть',
 tut1: 'Перетащи фигуру на поле', tut2: 'Собери ряд или столбец целиком',
 tutDone: 'Отлично! Так и играй', app: 'Приложение', install: 'Установить',
 support: 'Поддержать ♥', supportAsk: 'Нравится игра? Поддержи автора ♥', author: 'Автор',
@@ -218,8 +211,7 @@ restartSub: 'Current game will be lost', yes: 'Yes', no: 'No',
 combo: 'Combo ', clean: 'Board clear!',
 p2: 'Good!', p3: 'Great!', p4: 'Excellent!', p5: 'Amazing!',
 comboBar: 'COMBO', comboNext: 'next ×', comboNone: 'clear a line',
-settings: 'Settings', sound: 'Sound', vib: 'Vibration',
-noVib: 'not supported', restart: 'Start over', close: 'Close',
+settings: 'Settings', sound: 'Sound', restart: 'Start over', close: 'Close',
 tut1: 'Drag a piece onto the board', tut2: 'Fill a whole row or column',
 tutDone: 'Great! Keep going', app: 'App', install: 'Install',
 support: 'Support ♥', supportAsk: 'Enjoying the game? Support the author ♥', author: 'Author',
@@ -235,8 +227,7 @@ restartSub: 'Se perderá la partida actual', yes: 'Sí', no: 'No',
 combo: 'Combo ', clean: '¡Tablero limpio!',
 p2: '¡Bien!', p3: '¡Genial!', p4: '¡Excelente!', p5: '¡Increíble!',
 comboBar: 'COMBO', comboNext: 'sig. ×', comboNone: 'haz una línea',
-settings: 'Ajustes', sound: 'Sonido', vib: 'Vibración',
-noVib: 'no disponible', restart: 'Empezar de nuevo', close: 'Cerrar',
+settings: 'Ajustes', sound: 'Sonido', restart: 'Empezar de nuevo', close: 'Cerrar',
 tut1: 'Arrastra una pieza al tablero', tut2: 'Completa una fila o columna',
 tutDone: '¡Genial! Sigue así', app: 'App', install: 'Instalar',
 support: 'Apoyar ♥', supportAsk: '¿Te gusta el juego? Apoya al autor ♥', author: 'Autor',
@@ -636,11 +627,6 @@ setVolume(v) { if (master) master.gain.value = v * GAIN; if (v > 0) ctxOn(); },
 pause() { if (ac && ac.state === 'running') ac.suspend(); }
 };
 })();
-const canVibrate = typeof navigator.vibrate === 'function';
-function buzz(p) {
-if (!settings.vib || !canVibrate) return;
-try { navigator.vibrate(p); } catch (e) {}
-}
 const THEMES = {
 juicy: {
 style: 'juicy',
@@ -918,14 +904,13 @@ if (lines.length) ui.banners = [{ lines, t: 0 }];
 SFX.play('place');
 if (res.lines) {
 SFX.play('clear', res.lines, res.combo);
-buzz(res.combo >= 2 ? [25, 40, 25 + 10 * Math.min(res.combo, 6)] : 20 + 10 * res.lines);
-} else buzz(10);
+}
 if (res.clean) SFX.play('clean');
 if (rec) SFX.play('record');
 if (!G.over && G.tray.every(i => i >= 0)) SFX.play('tray');
 if (G.score > best) { best = G.score; saveBest(); }
 saveRun();
-if (G.over) { gameOver(); SFX.play('over'); buzz([60, 50, 140]); }
+if (G.over) { gameOver(); SFX.play('over'); }
 return true;
 }
 let overTimer = 0;
@@ -970,7 +955,6 @@ const themeBtns = THEME_IDS.map(id =>
 '<button class="' + (id === settings.theme ? 'sel' : '') + '" data-act="theme_' + id + '" title="' +
 t('th_' + id) + '" aria-label="' + t('th_' + id) + '"><img alt="" src="' + themeThumb(id) + '"></button>').join('');
 const actions = {
-vib: () => { settings.vib = !settings.vib; saveSettings(); buzz(30); openSettings(); },
 restart: () => askRestart(),
 support: openSupport,
 install: () => {
@@ -1001,9 +985,6 @@ openOverlay(
 '<div class="blk grid">' +
 '<span>' + t('sound') + '</span>' +
 '<input class="vol" type="range" min="0" max="100" step="1" value="' + v + '" style="--v:' + v + '" aria-label="' + t('sound') + '">' +
-'<span>' + t('vib') + '</span>' +
-(canVibrate ? '<button class="sw ctl' + (settings.vib ? ' on' : '') + '" data-act="vib" aria-label="' + t('vib') + '"></button>'
-: '<span class="ctl" style="opacity:.6;font-weight:400">' + t('noVib') + '</span>') +
 '<span>' + t('diff') + '</span><div class="seg ctl">' + diffBtns + '</div>' +
 '<span>' + t('lang') + '</span><div class="seg ctl">' + langBtns + '</div>' +
 (installEvt ? '<span>' + t('app') + '</span><button class="ctl" data-act="install">' + t('install') + '</button>' : '') +
