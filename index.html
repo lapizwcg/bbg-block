@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#141b45">
-<meta name="description" content="BBG — маленькие головоломки без рекламы: блоки, краски, свет.">
-<title>BBG — игры</title>
+<meta name="description" content="BBG — little puzzle games without ads: blocks, paints, light.">
+<title>BBG — games</title>
 <link rel="icon" type="image/png" href="light/icon-192.png">
 <!-- СТРАНИЦА ИГР (слово автора: «страница с играми и кнопки с играми»).
      Корень сайта; каждая игра — в своей подпапке со своей веб-версией.
      Оформление — как окна игр: тёмно-синий фон, карточки с каймой,
-     кнопки со «ступенькой». Язык — по браузеру (RU / EN / ES).
+     кнопки со «ступенькой». Язык — переключатель RU / EN / ES, по умолчанию EN.
      Правится руками здесь, выкладывается deploy_web.py. -->
 <style>
     html, body { margin: 0; min-height: 100%; }
@@ -36,14 +36,22 @@
     .txt span { display: block; font-size: 14px; opacity: .78; margin-top: 3px; line-height: 1.3; }
     .play { flex: none; font-size: 16px; font-weight: 700; color: #fff; padding: 10px 16px; border-radius: 10px;
             background: linear-gradient(#4f8cff, #3563d8); box-shadow: 0 3px 0 #22408f; }
+    /* переключатель языка — как RU/EN/ES в настройках игр */
+    main { position: relative; }
+    .langs { position: absolute; top: -14px; right: 0; display: flex; gap: 4px; padding: 4px; border-radius: 12px;
+             background: rgba(0,0,0,.22); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+    .langs button { font: inherit; font-size: 13px; font-weight: 700; color: #e9ecff; opacity: .7; border: 0;
+                    padding: 6px 10px; border-radius: 8px; background: none; cursor: pointer; }
+    .langs button.on { opacity: 1; color: #fff; background: linear-gradient(#4f8cff, #3563d8); box-shadow: 0 2px 0 #22408f; }
     .foot { text-align: center; margin-top: 26px; font-size: 14px; opacity: .8; }
     .foot a { color: #ffd84a; font-weight: 600; text-underline-offset: 3px; }
 </style>
 </head>
 <body>
 <main>
+    <div class="langs" id="langs" role="group" aria-label="Language"></div>
     <h1>BBG</h1>
-    <div class="tag" id="tag">маленькие головоломки</div>
+    <div class="tag" id="tag">little puzzle games</div>
     <div id="list"></div>
     <div class="foot" id="foot"></div>
 </main>
@@ -63,26 +71,48 @@ var T = {
     en: { title: 'BBG — games', tag: 'little puzzle games', play: 'Play', foot: 'No ads. Enjoying them? ', sup: 'Support the author ♥' },
     es: { title: 'BBG — juegos', tag: 'pequeños rompecabezas', play: 'Jugar', foot: 'Sin anuncios. ¿Te gustan? ', sup: 'Apoya al autor ♥' }
 };
-var n = (navigator.language || '').toLowerCase();
-var lang = /^(ru|uk|be)/.test(n) ? 'ru' : /^es/.test(n) ? 'es' : 'en';
-document.documentElement.lang = lang;
-var t = T[lang];
-document.title = t.title;
-document.getElementById('tag').textContent = t.tag;
-var list = document.getElementById('list');
-GAMES.forEach(function (g) {
-    var a = document.createElement('a');
-    a.className = 'game'; a.href = g.dir + '/';
-    a.innerHTML = '<img alt="" src="' + g.dir + '/icon-192.png"><div class="txt"><b>' + g.name + '</b><span>' +
-        g.d[lang] + '</span></div><div class="play">' + t.play + '</div>';
-    list.appendChild(a);
+// ЯЗЫК — переключатель RU / EN / ES вверху (слово автора: «кнопка-
+// переключалка языка, по умолчанию EN»). Выбор запоминается; игра
+// открывается на том же языке (?lang= — игры его понимают, в кэше
+// воркера не мешает: страница узнаётся по пути, без запроса).
+var KEY = 'bbg_hub_lang', lang = 'en';
+try { if (T[localStorage.getItem(KEY)]) lang = localStorage.getItem(KEY); } catch (e) {}
+var list = document.getElementById('list'), foot = document.getElementById('foot');
+var langs = document.getElementById('langs');
+['ru', 'en', 'es'].forEach(function (l) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = l.toUpperCase(); b.dataset.l = l;
+    b.onclick = function () {
+        lang = l;
+        try { localStorage.setItem(KEY, l); } catch (e) {}
+        render();
+    };
+    langs.appendChild(b);
 });
-var foot = document.getElementById('foot');
-foot.textContent = t.foot;
-var sup = document.createElement('a');
-sup.href = 'https://send.monobank.ua/jar/6K1DTLciVs'; sup.target = '_blank'; sup.rel = 'noopener';
-sup.textContent = t.sup;
-foot.appendChild(sup);
+function render() {
+    var t = T[lang];
+    document.documentElement.lang = lang;
+    document.title = t.title;
+    document.getElementById('tag').textContent = t.tag;
+    langs.querySelectorAll('button').forEach(function (b) {
+        b.classList.toggle('on', b.dataset.l === lang);
+        b.setAttribute('aria-pressed', b.dataset.l === lang);
+    });
+    list.textContent = '';
+    GAMES.forEach(function (g) {
+        var a = document.createElement('a');
+        a.className = 'game'; a.href = g.dir + '/?lang=' + lang;
+        a.innerHTML = '<img alt="" src="' + g.dir + '/icon-192.png"><div class="txt"><b>' + g.name + '</b><span>' +
+            g.d[lang] + '</span></div><div class="play">' + t.play + '</div>';
+        list.appendChild(a);
+    });
+    foot.textContent = t.foot;
+    var sup = document.createElement('a');
+    sup.href = 'https://send.monobank.ua/jar/6K1DTLciVs'; sup.target = '_blank'; sup.rel = 'noopener';
+    sup.textContent = t.sup;
+    foot.appendChild(sup);
+}
+render();
 </script>
 </body>
 </html>
