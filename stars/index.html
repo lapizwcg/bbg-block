@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>BBG Stars</title>
+<script>
+(function () {
+var NL = String.fromCharCode(10);
+var box = null;
+function say(t) {
+if (!box) {
+box = document.createElement('pre');
+box.style.cssText = 'position:fixed;left:0;top:0;right:0;z-index:9999;' +
+'margin:0;padding:8px;background:#310c0c;color:#ffb4b4;' +
+'font:12px/1.45 monospace;white-space:pre-wrap;' +
+'max-height:70vh;overflow:auto;border-bottom:1px solid #a33';
+(document.body || document.documentElement).appendChild(box);
+box.textContent = 'ЧТО-ТО СЛОМАЛОСЬ' + NL +
+'адрес: ' + location.protocol + '//' +
+(location.host || '(локальный файл)') + NL +
+'браузер: ' + navigator.userAgent + NL + NL;
+}
+box.textContent += t + NL;
+}
+window.addEventListener('error', function (e) {
+say('ОШИБКА: ' + (e.message || (e.error && e.error.message) || e.type) +
+NL + '   строка ' + (e.lineno || '?') + ':' + (e.colno || '?'));
+});
+window.addEventListener('unhandledrejection', function (e) {
+var r = e.reason;
+say('ОБЕЩАНИЕ ОТВАЛИЛОСЬ: ' + ((r && r.message) || r));
+});
+})();
+</script>
+<style>
+html, body {
+margin: 0; height: 100%; overflow: hidden;
+background: #0e1330;
+-webkit-user-select: none; user-select: none;
+-webkit-touch-callout: none; touch-action: none;
+font-family: "Segoe UI", Roboto, system-ui, sans-serif;
+}
+body { display: flex; align-items: center; justify-content: center; }
+#cv { display: block; touch-action: none; }
+#ov {
+position: fixed; inset: 0; display: flex;
+align-items: center; justify-content: center;
+background: var(--veil, rgba(6, 9, 26, .62)); z-index: 10;
+}
+#ov[hidden] { display: none; }
+.card {
+min-width: 220px; max-width: 80vw; max-height: 92vh; overflow: auto; padding: 22px 26px 20px;
+border-radius: 16px; text-align: center; color: var(--cardText, #e9ecff);
+background: linear-gradient(var(--card1, #26305e), var(--card2, #1a2147));
+box-shadow: 0 10px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.12);
+}
+.card h2 { margin: 0 0 10px; font-size: 22px; letter-spacing: .5px; }
+.card .big { font-size: 44px; font-weight: 800; color: var(--gold, #ffd84a); margin: 4px 0; }
+.card .sub { font-size: 15px; opacity: .8; margin-bottom: 4px; }
+.card .btns { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+.card button {
+font: inherit; font-size: 17px; font-weight: 700; color: #fff;
+border: 0; border-radius: 10px; padding: 10px 22px; cursor: pointer;
+background: linear-gradient(var(--btn1, #4f8cff), var(--btn2, #3563d8));
+box-shadow: 0 3px 0 var(--btn3, #22408f);
+}
+.card button.link { display: block; margin: 14px auto 0; padding: 4px 8px; font-size: 14px;
+font-weight: 600; background: none; box-shadow: none; color: var(--gold); opacity: .85;
+text-decoration: underline; text-underline-offset: 3px; }
+.card button.link:active { transform: none; box-shadow: none; }
+.card button.sup { background: linear-gradient(#ff7a9a, #e0466e); box-shadow: 0 3px 0 #9c2848; }
+.card button.alt { background: linear-gradient(var(--alt1), var(--alt2)); box-shadow: 0 3px 0 var(--alt3); }
+.card button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--btn3, #22408f); }
+.card.set { min-width: 250px; padding: 18px 20px 18px; }
+.card.set::-webkit-scrollbar { display: none; }
+.card.set { scrollbar-width: none; }
+.diffs { display: flex; gap: 6px; }
+.diffs button { flex: 1; padding: 7px 4px !important; font-size: 14px !important; line-height: 1.15; }
+.diffs small { display: block; font-size: 11px; font-weight: 600; opacity: .8; }
+.set .blk { padding: 12px 14px; border-radius: 12px; background: rgba(0,0,0,.13); margin-top: 10px; }
+.set .grid { display: grid; grid-template-columns: auto 1fr; gap: 12px 16px; align-items: center;
+text-align: left; font-size: 15px; font-weight: 700; }
+.set .grid .ctl { justify-self: end; }
+.set .grid .vol { width: 100%; }
+.set .blk h3 { margin: 0 0 10px; font-size: 16px; text-align: center; }
+.vol { -webkit-appearance: none; appearance: none; flex: 1; min-width: 120px; height: 14px;
+border-radius: 8px; outline: none; cursor: pointer; margin: 0;
+background: linear-gradient(90deg, transparent calc(var(--v, 70) * 1%), rgba(0,0,0,.45) calc(var(--v, 70) * 1%)), var(--rainbow);
+box-shadow: inset 0 2px 3px rgba(0,0,0,.35); }
+.vol::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 7px;
+background: linear-gradient(#fff, #dfe4f5); border: 0;
+box-shadow: 0 3px 0 rgba(0,0,0,.3), inset 0 -3px 0 rgba(0,0,0,.12); }
+.vol::-moz-range-thumb { width: 24px; height: 24px; border-radius: 7px; border: 0;
+background: linear-gradient(#fff, #dfe4f5); box-shadow: 0 3px 0 rgba(0,0,0,.3); }
+.seg { display: flex; gap: 6px; }
+.seg button { padding: 7px 12px !important; font-size: 14px !important; }
+.themes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.themes button { padding: 5px !important; display: flex; align-items: center; justify-content: center; background: linear-gradient(var(--alt1), var(--alt2)) !important;
+box-shadow: 0 3px 0 var(--alt3) !important; border: 2px solid transparent !important; }
+.themes button.sel { border-color: var(--gold) !important; }
+.themes img { width: 100%; max-width: 110px; aspect-ratio: 132 / 48; border-radius: 5px; display: block; }
+.card.book { width: min(86vw, 400px); padding: 16px 14px 16px; display: flex; flex-direction: column; overflow: hidden; }
+.book .cnt { font-size: 14px; opacity: .75; margin: -4px 0 4px; }
+.book .list { overflow-y: auto; touch-action: pan-y; text-align: left; padding: 0 2px; flex: 1;
+scrollbar-width: none; -ms-overflow-style: none; }
+.book .list::-webkit-scrollbar { display: none; }
+.book .sec { font-size: 12px; opacity: .7; margin: 12px 4px 2px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+.book .row { display: flex; align-items: center; gap: 6px; padding: 8px 9px; margin: 6px 0; border-radius: 12px; background: rgba(0,0,0,.14); }
+.book .row.fresh { background: rgba(255, 216, 74, .2); }
+.book .eq { display: flex; align-items: center; gap: 5px; flex: none; }
+.book .dot { width: 28px; height: 28px; border-radius: 50%; flex: none; position: relative; }
+.book .dot::after { content: ''; position: absolute; width: 30%; height: 30%; left: 20%; top: 20%;
+border-radius: 50%; background: rgba(255,255,255,.3); }
+.book .dot.q::after { display: none; }
+.book .dot.dk { box-shadow: 0 0 0 1.5px rgba(255,255,255,.35); }
+.book .dot.q { background: rgba(0,0,0,.25); box-shadow: none; display: flex; align-items: center; justify-content: center;
+font-weight: 800; opacity: .5; font-size: 14px; }
+.book .op { font-weight: 800; font-size: 17px; opacity: .6; width: 11px; text-align: center; }
+.book .nm { font-size: 12px; opacity: .8; margin-left: 4px; line-height: 1.25; }
+.card .eqw { display: flex; justify-content: center; margin: 8px 0 2px; }
+.book .dot.wt { box-shadow: 0 0 0 1.5px rgba(120,130,170,.55); }
+.card.intro { max-width: min(86vw, 380px); }
+.intro .pic { display: block; margin: 6px auto 10px; border-radius: 12px; max-width: 100%; }
+.intro .sub, .card .txt { font-size: 16px; line-height: 1.4; opacity: .9; text-align: justify; text-align-last: left; -webkit-hyphens: auto; hyphens: auto; }
+.book .crow { display: flex; align-items: center; gap: 10px; padding: 8px 9px; margin: 6px 0; border-radius: 12px; background: rgba(0,0,0,.14); }
+.book .crow.fresh { background: rgba(255, 216, 74, .2); }
+.book .crow img, .book .crow .ph { width: 72px; height: 72px; border-radius: 10px; flex: none; background: #060a1e; object-fit: contain; }
+.book .crow .ph { display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800; opacity: .45; }
+.book .crow b { display: block; font-size: 15px; }
+.book .crow span { display: block; font-size: 12px; opacity: .8; line-height: 1.3; margin-top: 2px; text-align: justify; text-align-last: left; -webkit-hyphens: auto; hyphens: auto; }
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#141b45">
+<meta name="description" content="BBG Stars — головоломка: соедини звёзды одной линией, собери созвездия.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BBG Stars">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+</head>
+<body>
+<canvas id="cv" width="720" height="1280"></canvas>
+<div id="safe" style="position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;
+padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)"></div>
+<div id="ov" hidden><div class="card" id="ovCard"></div></div>
+<script>
+'use strict';
+(function () {
+const DW = 180, DH = 320;
+let LW = DW, LH = DH, SCALE = 4, OX = 0, HY = 0, GY = 0;
+const GEAR = { x: 162, y: 20 }, HEART = { x: 18, y: 20 }, BOOKB = { x: 136, y: 20 };
+const AREA_TOP = 76, AREA_BOT = 312, BAR_Y = 62;
+let BX = 10, BY = 80, T = 30;
+const cv = document.getElementById('cv');
+let ctx = cv.getContext('2d');
+const safeEl = document.getElementById('safe');
+function layout(cssW, cssH, safeTop, safeBot) {
+const k = Math.min(cssW / DW, cssH / DH);
+LW = cssW / k; LH = cssH / k;
+const dpr = Math.min(3, window.devicePixelRatio || 1);
+cv.width = Math.max(1, Math.round(cssW * dpr));
+cv.height = Math.max(1, Math.round(cssH * dpr));
+SCALE = cv.width / LW;
+OX = (LW - DW) / 2;
+const top = safeTop / k, bot = safeBot / k;
+const extra = Math.max(0, LH - DH - top - bot);
+HY = top + extra * 0.3;
+GY = top + extra * 0.7;
+GEAR.x = OX + 162; GEAR.y = 20 + HY;
+HEART.x = OX + 18; HEART.y = 20 + HY;
+BOOKB.x = OX + 136; BOOKB.y = 20 + HY;
+if (L) boardLayout();
+}
+const PLAY = { x: 15, y: 84, w: 150, h: 216 };
+let PX = 15, PY = 84;
+function boardLayout() { PX = OX + PLAY.x; PY = GY + PLAY.y; }
+let fitW = 0, fitH = 0;
+function fit() {
+fitW = innerWidth; fitH = innerHeight;
+const w = Math.max(1, innerWidth), h = Math.max(1, innerHeight);
+const cs = getComputedStyle(safeEl);
+layout(w, h, parseFloat(cs.paddingTop) || 0, parseFloat(cs.paddingBottom) || 0);
+cv.style.width = w + 'px';
+cv.style.height = h + 'px';
+}
+const NATIVE = (window.BBStore && typeof window.BBStore.get === 'function') ? window.BBStore : null;
+function stGet(k) {
+if (NATIVE) {
+try { const v = NATIVE.get(k); if (v != null && v !== '') return String(v); } catch (e) {}
+}
+try { return localStorage.getItem(k); } catch (e) { return null; }
+}
+function stSet(k, v) {
+if (NATIVE) { try { NATIVE.set(k, v); } catch (e) {} }
+try { localStorage.setItem(k, v); } catch (e) {}
+}
+const KEY_SET = 'bs_settings';
+const settings = { volume: 0.7, lang: '', theme: 'juicy', diff: 'normal' };
+try { Object.assign(settings, JSON.parse(stGet(KEY_SET)) || {}); } catch (e) {}
+settings.volume = Math.min(1, Math.max(0, +settings.volume || 0));
+function saveSettings() { stSet(KEY_SET, JSON.stringify(settings)); }
+const STRINGS = {
+ru: {
+level: 'УРОВЕНЬ', done: 'Готово!', next: 'Дальше', ok: 'Понятно',
+book: 'Атлас неба', of: ' из ', locked: 'ещё не найдено', newC: 'Новое созвездие!',
+i_draw_t: 'Одной линией', i_draw: 'Коснись звезды и веди пальцем по линиям от звезды к звезде. Пройди все линии одним движением — не отрывая пальца и не проходя линию дважды.',
+i_odd_t: 'С какой звезды начать', i_odd: 'Посчитай линии у звезды. Если их нечётно — 1, 3 или 5, — начни с такой звезды, закончишь на другой такой же. Это правило открыл математик Леонард Эйлер почти 300 лет назад.',
+i_atlas_t: 'Настоящее созвездие', i_atlas: 'Иногда на небе попадается настоящее созвездие. Нарисуй его — и оно появится в твоём Атласе неба.',
+h_draw: 'Веди пальцем от звезды к звезде по линиям', h_odd: 'Начни со звезды, где сходится нечётное число линий',
+h_atlas: 'Это настоящее созвездие!', h_again: 'коснись — прочитать ещё раз',
+settings: 'Настройки', sound: 'Звук',
+lang: 'Язык', theme: 'Тема', restart: 'Уровень заново', restartQ: 'Начать уровень заново?',
+yes: 'Да', no: 'Нет', close: 'Закрыть', app: 'Приложение', install: 'Установить',
+support: 'Поддержать ♥', supportAsk: 'Нравится игра? Поддержи автора ♥', author: 'Автор',
+th_juicy: 'Сочная', th_wood: 'Дерево', th_night: 'Ночь', th_day: 'День',
+diff: 'Сложность', d_easy: 'Лёгкая', d_normal: 'Обычная', d_hard: 'Сложная',
+k_tri: 'Треугольник', k_tri_f: 'Маленькое созвездие из трёх звёзд — и правда треугольник.',
+k_cas: 'Кассиопея', k_cas_f: 'Похожа на букву W. Её видно круглый год.',
+k_big: 'Большой Ковш', k_big_f: 'Часть Большой Медведицы. Две крайние звезды ковша указывают на Полярную звезду.',
+k_cor: 'Северная Корона', k_cor_f: 'Полукруг звёзд, похожий на корону.',
+k_lit: 'Малый Ковш', k_lit_f: 'На конце ручки — Полярная звезда. Она почти не движется по небу и показывает на север.',
+k_lyr: 'Лира', k_lyr_f: 'Вега в Лире — одна из самых ярких звёзд летнего неба.',
+k_ori: 'Орион', k_ori_f: 'Охотник из мифов. Три звезды в ряд — его пояс.',
+k_pol: 'Полярная звезда', k_pol_f: 'Показывает на север. Найти её помогает Большой Ковш.',
+i_polar_t: 'Как найти Полярную звезду', i_polar: 'Найди Большой Ковш. Проведи линию через две крайние звезды ковша — Мерак и Дубхе — и отложи ещё пять таких же расстояний. Там Полярная звезда. Встань к ней лицом — впереди север.',
+h_polar: 'От Мерака через Дубхе — пять шагов до Полярной',
+f_cas_1: 'Шедар — оранжевый гигант, в 40 раз больше Солнца.',
+f_big_0: 'Дубхе и Мерак — «звёзды-указатели»: линия через них ведёт к Полярной.',
+f_big_5: 'Рядом с Мицаром видна слабая звёздочка Алькор. По ней раньше проверяли зрение.',
+f_pol_0: 'Над Полярной почти стоит ось вращения Земли, поэтому она почти не движется по небу и всегда на севере.',
+f_cor_4: 'Гемма значит «жемчужина» — самая яркая звезда короны.',
+f_lit_0: 'Полярная звезда — на конце ручки Малого Ковша. Она всегда показывает на север.',
+f_lyr_0: 'Вега — одна из самых ярких звёзд. Через 12 000 лет она станет Полярной звездой.',
+f_ori_0: 'Бетельгейзе — огромная красная звезда: в ней поместилась бы орбита Марса.',
+f_ori_6: 'Ригель — голубой гигант, очень горячая звезда. Голубые звёзды горячее красных.',
+stars: 'Звёзды', tapAtlas: 'Коснись созвездия, чтобы узнать о нём больше',
+i_color_t: 'Цвет звезды — её температура', i_color: 'Звёзды бывают разного цвета, и цвет говорит о температуре. Красные — самые «холодные», около 3 000 градусов. Жёлтые — как наше Солнце, около 6 000. Голубые — самые горячие, до 30 000! Посмотри на Орион: Бетельгейзе красная, а Ригель голубой.',
+h_color: 'Бетельгейзе красная, а Ригель голубой — почему?', sun: 'Солнце',
+col_O: 'голубая', col_B: 'голубовато-белая', col_A: 'белая', col_F: 'жёлто-белая', col_G: 'жёлтая', col_K: 'оранжевая', col_M: 'красная',
+k_leo: 'Лев', k_leo_f: 'Весеннее созвездие. Голова Льва похожа на серп.',
+k_gem: 'Близнецы', k_gem_f: 'Два брата-близнеца, Кастор и Поллукс, держатся за руки.',
+k_cma: 'Большой Пёс', k_cma_f: 'Верный пёс охотника Ориона. В нём сияет Сириус.',
+k_sco: 'Скорпион', k_sco_f: 'Летнее созвездие с изогнутым хвостом-жалом.',
+f_leo_5: 'Регул — «сердце Льва», голубовато-белая звезда.',
+f_leo_8: 'Денебола значит «хвост льва».',
+f_gem_0: 'Кастор только кажется одной звездой — на самом деле это шесть звёзд.',
+f_gem_1: 'Поллукс — оранжевый гигант, ближайший к нам гигант.',
+f_cma_0: 'Сириус — самая яркая звезда ночного неба. Его свет летит к нам почти 9 лет.',
+f_sco_4: 'Антарес — красный сверхгигант. Его имя значит «соперник Марса»: он такой же красный.',
+f_sco_12: 'Шаула — «жало» Скорпиона.'
+},
+en: {
+level: 'LEVEL', done: 'Done!', next: 'Next', ok: 'Got it',
+book: 'Sky atlas', of: ' of ', locked: 'not found yet', newC: 'New constellation!',
+i_draw_t: 'One line', i_draw: 'Touch a star and slide your finger along the lines from star to star. Cover every line in one move — without lifting your finger or using a line twice.',
+i_odd_t: 'Which star to start from', i_odd: 'Count the lines at a star. If there is an odd number — 1, 3 or 5 — start there, and you will finish at the other such star. Mathematician Leonhard Euler found this rule almost 300 years ago.',
+i_atlas_t: 'A real constellation', i_atlas: 'Sometimes a real constellation appears in the sky. Draw it — and it goes into your Sky atlas.',
+h_draw: 'Slide your finger from star to star along the lines', h_odd: 'Start at a star with an odd number of lines',
+h_atlas: 'This is a real constellation!', h_again: 'tap to read again',
+settings: 'Settings', sound: 'Sound',
+lang: 'Language', theme: 'Theme', restart: 'Restart level', restartQ: 'Restart this level?',
+yes: 'Yes', no: 'No', close: 'Close', app: 'App', install: 'Install',
+support: 'Support ♥', supportAsk: 'Enjoying the game? Support the author ♥', author: 'Author',
+th_juicy: 'Juicy', th_wood: 'Wood', th_night: 'Night', th_day: 'Day',
+diff: 'Difficulty', d_easy: 'Easy', d_normal: 'Normal', d_hard: 'Hard',
+k_tri: 'Triangulum', k_tri_f: 'A small constellation of three stars — a real triangle.',
+k_cas: 'Cassiopeia', k_cas_f: 'Looks like the letter W. You can see it all year round.',
+k_big: 'Big Dipper', k_big_f: 'Part of the Great Bear. The two end stars of the bowl point to the North Star.',
+k_cor: 'Northern Crown', k_cor_f: 'A half-circle of stars that looks like a crown.',
+k_lit: 'Little Dipper', k_lit_f: 'The North Star is at the end of the handle. It barely moves and points north.',
+k_lyr: 'Lyra', k_lyr_f: 'Vega in Lyra is one of the brightest stars of the summer sky.',
+k_ori: 'Orion', k_ori_f: 'The hunter from the myths. Three stars in a row are his belt.',
+k_pol: 'North Star', k_pol_f: 'It points north. The Big Dipper helps you find it.',
+i_polar_t: 'How to find the North Star', i_polar: 'Find the Big Dipper. Draw a line through the two end stars of the bowl — Merak and Dubhe — and go five times that distance further. There is the North Star. Face it — north is straight ahead.',
+h_polar: 'From Merak through Dubhe — five steps to the North Star',
+f_cas_1: 'Schedar is an orange giant, 40 times bigger than the Sun.',
+f_big_0: 'Dubhe and Merak are the “pointer stars”: a line through them leads to the North Star.',
+f_big_5: 'Next to Mizar is a faint star, Alcor. People used it to test their eyesight.',
+f_pol_0: 'Earth’s spin axis points almost right at Polaris, so it barely moves and always marks north.',
+f_cor_4: 'Gemma means “pearl” — the brightest star of the crown.',
+f_lit_0: 'Polaris is at the end of the Little Dipper’s handle. It always points north.',
+f_lyr_0: 'Vega is one of the brightest stars. In 12,000 years it will be the North Star.',
+f_ori_0: 'Betelgeuse is a huge red star: the orbit of Mars would fit inside it.',
+f_ori_6: 'Rigel is a blue giant, a very hot star. Blue stars are hotter than red ones.',
+stars: 'Stars', tapAtlas: 'Tap a constellation to learn more',
+i_color_t: 'A star’s color is its temperature', i_color: 'Stars come in different colors, and the color tells the temperature. Red ones are the “coolest”, about 3,000 degrees. Yellow ones are like our Sun, about 6,000. Blue ones are the hottest, up to 30,000! Look at Orion: Betelgeuse is red and Rigel is blue.',
+h_color: 'Betelgeuse is red and Rigel is blue — why?', sun: 'Sun',
+col_O: 'blue', col_B: 'bluish white', col_A: 'white', col_F: 'yellowish white', col_G: 'yellow', col_K: 'orange', col_M: 'red',
+k_leo: 'Leo', k_leo_f: 'A spring constellation. The Lion’s head looks like a sickle.',
+k_gem: 'Gemini', k_gem_f: 'Two twin brothers, Castor and Pollux, holding hands.',
+k_cma: 'Canis Major', k_cma_f: 'The faithful dog of Orion the hunter. Sirius shines in it.',
+k_sco: 'Scorpius', k_sco_f: 'A summer constellation with a curved stinging tail.',
+f_leo_5: 'Regulus is the “heart of the Lion”, a bluish-white star.',
+f_leo_8: 'Denebola means “the lion’s tail”.',
+f_gem_0: 'Castor only looks like one star — it is really six stars.',
+f_gem_1: 'Pollux is an orange giant, the closest giant star to us.',
+f_cma_0: 'Sirius is the brightest star of the night sky. Its light takes almost 9 years to reach us.',
+f_sco_4: 'Antares is a red supergiant. Its name means “rival of Mars”: it is just as red.',
+f_sco_12: 'Shaula is the Scorpion’s “sting”.'
+},
+es: {
+level: 'NIVEL', done: '¡Listo!', next: 'Siguiente', ok: 'Entendido',
+book: 'Atlas del cielo', of: ' de ', locked: 'aún sin encontrar', newC: '¡Nueva constelación!',
+i_draw_t: 'Con una sola línea', i_draw: 'Toca una estrella y desliza el dedo por las líneas de estrella en estrella. Recorre todas las líneas de un solo trazo, sin levantar el dedo ni repetir una línea.',
+i_odd_t: 'Desde qué estrella empezar', i_odd: 'Cuenta las líneas de una estrella. Si son impares — 1, 3 o 5 —, empieza ahí y terminarás en la otra igual. El matemático Leonhard Euler descubrió esta regla hace casi 300 años.',
+i_atlas_t: 'Una constelación de verdad', i_atlas: 'A veces aparece en el cielo una constelación de verdad. Dibújala y aparecerá en tu Atlas del cielo.',
+h_draw: 'Desliza el dedo de estrella en estrella por las líneas', h_odd: 'Empieza en una estrella con un número impar de líneas',
+h_atlas: '¡Es una constelación de verdad!', h_again: 'toca para leer otra vez',
+settings: 'Ajustes', sound: 'Sonido',
+lang: 'Idioma', theme: 'Tema', restart: 'Reiniciar nivel', restartQ: '¿Reiniciar el nivel?',
+yes: 'Sí', no: 'No', close: 'Cerrar', app: 'App', install: 'Instalar',
+support: 'Apoyar ♥', supportAsk: '¿Te gusta el juego? Apoya al autor ♥', author: 'Autor',
+th_juicy: 'Jugosa', th_wood: 'Madera', th_night: 'Noche', th_day: 'Día',
+diff: 'Dificultad', d_easy: 'Fácil', d_normal: 'Normal', d_hard: 'Difícil',
+k_tri: 'Triángulo', k_tri_f: 'Una constelación pequeña de tres estrellas: un triángulo de verdad.',
+k_cas: 'Casiopea', k_cas_f: 'Parece la letra W. Se ve todo el año.',
+k_big: 'Osa Mayor (el Carro)', k_big_f: 'Las dos estrellas del extremo del carro señalan la Estrella Polar.',
+k_cor: 'Corona Boreal', k_cor_f: 'Un semicírculo de estrellas que parece una corona.',
+k_lit: 'Osa Menor', k_lit_f: 'En la punta del mango está la Estrella Polar. Casi no se mueve y señala el norte.',
+k_lyr: 'Lira', k_lyr_f: 'Vega, en la Lira, es una de las estrellas más brillantes del cielo de verano.',
+k_ori: 'Orión', k_ori_f: 'El cazador de los mitos. Tres estrellas en fila son su cinturón.',
+k_pol: 'Estrella Polar', k_pol_f: 'Señala el norte. La Osa Mayor ayuda a encontrarla.',
+i_polar_t: 'Cómo encontrar la Estrella Polar', i_polar: 'Busca la Osa Mayor. Traza una línea por las dos estrellas del extremo — Merak y Dubhe — y avanza cinco veces esa distancia. Ahí está la Estrella Polar. Mírala de frente: delante está el norte.',
+h_polar: 'De Merak por Dubhe — cinco pasos hasta la Polar',
+f_cas_1: 'Schedar es una gigante naranja, 40 veces más grande que el Sol.',
+f_big_0: 'Dubhe y Merak son las «estrellas guía»: una línea por ellas lleva a la Polar.',
+f_big_5: 'Junto a Mizar se ve una estrella débil, Alcor. Con ella se ponía a prueba la vista.',
+f_pol_0: 'El eje de giro de la Tierra apunta casi a la Polar: por eso casi no se mueve y marca el norte.',
+f_cor_4: 'Gemma significa «perla»: la estrella más brillante de la corona.',
+f_lit_0: 'La Polar está en la punta del mango de la Osa Menor. Siempre señala el norte.',
+f_lyr_0: 'Vega es una de las estrellas más brillantes. Dentro de 12 000 años será la Estrella Polar.',
+f_ori_0: 'Betelgeuse es una estrella roja enorme: dentro cabría la órbita de Marte.',
+f_ori_6: 'Rigel es una gigante azul, muy caliente. Las estrellas azules son más calientes que las rojas.',
+stars: 'Estrellas', tapAtlas: 'Toca una constelación para saber más',
+i_color_t: 'El color de una estrella es su temperatura', i_color: 'Las estrellas tienen colores distintos, y el color dice su temperatura. Las rojas son las más «frías», unos 3 000 grados. Las amarillas son como nuestro Sol, unos 6 000. Las azules son las más calientes, ¡hasta 30 000! Mira Orión: Betelgeuse es roja y Rigel es azul.',
+h_color: 'Betelgeuse es roja y Rigel azul: ¿por qué?', sun: 'Sol',
+col_O: 'azul', col_B: 'blanco azulado', col_A: 'blanca', col_F: 'blanco amarillento', col_G: 'amarilla', col_K: 'naranja', col_M: 'roja',
+k_leo: 'Leo', k_leo_f: 'Una constelación de primavera. La cabeza del León parece una hoz.',
+k_gem: 'Géminis', k_gem_f: 'Dos hermanos gemelos, Cástor y Pólux, tomados de la mano.',
+k_cma: 'Can Mayor', k_cma_f: 'El perro fiel del cazador Orión. En él brilla Sirio.',
+k_sco: 'Escorpio', k_sco_f: 'Una constelación de verano con una cola curva y aguijón.',
+f_leo_5: 'Régulo es el «corazón del León», una estrella blanco azulada.',
+f_leo_8: 'Denébola significa «cola del león».',
+f_gem_0: 'Cástor parece una sola estrella, pero en realidad son seis.',
+f_gem_1: 'Pólux es una gigante naranja, la gigante más cercana a nosotros.',
+f_cma_0: 'Sirio es la estrella más brillante del cielo nocturno. Su luz tarda casi 9 años en llegar.',
+f_sco_4: 'Antares es una supergigante roja. Su nombre significa «rival de Marte»: es igual de roja.',
+f_sco_12: 'Shaula es el «aguijón» del Escorpión.'
+}
+};
+const LANGS = ['ru', 'en', 'es'];
+const QS = new URLSearchParams(location.search);
+function detectLang() {
+const n = (navigator.language || '').toLowerCase();
+return /^(ru|uk|be)/.test(n) ? 'ru' : /^es/.test(n) ? 'es' : 'en';
+}
+let lang = STRINGS[QS.get('lang')] ? QS.get('lang') : STRINGS[settings.lang] ? settings.lang : detectLang();
+function setLang(l) { lang = l; settings.lang = l; saveSettings(); document.documentElement.lang = l; }
+document.documentElement.lang = lang;
+function t(k) { return STRINGS[lang][k] ?? STRINGS.en[k] ?? k; }
+const ATLAS = [
+{ id: 'tri', s: [[30, 150], [120, 120], [70, 60]], e: [[0, 1], [1, 2], [2, 0]], sp: 'FAA',
+nm: { ru: ['Мотах', 'Бета', 'Гамма'], la: ['Mothallah', 'Beta', 'Gamma'] }, f: [] },
+{ id: 'cas', s: [[10, 80], [40, 122], [72, 92], [106, 128], [140, 86]], e: [[0, 1], [1, 2], [2, 3], [3, 4]], sp: 'FKBAB',
+nm: { ru: ['Каф', 'Шедар', 'Нави', 'Рукба', 'Сегин'], la: ['Caph', 'Schedar', 'Navi', 'Ruchbah', 'Segin'] }, f: [1] },
+{ id: 'big', s: [[137, 66], [141, 112], [95, 122], [89, 78], [57, 66], [33, 48], [9, 26]], e: [[0, 1], [1, 2], [2, 3], [3, 0], [3, 4], [4, 5], [5, 6]], sp: 'KAAAAAB',
+nm: { ru: ['Дубхе', 'Мерак', 'Фекда', 'Мегрец', 'Алиот', 'Мицар', 'Бенетнаш'], la: ['Dubhe', 'Merak', 'Phecda', 'Megrez', 'Alioth', 'Mizar', 'Alkaid'] }, f: [0, 5] },
+{ id: 'pol', s: [[80, 20], [95, 170], [98, 200], [66, 207], [62, 178]], e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 1]], pointer: [2, 1, 0], sp: 'FKAAA',
+nm: { ru: ['Полярная', 'Дубхе', 'Мерак', 'Фекда', 'Мегрец'], la: ['Polaris', 'Dubhe', 'Merak', 'Phecda', 'Megrez'] }, f: [0] },
+{ id: 'ori', s: [[30, 40], [118, 56], [46, 116], [74, 106], [102, 96], [44, 192], [126, 176]], e: [[0, 1], [0, 2], [1, 4], [2, 3], [3, 4], [2, 5], [4, 6], [5, 6]], sp: 'MBOBOBB',
+nm: { ru: ['Бетельгейзе', 'Беллатрикс', 'Альнитак', 'Альнилам', 'Минтака', 'Саиф', 'Ригель'], la: ['Betelgeuse', 'Bellatrix', 'Alnitak', 'Alnilam', 'Mintaka', 'Saiph', 'Rigel'] }, f: [0, 6] },
+{ id: 'cor', s: [[12, 108], [30, 74], [58, 56], [86, 54], [112, 62], [132, 82], [142, 110]], e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6]], sp: 'AKGAAFB',
+nm: { ru: ['Йота', 'Эпсилон', 'Дельта', 'Гамма', 'Гемма', 'Нусакан', 'Тета'], la: ['Iota', 'Epsilon', 'Delta', 'Gamma', 'Gemma', 'Nusakan', 'Theta'] }, f: [4] },
+{ id: 'lit', s: [[16, 28], [42, 52], [64, 78], [84, 104], [96, 146], [136, 154], [126, 112]], e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 3]], sp: 'FAGAFAK',
+nm: { ru: ['Полярная', 'Йильдун', 'Эпсилон', 'Дзета', 'Эта', 'Феркад', 'Кохаб'], la: ['Polaris', 'Yildun', 'Epsilon', 'Zeta', 'Eta', 'Pherkad', 'Kochab'] }, f: [0] },
+{ id: 'lyr', s: [[60, 30], [98, 42], [76, 78], [108, 112], [98, 176], [54, 164]], e: [[0, 1], [1, 2], [2, 0], [2, 3], [3, 4], [4, 5], [5, 2]], sp: 'AAAMBB',
+nm: { ru: ['Вега', 'Эпсилон', 'Дзета', 'Дельта', 'Сулафат', 'Шелиак'], la: ['Vega', 'Epsilon', 'Zeta', 'Delta', 'Sulafat', 'Sheliak'] }, f: [0] },
+{ id: 'leo', s: [[30, 40], [54, 26], [64, 54], [56, 84], [40, 110], [50, 144], [104, 132], [108, 90], [142, 116]],
+e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 8], [8, 7], [7, 3]], sp: 'GKFKABAAA',
+nm: { ru: ['Эпсилон', 'Расалас', 'Адхафера', 'Альгиеба', 'Эта', 'Регул', 'Шертан', 'Зосма', 'Денебола'], la: ['Epsilon', 'Rasalas', 'Adhafera', 'Algieba', 'Eta', 'Regulus', 'Chertan', 'Zosma', 'Denebola'] }, f: [5, 8] },
+{ id: 'gem', s: [[44, 28], [96, 40], [38, 96], [30, 160], [88, 104], [100, 176]],
+e: [[3, 2], [2, 0], [0, 1], [1, 4], [4, 5]], sp: 'AKGMFA',
+nm: { ru: ['Кастор', 'Поллукс', 'Мебсута', 'Тейат', 'Васат', 'Альхена'], la: ['Castor', 'Pollux', 'Mebsuta', 'Tejat', 'Wasat', 'Alhena'] }, f: [0, 1] },
+{ id: 'cma', s: [[62, 48], [22, 72], [34, 170], [62, 192], [84, 140], [130, 172]],
+e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0], [4, 5]], sp: 'ABBBFB',
+nm: { ru: ['Сириус', 'Мирзам', 'Фуруд', 'Адара', 'Везен', 'Алудра'], la: ['Sirius', 'Mirzam', 'Furud', 'Adhara', 'Wezen', 'Aludra'] }, f: [0] },
+{ id: 'sco', s: [[118, 18], [140, 40], [112, 44], [96, 64], [84, 84], [76, 104], [68, 128], [60, 152], [56, 176], [66, 198], [88, 208], [114, 196], [106, 172]],
+e: [[0, 1], [1, 2], [2, 0], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 10], [10, 11], [11, 12]], sp: 'BBBBMBKBKFFBB',
+nm: { ru: ['Акраб', 'Пи', 'Дшубба', 'Сигма', 'Антарес', 'Тау', 'Эпсилон', 'Мю', 'Дзета', 'Эта', 'Тета', 'Каппа', 'Шаула'], la: ['Acrab', 'Pi', 'Dschubba', 'Sigma', 'Antares', 'Tau', 'Epsilon', 'Mu', 'Zeta', 'Eta', 'Theta', 'Kappa', 'Shaula'] }, f: [4, 12] }
+];
+const SPEC = {
+O: { c: [110, 150, 255], T: 30000 }, B: { c: [140, 180, 255], T: 20000 }, A: { c: [205, 220, 255], T: 9000 },
+F: { c: [255, 248, 215], T: 7000 }, G: { c: [255, 222, 110], T: 6000 }, K: { c: [255, 165, 80], T: 4500 }, M: { c: [255, 95, 70], T: 3300 }
+};
+const starSpec = (F, i) => F.sp ? SPEC[F.sp[i]] : null;
+const starName = (F, i) => F.nm ? (lang === 'ru' ? F.nm.ru : F.nm.la)[i] : '';
+const isDark = () => false;
+const css = (a, al) => 'rgba(' + a.map(Math.round).join(',') + ',' + (al === undefined ? 1 : al) + ')';
+const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
+const rotm = (m, r) => { for (let i = 0; i < (r & 3); i++) m = ((m << 1) | (m >> 3)) & 15; return m; };
+const pop = m => (m & 1) + (m >> 1 & 1) + (m >> 2 & 1) + (m >> 3 & 1);
+const dirsOf = m => [0, 1, 2, 3].filter(d => m >> d & 1);
+function mulberry32(a) {
+return () => {
+a |= 0; a = a + 0x6D2B79F5 | 0;
+let x = Math.imul(a ^ a >>> 15, 1 | a);
+x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x;
+return ((x ^ x >>> 14) >>> 0) / 4294967296;
+};
+}
+const DIFFS = {
+easy: { salt: 0x57A50001, size: '3–7 ★' },
+normal: { salt: 0x57A50002, size: '3–10 ★' },
+hard: { salt: 0x57A50003, size: '4–13 ★' }
+};
+const DIFF_IDS = Object.keys(DIFFS);
+const ekey = (a, b) => a < b ? a + '-' + b : b + '-' + a;
+const degOf = (F, i) => F.e.filter(([a, b]) => a === i || b === i).length;
+const oddOf = F => F.s.map((_, i) => i).filter(i => degOf(F, i) % 2);
+function recipe(n, diff) {
+const k = diff === 'easy' ? 5 : diff === 'hard' ? 2 : 3;
+const nmax = diff === 'easy' ? 7 : diff === 'hard' ? 13 : 10;
+const N = Math.min(nmax, (diff === 'hard' ? 4 : 3) + Math.floor((n - 1) / k));
+const extra = Math.min(Math.floor(N * 0.8), Math.floor((n - 1) / (k + 1)));
+const r = {
+N, E: N - 1 + extra, cross: diff === 'hard' ? 3 : diff === 'easy' ? 0 : 1 + Math.floor(n / 25),
+odd: n === 6 ? 2 : null, real: n % 5 === 0 ? ATLAS[(n / 5 - 1) % ATLAS.length] : null,
+intro: n === 1 ? 'draw' : n === 5 ? 'atlas' : n === 6 ? 'odd' : null,
+hint: n === 1 ? 'h_draw' : n % 5 === 0 ? 'h_atlas' : null
+};
+if (r.real && r.real.id === 'pol') { r.intro = 'polar'; r.hint = 'h_polar'; }
+if (r.real && r.real.id === 'ori') { r.intro = 'color'; r.hint = 'h_color'; }
+return r;
+}
+function genLevel(n, diff) {
+diff = DIFFS[diff] ? diff : 'normal';
+const rc = recipe(n, diff);
+if (rc.real) return { n, diff, s: rc.real.s.map(p => p.slice()), e: rc.real.e.map(q => q.slice()), real: rc.real.id, nm: rc.real.nm, sp: rc.real.sp, pointer: rc.real.pointer, intro: rc.intro, hint: rc.hint, lvl: n };
+const R = mulberry32(Math.imul(n, 0x9E3779B1) ^ DIFFS[diff].salt);
+for (let a = 0; a < 3000; a++) {
+const F = tryGen(rc, R);
+if (F) {
+const xs = F.s.map(q => q[0]), ys = F.s.map(q => q[1]);
+const dx = 75 - (Math.min(...xs) + Math.max(...xs)) / 2, dy = 108 - (Math.min(...ys) + Math.max(...ys)) / 2;
+F.s.forEach(q => { q[0] += dx; q[1] += dy; });
+return Object.assign(F, { n, diff, real: null, intro: rc.intro, hint: rc.hint });
+}
+}
+throw new Error('фигура ' + n + ' не построилась');
+}
+function segDist(px, py, ax, ay, bx, by) {
+const dx = bx - ax, dy = by - ay, t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
+return Math.hypot(ax + dx * t - px, ay + dy * t - py);
+}
+function crosses(a, b, c, d) {
+const o = (p, q, r) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]));
+return o(a, b, c) * o(a, b, d) < 0 && o(c, d, a) * o(c, d, b) < 0;
+}
+function tryGen(rc, R) {
+const D = rc.N > 9 ? 30 : 36, M = 92, s = [];
+for (let t = 0; t < 400 && s.length < rc.N; t++) {
+const p = [10 + R() * 130, 10 + R() * 196];
+if (s.every(q => Math.hypot(q[0] - p[0], q[1] - p[1]) >= D)) s.push(p);
+}
+if (s.length < rc.N) return null;
+const used = new Set(), e = [], seen = new Set();
+let cur = R() * s.length | 0, crossN = 0;
+seen.add(cur);
+const angOk = (i, j) => {
+const a0 = Math.atan2(s[j][1] - s[i][1], s[j][0] - s[i][0]);
+return e.every(([x, y]) => {
+if (x !== i && y !== i) return true;
+const o = x === i ? y : x, a1 = Math.atan2(s[o][1] - s[i][1], s[o][0] - s[i][0]);
+let d = Math.abs(a0 - a1); if (d > Math.PI) d = 2 * Math.PI - d;
+return d > 0.42;
+});
+};
+while (e.length < rc.E) {
+const cand = [];
+for (let j = 0; j < s.length; j++) {
+if (j === cur || used.has(ekey(cur, j))) continue;
+if (Math.hypot(s[j][0] - s[cur][0], s[j][1] - s[cur][1]) > M) continue;
+if (s.some((q, k) => k !== cur && k !== j && segDist(q[0], q[1], s[cur][0], s[cur][1], s[j][0], s[j][1]) < 9)) continue;
+if (!angOk(cur, j) || !angOk(j, cur)) continue;
+const cx = e.filter(([x, y]) => x !== cur && y !== cur && x !== j && y !== j && crosses(s[x], s[y], s[cur], s[j])).length;
+if (crossN + cx > rc.cross) continue;
+cand.push([j, cx]);
+}
+if (!cand.length) return null;
+const fresh = cand.filter(([j]) => !seen.has(j));
+const pool = fresh.length && seen.size < s.length ? fresh : cand;
+const [j, cx] = pool[R() * pool.length | 0];
+used.add(ekey(cur, j)); e.push([cur, j]); crossN += cx; seen.add(j); cur = j;
+}
+if (seen.size < s.length) return null;
+const F = { s, e };
+if (rc.odd !== null && oddOf(F).length !== rc.odd) return null;
+return F;
+}
+let SUPPORT_URL = 'https://send.monobank.ua/jar/6K1DTLciVs';
+function openSupport() {
+if (!SUPPORT_URL) return;
+try { window.open(SUPPORT_URL, '_blank', 'noopener'); } catch (e) { location.href = SUPPORT_URL; }
+}
+const SFX = (function () {
+let ac = null, master = null, send = null;
+const GAIN = 0.55;
+function build(a) {
+master = a.createGain();
+master.gain.value = settings.volume * GAIN;
+const lp = a.createBiquadFilter();
+lp.type = 'lowpass'; lp.frequency.value = 4500; lp.Q.value = 0.5;
+master.connect(lp); lp.connect(a.destination);
+const len = Math.floor(a.sampleRate * 1.0), ir = a.createBuffer(2, len, a.sampleRate);
+const decay = Math.pow(0.001, 1 / len);
+for (let ch = 0; ch < 2; ch++) {
+const d = ir.getChannelData(ch);
+let env = 1;
+for (let i = 0; i < len; i++) { d[i] = (Math.random() * 2 - 1) * env; env *= decay; }
+}
+const conv = a.createConvolver(), wet = a.createGain();
+conv.buffer = ir; wet.gain.value = 0.22;
+send = a.createGain(); send.gain.value = 1;
+send.connect(conv); conv.connect(wet); wet.connect(lp);
+}
+function ctxOn() {
+if (settings.volume <= 0) return null;
+if (!ac) {
+const AC = window.AudioContext || window.webkitAudioContext;
+if (!AC) return null;
+ac = new AC();
+build(ac);
+}
+if (ac.state === 'suspended') ac.resume();
+return ac;
+}
+function voice(f, dur, o) {
+o = o || {};
+const a = ctxOn(); if (!a) return;
+const t0 = a.currentTime + (o.at || 0), vol = o.vol || 0.2, att = o.att || 0.013;
+const osc = a.createOscillator(), g = a.createGain();
+osc.type = 'sine';
+osc.frequency.setValueAtTime(f, t0);
+if (o.glide) osc.frequency.exponentialRampToValueAtTime(f * o.glide, t0 + (o.gt || dur * 0.5));
+g.gain.setValueAtTime(0.0001, t0);
+g.gain.exponentialRampToValueAtTime(vol, t0 + att);
+g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+osc.connect(g); g.connect(master); g.connect(send);
+osc.start(t0); osc.stop(t0 + dur + 0.03);
+}
+const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+const DUSTN = [84, 86, 88, 91, 93, 96, 98];
+const sparkle = (n, spread, vol, at) => {
+for (let i = 0; i < n; i++)
+voice(hz(DUSTN[Math.random() * DUSTN.length | 0]), 0.35, { vol: vol * (0.6 + 0.4 * Math.random()), att: 0.02, at: (at || 0) + Math.random() * spread });
+};
+const PENTA = [72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96];
+const S = {
+step(i) { voice(hz(PENTA[Math.min(i, PENTA.length - 1)]), 0.6, { vol: 0.035, att: 0.03, glide: 1.01, gt: 0.6 }); },
+back() { voice(hz(67), 0.3, { vol: 0.02, att: 0.03 }); },
+fail() { voice(hz(69), 0.4, { vol: 0.022, att: 0.04 }); voice(hz(64), 0.5, { vol: 0.02, att: 0.04, at: 0.12 }); },
+found() { sparkle(10, 0.6, 0.012); voice(hz(84), 1.0, { vol: 0.02, att: 0.15, at: 0.08 }); },
+done() {
+voice(hz(72), 0.55, { vol: 0.02, att: 0.14, glide: 2, gt: 0.35 });
+voice(hz(84), 0.6, { vol: 0.016, att: 0.12, at: 0.3, glide: 1.012, gt: 0.6 });
+sparkle(7, 0.3, 0.007, 0.3);
+},
+probe() { sparkle(3, 0.12, 0.03); }
+};
+return {
+unlock: ctxOn,
+play(name, a) { try { S[name](a); } catch (e) {} },
+setVolume(v) { if (master) master.gain.value = v * GAIN; if (v > 0) ctxOn(); },
+pause() { if (ac && ac.state === 'running') ac.suspend(); }
+};
+})();
+const THEMES = {
+juicy: {
+bgTop: '#2a3a8c', bgBot: '#141b45', board: '#10163a', cell: '#1d2552', cellHi: '#26306a', pipe: ['#3a4679', '#121833'],
+text: '#f2f4ff', textStroke: 'rgba(0,0,0,.35)', gold: '#ffd84a', dim: '#9aa3d6',
+card: ['#26305e', '#1a2147'], cardText: '#e9ecff', btn: ['#4f8cff', '#3563d8', '#22408f'],
+alt: ['#5b6385', '#454c6b', '#2d3249'], veil: 'rgba(6,9,26,.62)'
+},
+wood: {
+bgTop: '#8a5a32', bgBot: '#4f2f18', board: '#3b2212', cell: '#4d2d17', cellHi: '#65401f', pipe: ['#9a6a3e', '#2a160a'],
+text: '#fff1d6', textStroke: 'rgba(60,30,10,.55)', gold: '#ffd27a', dim: '#e2bf93',
+card: ['#7a4c29', '#5a3419'], cardText: '#fff1d6', btn: ['#d9a15e', '#b97d3c', '#7c4f22'],
+alt: ['#8c6a4d', '#6c4f37', '#4a3524'], veil: 'rgba(30,14,4,.6)'
+},
+night: {
+bgTop: '#15122e', bgBot: '#06050f', board: '#0b0a1c', cell: '#15132c', cellHi: '#252250', pipe: ['#383466', '#07060f'],
+text: '#ecebff', textStroke: 'rgba(0,0,0,.5)', gold: '#ffe36b', dim: '#9d9ad6',
+card: ['#1e1a40', '#110f26'], cardText: '#ecebff', btn: ['#8a5cff', '#6536e0', '#3e1f9a'],
+alt: ['#3c3960', '#2b2848', '#1b1930'], veil: 'rgba(3,2,10,.7)'
+},
+day: {
+bgTop: '#cfe0ff', bgBot: '#f6efff', board: '#b9c6ea', cell: '#dfe6fa', cellHi: '#f6f9ff', pipe: ['#8e9bd0', '#4d5a8e'],
+text: '#34406e', textStroke: 'rgba(255,255,255,.7)', gold: '#d9801a', dim: '#6b76a8',
+card: ['#ffffff', '#eef1fd'], cardText: '#34406e', btn: ['#6f8dff', '#4f6ae8', '#3549b0'],
+alt: ['#aab2d4', '#8f98bf', '#6c7496'], veil: 'rgba(90,100,150,.45)'
+}
+};
+const THEME_IDS = Object.keys(THEMES);
+const ROOM = { juicy: '#090c24', wood: '#170c05', night: '#040308', day: '#141a33' };
+let TH = THEMES.juicy;
+function applyTheme(id) {
+TH = THEMES[id] || THEMES.juicy;
+const st = document.documentElement.style;
+const v = {
+veil: TH.veil, card1: TH.card[0], card2: TH.card[1], cardText: TH.cardText, gold: TH.gold,
+btn1: TH.btn[0], btn2: TH.btn[1], btn3: TH.btn[2], alt1: TH.alt[0], alt2: TH.alt[1], alt3: TH.alt[2],
+rainbow: 'linear-gradient(90deg,#7aa2ff,#cfe0ff,#ffe6a8,#ffb27a)'
+};
+for (const k in v) st.setProperty('--' + k, v[k]);
+document.body.style.background = TH.bgBot;
+}
+let L = null, level = 1;
+let path = [], usedE = new Set(), finger = null, fade = null, hintOdd = 0, pid = null;
+let won = false, winT = 0, winShown = false, toast = null, foundNow = null;
+let atlas = new Set();
+try { atlas = new Set(JSON.parse(stGet('bs_atlas') || '[]')); } catch (e) {}
+let bookNew = stGet('bs_atlasNew') === '1';
+const fresh = new Set();
+let seenIntro = new Set();
+try { seenIntro = new Set(JSON.parse(stGet('bs_seen') || '[]')); } catch (e) {}
+const ui = { hud: null };
+let barRect = null;
+const dkey = (k, d) => d === 'normal' ? k : k + '_' + d;
+const savedLevel = d => Math.max(1, parseInt(stGet(dkey('bs_level', d)), 10) || 1);
+function startLevel(n) {
+level = n; L = genLevel(n, settings.diff);
+path = []; usedE = new Set(); finger = null; fade = null; hintOdd = 0; pid = null;
+won = false; winT = 0; winShown = false; foundNow = null;
+boardLayout(); save();
+if (L.intro && !seenIntro.has(L.intro)) setTimeout(() => { if (ovEl.hidden && L && L.n === n) showIntro(L.intro); }, 350);
+}
+function save() { stSet(dkey('bs_level', L.diff), String(level)); }
+function restart() { path = []; usedE = new Set(); fade = null; }
+function winLevel() {
+won = true; winT = 0; pid = null; finger = null;
+SFX.play('done');
+if (L.real && !atlas.has(L.real)) {
+atlas.add(L.real); fresh.add(L.real); bookNew = true; foundNow = L.real;
+stSet('bs_atlas', JSON.stringify([...atlas])); stSet('bs_atlasNew', '1');
+toast = { t: 0, id: L.real };
+setTimeout(() => SFX.play('found'), 350);
+}
+const lv = L;
+setTimeout(() => { if (L === lv && won && !winShown && ovEl.hidden) { winShown = true; showWin(); } }, 1200);
+}
+function update(dt) {
+if (won) winT += dt;
+if (fade && (fade.t += dt) > 0.9) fade = null;
+if (hintOdd && !won) hintOdd += dt;
+if (toast && (toast.t += dt) > 4) toast = null;
+}
+function rr(c, x, y, w, h, r) {
+c.beginPath();
+c.moveTo(x + r, y);
+c.arcTo(x + w, y, x + w, y + h, r);
+c.arcTo(x + w, y + h, x, y + h, r);
+c.arcTo(x, y + h, x, y, r);
+c.arcTo(x, y, x + w, y, r);
+c.closePath();
+}
+const rrect = (x, y, w, h, r) => rr(ctx, x, y, w, h, r);
+const disc = (x, y, r) => { ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); };
+function strokePts(p) { ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]); for (let i = 1; i < p.length; i++) ctx.lineTo(p[i][0], p[i][1]); ctx.stroke(); }
+function edgePts(e, from, to) {
+const n = e.arc ? Math.max(2, Math.ceil(14 * Math.abs(to - from))) : 2, o = [];
+for (let i = 0; i < n; i++) o.push(e.pt(from + (to - from) * i / (n - 1)));
+return o;
+}
+function inTile(t, fn) {
+ctx.save();
+if (t.anim) { ctx.translate(t.x + 0.5, t.y + 0.5); ctx.rotate(t.anim); ctx.translate(-t.x - 0.5, -t.y - 0.5); }
+ctx.beginPath(); ctx.rect(t.x, t.y, 1, 1); ctx.clip();
+fn(); ctx.restore();
+}
+const hash = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+const LABEL_LW = 0.17, LABEL_GAP = 0.7;
+function label(text, x, y, size, fill, stroke, alpha) {
+ctx.globalAlpha = alpha ?? 1;
+ctx.font = '800 ' + size + 'px "Segoe UI", Roboto, system-ui, sans-serif';
+ctx.textBaseline = 'middle';
+const mw = DW - 10;
+if (!stroke) {
+ctx.textAlign = 'center';
+ctx.fillStyle = fill; ctx.fillText(text, x, y, mw);
+ctx.globalAlpha = 1;
+return;
+}
+const lw = size * LABEL_LW, gap = lw * LABEL_GAP;
+const chars = [...text], ws = chars.map(c => ctx.measureText(c).width);
+const total = ws.reduce((a, b) => a + b, 0) + gap * (chars.length - 1);
+const k = total > mw ? mw / total : 1;
+ctx.save();
+ctx.translate(x - total * k / 2, y); ctx.scale(k, 1);
+ctx.textAlign = 'left';
+ctx.lineJoin = 'round'; ctx.lineWidth = lw; ctx.strokeStyle = stroke;
+let cx = 0;
+chars.forEach((c, i) => { ctx.strokeText(c, cx, 0); cx += ws[i] + gap; });
+ctx.fillStyle = fill; cx = 0;
+chars.forEach((c, i) => { ctx.fillText(c, cx, 0); cx += ws[i] + gap; });
+ctx.restore();
+ctx.globalAlpha = 1;
+}
+function text(str, x, y, size, fill, align) {
+ctx.font = '800 ' + size + 'px "Segoe UI", Roboto, system-ui, sans-serif';
+ctx.textAlign = align || 'left'; ctx.textBaseline = 'middle';
+ctx.fillStyle = fill; ctx.fillText(str, x, y);
+}
+function wrap(str, w, size) {
+ctx.font = '800 ' + size + 'px "Segoe UI", Roboto, system-ui, sans-serif';
+const out = [];
+let cur = '';
+for (const word of str.split(' ')) {
+const s = cur ? cur + ' ' + word : word;
+if (ctx.measureText(s).width > w && cur) { out.push(cur); cur = word; } else cur = s;
+}
+if (cur) out.push(cur);
+return out;
+}
+const ICON_GEAR = new Path2D('M12.7848 0.449982C13.8239 0.449982 14.7167 1.16546 14.9122 2.15495L14.9991 2.59495C15.3408 4.32442 17.1859 5.35722 18.9016 4.7794L19.3383 4.63233C20.3199 4.30175 21.4054 4.69358 21.9249 5.56605L22.7097 6.88386C23.2293 7.75636 23.0365 8.86366 22.2504 9.52253L21.9008 9.81555C20.5267 10.9672 20.5267 13.0328 21.9008 14.1844L22.2504 14.4774C23.0365 15.1363 23.2293 16.2436 22.7097 17.1161L21.925 18.4339C21.4054 19.3064 20.3199 19.6982 19.3382 19.3676L18.9017 19.2205C17.1859 18.6426 15.3408 19.6754 14.9991 21.405L14.9122 21.845C14.7167 22.8345 13.8239 23.55 12.7848 23.55H11.2152C10.1761 23.55 9.28331 22.8345 9.08781 21.8451L9.00082 21.4048C8.65909 19.6754 6.81395 18.6426 5.09822 19.2205L4.66179 19.3675C3.68016 19.6982 2.59465 19.3063 2.07505 18.4338L1.2903 17.1161C0.770719 16.2436 0.963446 15.1363 1.74956 14.4774L2.09922 14.1844C3.47324 13.0327 3.47324 10.9672 2.09922 9.8156L1.74956 9.52254C0.963446 8.86366 0.77072 7.75638 1.2903 6.8839L2.07508 5.56608C2.59466 4.69359 3.68014 4.30176 4.66176 4.63236L5.09831 4.77939C6.81401 5.35722 8.65909 4.32449 9.00082 2.59506L9.0878 2.15487C9.28331 1.16542 10.176 0.449982 11.2152 0.449982H12.7848ZM12 15.3C13.8225 15.3 15.3 13.8225 15.3 12C15.3 10.1774 13.8225 8.69998 12 8.69998C10.1774 8.69998 8.69997 10.1774 8.69997 12C8.69997 13.8225 10.1774 15.3 12 15.3Z');
+const ICON_HEART = new Path2D('M7 2C3.31333 2 1 5.21475 1 8.5C1 11.8412 2.67415 14.6994 4.77151 16.9297C6.8721 19.1634 9.47698 20.8565 11.5528 21.8944C11.8343 22.0352 12.1657 22.0352 12.4472 21.8944C14.523 20.8565 17.1279 19.1634 19.2285 16.9297C21.3259 14.6994 23 11.8412 23 8.5C23 5.22013 20.7289 2 17 2C15.275 2 14.0531 2.47979 13.1186 3.20977C12.6785 3.55357 12.311 3.95011 11.9974 4.33639C11.6802 3.94929 11.3091 3.55266 10.8649 3.2079C9.92877 2.48125 8.70883 2 7 2Z');
+const ICON_BOOK = new Path2D('M11 5.2C8.8 3.7 6 3.2 2.5 3.6V19.4C6 19 8.8 19.5 11 21ZM13 5.2C15.2 3.7 18 3.2 21.5 3.6V19.4C18 19 15.2 19.5 13 21Z');
+const HUD_BTN = 24, HUD_ICON = 13;
+const HEART_PAL = ['#ff7a9a', '#e0466e', '#9c2848'], BOOK_PAL = ['#ffb04a', '#f5821f', '#a8520e'];
+function drawIcon(path, x, y, size, fill, rule) {
+const k = size / 24;
+ctx.save(); ctx.translate(x - size / 2, y - size / 2); ctx.scale(k, k);
+ctx.fillStyle = fill; ctx.fill(path, rule || 'nonzero');
+ctx.restore();
+}
+function drawHudBtn(x, y, pal, pressed, icon, rule) {
+const S = HUD_BTN, r = 7, x0 = x - S / 2, y0 = y - S / 2, dip = pressed ? 1.8 : 0;
+ctx.fillStyle = pal[2]; rrect(x0, y0 + 2.2, S, S, r); ctx.fill();
+const g = ctx.createLinearGradient(0, y0 + dip, 0, y0 + S + dip);
+g.addColorStop(0, pal[0]); g.addColorStop(1, pal[1]);
+ctx.fillStyle = g; rrect(x0, y0 + dip, S, S, r); ctx.fill();
+ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.lineWidth = 0.8;
+rrect(x0 + 0.5, y0 + dip + 0.5, S - 1, S - 1, r - 0.5); ctx.stroke();
+drawIcon(icon, x, y + dip, HUD_ICON, '#fff', rule);
+}
+const hudPressed = btn => ui.hud && ui.hud.btn === btn && ui.hud.inside;
+const rnd = (() => { let a = 7; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })();
+const SKY_W = 270, SKY_H = 480;
+function makeSky(seed) {
+const hh = (x, y, o) => { let n = Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(seed + o, 1442695041) | 0; n = Math.imul(n ^ n >>> 13, 1274126177); return ((n ^ n >>> 16) >>> 0) / 4294967296; };
+const sm = t => t * t * (3 - 2 * t);
+const vn = (x, y, o) => {
+const xi = Math.floor(x), yi = Math.floor(y), xf = sm(x - xi), yf = sm(y - yi);
+const a = hh(xi, yi, o), b = hh(xi + 1, yi, o), c = hh(xi, yi + 1, o), d = hh(xi + 1, yi + 1, o);
+return a + (b - a) * xf + (c - a) * yf + (a - b - c + d) * xf * yf;
+};
+const fbm = (x, y, o, oct) => { let v = 0, amp = 0.5, f = 1; for (let i = 0; i < oct; i++) { v += amp * vn(x * f, y * f, o + i * 17); f *= 2.03; amp *= 0.5; } return v; };
+const PAL = [[110, 50, 190], [40, 80, 200], [30, 160, 190], [200, 60, 150], [110, 50, 190]];
+const pal = t => { t = Math.max(0, Math.min(0.999, t)) * 4; const i = t | 0, k = t - i; return PAL[i].map((c, j) => c + (PAL[i + 1][j] - c) * k); };
+const c = document.createElement('canvas'); c.width = SKY_W; c.height = SKY_H;
+const x2 = c.getContext('2d'), img = x2.createImageData(SKY_W, SKY_H), d = img.data;
+for (let y = 0; y < SKY_H; y++) for (let x = 0; x < SKY_W; x++) {
+const v = y / SKY_H;
+let r = 2 + 10 * v, g = 3 + 14 * v, b = 12 + 40 * v;
+const n1 = fbm(x * 0.011, y * 0.011, 1, 5), n2 = fbm(x * 0.035, y * 0.035, 40, 4), hue = fbm(x * 0.005, y * 0.005, 80, 3);
+const band = Math.exp(-Math.pow((x * 0.55 + y * 0.84 - SKY_H * 0.62) / 70, 2));
+const lane = Math.max(0, (fbm(x * 0.05, y * 0.05, 120, 4) - 0.52) * 3.5) * band;
+let dens = Math.max(0, (n1 * 0.75 + n2 * 0.35 - 0.42) * 1.9);
+dens = dens * dens + band * 0.45 * (0.55 + 0.9 * n2);
+dens *= 1 - Math.min(0.85, lane);
+const col = pal(hue * 1.6 - 0.3);
+r += col[0] * dens * 0.45 + 150 * band * n2 * 0.13;
+g += col[1] * dens * 0.45 + 160 * band * n2 * 0.13;
+b += col[2] * dens * 0.45 + 200 * band * n2 * 0.13;
+const i = (y * SKY_W + x) * 4;
+d[i] = Math.min(255, r); d[i + 1] = Math.min(255, g); d[i + 2] = Math.min(255, b); d[i + 3] = 255;
+}
+x2.putImageData(img, 0, 0);
+return c;
+}
+const SKY = makeSky(11);
+function makeWisps(seed) {
+const hh = (x, y, o) => { let n = Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(seed + o, 1442695041) | 0; n = Math.imul(n ^ n >>> 13, 1274126177); return ((n ^ n >>> 16) >>> 0) / 4294967296; };
+const sm = t => t * t * (3 - 2 * t);
+const vn = (x, y, o) => {
+const xi = Math.floor(x), yi = Math.floor(y), xf = sm(x - xi), yf = sm(y - yi);
+const a = hh(xi, yi, o), b = hh(xi + 1, yi, o), c = hh(xi, yi + 1, o), d = hh(xi + 1, yi + 1, o);
+return a + (b - a) * xf + (c - a) * yf + (a - b - c + d) * xf * yf;
+};
+const fbm = (x, y, o) => { let v = 0, amp = 0.5, f = 1; for (let i = 0; i < 5; i++) { v += amp * vn(x * f, y * f, o + i * 17); f *= 2.03; amp *= 0.5; } return v; };
+const w = 200, h = 360, c = document.createElement('canvas'); c.width = w; c.height = h;
+const x2 = c.getContext('2d'), img = x2.createImageData(w, h), d = img.data;
+for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+const n = fbm(x * 0.018, y * 0.018, 3), ridge = 1 - Math.abs(n * 2 - 1);
+const a = Math.max(0, (ridge - 0.72) * 3.6) * fbm(x * 0.008, y * 0.008, 50);
+const hue = fbm(x * 0.006, y * 0.006, 90);
+const i = (y * w + x) * 4;
+d[i] = 120 + 120 * hue; d[i + 1] = 90 + 60 * (1 - hue); d[i + 2] = 230; d[i + 3] = Math.min(255, a * 255);
+}
+x2.putImageData(img, 0, 0);
+return c;
+}
+function makeGalaxy() {
+const s = 96, c = document.createElement('canvas'); c.width = c.height = s;
+const x2 = c.getContext('2d');
+const g = x2.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s * 0.18);
+g.addColorStop(0, 'rgba(255,240,215,.9)'); g.addColorStop(1, 'rgba(255,220,180,0)');
+x2.fillStyle = g; x2.fillRect(0, 0, s, s);
+for (let i = 0; i < 900; i++) {
+const arm = i % 2, t = rnd() * 3.2, r = 3 + t * 12 + (rnd() - 0.5) * 5;
+const a = arm * Math.PI + t * 1.35 + (rnd() - 0.5) * 0.5;
+const x = s / 2 + Math.cos(a) * r, y = s / 2 + Math.sin(a) * r * 0.55;
+x2.fillStyle = rnd() < 0.3 ? 'rgba(170,200,255,.55)' : 'rgba(230,220,255,.35)';
+x2.fillRect(x, y, 1, 1);
+}
+return c;
+}
+const WISPS = makeWisps(29), GALAXY = makeGalaxy();
+const STAR_COLS = [[160, 190, 255], [205, 220, 255], [255, 250, 240], [255, 232, 180], [255, 190, 140]];
+const SPRITES = STAR_COLS.map(c => {
+const s = 64, cc = document.createElement('canvas'); cc.width = cc.height = s;
+const x = cc.getContext('2d'), g = x.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.06, 'rgba(' + c.join(',') + ',0.95)');
+g.addColorStop(0.18, 'rgba(' + c.join(',') + ',0.35)'); g.addColorStop(0.45, 'rgba(' + c.join(',') + ',0.08)');
+g.addColorStop(1, 'rgba(' + c.join(',') + ',0)');
+x.fillStyle = g; x.fillRect(0, 0, s, s);
+return cc;
+});
+const STARS3 = Array.from({ length: 460 }, () => {
+let u = rnd() * 1.2 - 0.1, v = rnd() * 1.2 - 0.1;
+if (rnd() < 0.4) {
+const t = rnd() * 1.4 - 0.2, off = (rnd() + rnd() + rnd() - 1.5) * 0.12;
+u = t; v = 0.74 - 0.37 * t + off;
+}
+const b = Math.pow(rnd(), 3.2);
+return { u, v, d: 0.4 + rnd() * 1.6, b, c: rnd() * STAR_COLS.length | 0, p: rnd() * 6.28, s: 0.6 + rnd() * 1.6, f: 5 + rnd() * 9 };
+});
+const BOKEH = Array.from({ length: 14 }, () => ({ x: rnd() * 2 - 1, y: rnd() * 2 - 1, r: 0.03 + rnd() * 0.05, p: rnd() * 6.28, c: STAR_COLS[rnd() * 3 | 0] }));
+let meteor = null, nextMeteor = 3;
+const tilt = { x: 0, y: 0, tx: 0, ty: 0 };
+addEventListener('deviceorientation', e => {
+if (e.gamma == null) return;
+tilt.tx = Math.max(-1, Math.min(1, e.gamma / 30)); tilt.ty = Math.max(-1, Math.min(1, (e.beta - 45) / 30));
+});
+addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { tilt.tx = (e.clientX / innerWidth - 0.5) * 0.6; tilt.ty = (e.clientY / innerHeight - 0.5) * 0.6; } });
+function drawSpace(time, dt) {
+const Wc = cv.width, Hc = cv.height, k = Math.min(3, devicePixelRatio || 1), U = Math.max(Wc, Hc);
+tilt.x += (tilt.tx - tilt.x) * Math.min(1, dt * 2); tilt.y += (tilt.ty - tilt.y) * Math.min(1, dt * 2);
+const camX = Math.sin(time * 0.11) * 0.5 + Math.sin(time * 0.043) * 0.3 + tilt.x;
+const camY = Math.cos(time * 0.08) * 0.35 + tilt.y;
+ctx.setTransform(1, 0, 0, 1, 0, 0);
+ctx.fillStyle = '#02030a'; ctx.fillRect(0, 0, Wc, Hc);
+const sc = Math.max(Wc / SKY_W, Hc / SKY_H) * 1.16;
+ctx.drawImage(SKY, (Wc - SKY_W * sc) / 2 - camX * U * 0.02, (Hc - SKY_H * sc) / 2 - camY * U * 0.02, SKY_W * sc, SKY_H * sc);
+ctx.save();
+ctx.translate(Wc * 0.8 - camX * U * 0.025, Hc * 0.955 - camY * U * 0.025);
+ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.5;
+const gs = U * 0.16; ctx.drawImage(GALAXY, -gs / 2, -gs / 2, gs, gs);
+ctx.restore();
+ctx.globalCompositeOperation = 'lighter';
+ctx.globalAlpha = 0.35 + 0.1 * Math.sin(time * 0.3);
+const ws = Math.max(Wc / 200, Hc / 360) * 1.35;
+ctx.drawImage(WISPS, (Wc - 200 * ws) / 2 - camX * U * 0.07, (Hc - 360 * ws) / 2 - camY * U * 0.07, 200 * ws, 360 * ws);
+ctx.globalAlpha = 1;
+const unit = Math.min(Wc, Hc) / 375;
+const cx = Wc / 2, cy = Hc / 2;
+for (const st of STARS3) {
+const px = (st.u - camX * 0.018 / st.d) * Wc, py = (st.v - camY * 0.018 / st.d) * Hc;
+if (px < -30 || py < -30 || px > Wc + 30 || py > Hc + 30) continue;
+const tw = 0.7 + 0.3 * Math.sin(time * st.s + st.p) + (st.b > 0.5 ? 0.12 * Math.sin(time * st.f + st.p * 3) : 0);
+const bb = st.b * tw;
+if (st.b < 0.12) {
+const r = (0.5 + st.b * 3) * unit;
+ctx.fillStyle = 'rgba(' + STAR_COLS[st.c].join(',') + ',' + (0.25 + bb * 1.5).toFixed(3) + ')';
+ctx.fillRect(px - r / 2, py - r / 2, r, r);
+continue;
+}
+const size = (1.6 + bb * 5) * unit, core = (0.35 + bb * 0.6) * unit;
+ctx.globalAlpha = Math.min(0.35, 0.1 + bb * 0.3);
+ctx.drawImage(SPRITES[st.c], px - size / 2, py - size / 2, size, size);
+ctx.globalAlpha = Math.min(0.9, 0.4 + bb * 0.6);
+ctx.fillStyle = 'rgb(' + STAR_COLS[st.c].map(v => Math.round(v + (255 - v) * 0.5)).join(',') + ')';
+ctx.beginPath(); ctx.arc(px, py, core, 0, 7); ctx.fill();
+ctx.globalAlpha = 1;
+}
+nextMeteor -= dt;
+if (!meteor && nextMeteor <= 0) {
+const dir = rnd() < 0.5 ? 1 : -1;
+meteor = { x: (0.15 + rnd() * 0.7) * Wc, y: rnd() * 0.35 * Hc, vx: dir * (0.35 + rnd() * 0.3) * Wc, vy: (0.25 + rnd() * 0.2) * Hc, t: 0, life: 0.8 + rnd() * 0.5 };
+nextMeteor = 4 + rnd() * 6;
+}
+if (meteor) {
+const m = meteor; m.t += dt;
+const a = Math.sin(Math.min(1, m.t / m.life) * Math.PI);
+const hx = m.x + m.vx * m.t, hy = m.y + m.vy * m.t, tl = 0.18;
+const g = ctx.createLinearGradient(hx, hy, hx - m.vx * tl, hy - m.vy * tl);
+g.addColorStop(0, 'rgba(255,250,235,' + (0.9 * a).toFixed(3) + ')'); g.addColorStop(1, 'rgba(160,190,255,0)');
+ctx.strokeStyle = g; ctx.lineWidth = 1.6 * k; ctx.lineCap = 'round';
+ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx - m.vx * tl, hy - m.vy * tl); ctx.stroke();
+if (m.t > m.life) meteor = null;
+}
+for (const b of BOKEH) {
+const x = cx + (b.x - camX * 0.9) * Wc * 0.6, y = cy + (b.y - camY * 0.9) * Hc * 0.6, r = b.r * U;
+const a = 0.025 + 0.02 * Math.sin(time * 0.5 + b.p);
+const g = ctx.createRadialGradient(x, y, r * 0.2, x, y, r);
+g.addColorStop(0, 'rgba(' + b.c.join(',') + ',' + a.toFixed(3) + ')'); g.addColorStop(0.7, 'rgba(' + b.c.join(',') + ',' + (a * 0.7).toFixed(3) + ')');
+g.addColorStop(1, 'rgba(' + b.c.join(',') + ',0)');
+ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+}
+ctx.globalCompositeOperation = 'source-over';
+const vg = ctx.createRadialGradient(Wc / 2, Hc / 2, Math.min(Wc, Hc) * 0.35, Wc / 2, Hc / 2, Math.max(Wc, Hc) * 0.75);
+vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,8,.55)');
+ctx.fillStyle = vg; ctx.fillRect(0, 0, Wc, Hc);
+}
+const GOLD = [255, 214, 130];
+function glowLine(x0, y0, x1, y1, c, w, a) {
+const l = Math.hypot(x1 - x0, y1 - y0) || 1, nx = -(y1 - y0) / l * w, ny = (x1 - x0) / l * w;
+const g = ctx.createLinearGradient(x0 + nx, y0 + ny, x0 - nx, y0 - ny);
+for (const [p, al] of [[0, 0], [0.2, 0.05], [0.33, 0.15], [0.42, 0.4], [0.47, 0.85]]) {
+g.addColorStop(p, css(c, al * a)); g.addColorStop(1 - p, css(c, al * a));
+}
+g.addColorStop(0.5, css([255, 250, 235], 0.95 * a));
+ctx.fillStyle = g;
+ctx.beginPath(); ctx.moveTo(x0 + nx, y0 + ny); ctx.lineTo(x1 + nx, y1 + ny); ctx.lineTo(x1 - nx, y1 - ny); ctx.lineTo(x0 - nx, y0 - ny); ctx.fill();
+for (const [x, y] of [[x0, y0], [x1, y1]]) {
+const r = ctx.createRadialGradient(x, y, 0, x, y, w);
+r.addColorStop(0, css([255, 250, 235], 0.5 * a)); r.addColorStop(0.4, css(c, 0.15 * a)); r.addColorStop(1, css(c, 0));
+ctx.fillStyle = r; ctx.beginPath(); ctx.arc(x, y, w, 0, 7); ctx.fill();
+}
+}
+function bigStar(x, y, r, time, tint) {
+const c = tint || [220, 230, 255];
+const g = ctx.createRadialGradient(x, y, 0, x, y, r * 5);
+g.addColorStop(0, css(c, tint ? 0.75 : 0.55)); g.addColorStop(0.25, css(c, tint ? 0.28 : 0.16)); g.addColorStop(1, css(c, 0));
+ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 5, 0, 7); ctx.fill();
+ctx.strokeStyle = css(c, 0.55); ctx.lineWidth = 0.35;
+const Lr = r * 4.2 * (0.85 + 0.15 * Math.sin(time * 2 + x));
+ctx.beginPath(); ctx.moveTo(x - Lr, y); ctx.lineTo(x + Lr, y); ctx.moveTo(x, y - Lr); ctx.lineTo(x, y + Lr); ctx.stroke();
+ctx.fillStyle = tint ? css(c.map(v => v + (255 - v) * 0.25)) : '#fff'; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.beginPath(); ctx.arc(x, y, r * 0.45, 0, 7); ctx.fill();
+}
+function drawFigure(F, st, time) {
+if (F.pointer) {
+const [m, d, p] = F.pointer.map(i => F.s[i]), step = Math.hypot(d[0] - m[0], d[1] - m[1]);
+const ux = (p[0] - d[0]) / Math.hypot(p[0] - d[0], p[1] - d[1]), uy = (p[1] - d[1]) / Math.hypot(p[0] - d[0], p[1] - d[1]);
+ctx.strokeStyle = 'rgba(255,214,130,.55)'; ctx.lineWidth = 0.8;
+for (let i = 1; i <= 5; i++) {
+const x = d[0] + ux * step * i, y = d[1] + uy * step * i;
+ctx.beginPath(); ctx.moveTo(x - uy * 3, y + ux * 3); ctx.lineTo(x + uy * 3, y - ux * 3); ctx.stroke();
+ctx.fillStyle = 'rgba(255,214,130,.6)'; ctx.font = '600 4.5px "Segoe UI", Roboto, system-ui, sans-serif';
+ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+if (i < 5) ctx.fillText(String(i), x + uy * 5, y - ux * 5);
+}
+}
+ctx.setLineDash([1.6, 2.6]); ctx.lineWidth = 0.75; ctx.strokeStyle = 'rgba(200,215,255,.45)';
+for (const [a, b] of F.e) { ctx.beginPath(); ctx.moveTo(F.s[a][0], F.s[a][1]); ctx.lineTo(F.s[b][0], F.s[b][1]); ctx.stroke(); }
+ctx.setLineDash([]);
+ctx.globalCompositeOperation = 'lighter';
+if (st.fade) {
+const a = 1 - st.fade.t / 0.9;
+for (let i = 1; i < st.fade.path.length; i++) {
+const p0 = F.s[st.fade.path[i - 1]], p1 = F.s[st.fade.path[i]];
+glowLine(p0[0], p0[1], p1[0], p1[1], [180, 190, 255], 4, a * 0.6);
+}
+}
+const glow = st.won ? 1 + 0.35 * Math.max(0, 1 - st.winT) : 1;
+for (let i = 1; i < st.path.length; i++) {
+const p0 = F.s[st.path[i - 1]], p1 = F.s[st.path[i]];
+glowLine(p0[0], p0[1], p1[0], p1[1], GOLD, 4.5 * glow, 1);
+}
+if (st.finger && st.path.length) {
+const p = F.s[st.path[st.path.length - 1]];
+glowLine(p[0], p[1], st.finger[0], st.finger[1], GOLD, 3, 0.45);
+}
+if (st.won) for (let i = 1; i < st.path.length; i++) {
+const p0 = F.s[st.path[i - 1]], p1 = F.s[st.path[i]], k = (time * 0.6 + i * 0.37) % 1;
+ctx.fillStyle = css([255, 245, 210], 0.8);
+ctx.beginPath(); ctx.arc(p0[0] + (p1[0] - p0[0]) * k, p0[1] + (p1[1] - p0[1]) * k, 0.9, 0, 7); ctx.fill();
+}
+ctx.globalCompositeOperation = 'source-over';
+F.s.forEach(([x, y], i) => {
+const on = st.path.includes(i) || st.won;
+if (st.hintOdd && !st.path.length && degOf(F, i) % 2) {
+const p = 0.5 + 0.5 * Math.sin(time * 3);
+ctx.strokeStyle = css(GOLD, (0.35 + 0.4 * p).toFixed(3)); ctx.lineWidth = 0.9;
+ctx.beginPath(); ctx.arc(x, y, 8 + 2 * p, 0, 7); ctx.stroke();
+}
+const spc = starSpec(F, i);
+bigStar(x, y, 2.1 * (on ? 1.15 : 1) * (spc ? 1.1 : 1), time, spc ? spc.c : on ? [255, 225, 160] : null);
+});
+if (F.nm && st.names !== false) {
+ctx.font = '600 ' + (st.nameSize || 5.6) + 'px "Segoe UI", Roboto, system-ui, sans-serif';
+ctx.textBaseline = 'middle';
+const fs = st.nameSize || 5.6, taken = [];
+F.s.forEach(([x, y], i) => {
+const nm = starName(F, i), w = ctx.measureText(nm).width;
+const spots = [[6, -6.8, 1], [6, 6.8, 1], [-6, -6.8, -1], [-6, 6.8, -1]];
+if (x > 118) spots.push(spots.shift(), spots.shift());
+let pick = spots[0];
+for (const sp of spots) {
+const rx = sp[2] > 0 ? x + sp[0] : x + sp[0] - w, ry = y + sp[1] - fs / 2;
+if (!taken.some(r => rx < r[0] + r[2] && rx + w > r[0] && ry < r[1] + r[3] && ry + fs > r[1])) { pick = sp; break; }
+}
+const rx = pick[2] > 0 ? x + pick[0] : x + pick[0] - w;
+taken.push([rx, y + pick[1] - fs / 2, w, fs]);
+ctx.textAlign = pick[2] > 0 ? 'left' : 'right';
+ctx.fillStyle = 'rgba(0,0,10,.55)'; ctx.fillText(nm, x + pick[0] + 0.4 * pick[2], y + pick[1] + 0.4);
+ctx.fillStyle = 'rgba(230,236,255,.85)'; ctx.fillText(nm, x + pick[0], y + pick[1]);
+});
+}
+}
+function drawBoard(time) {
+ctx.save(); ctx.translate(PX, PY);
+drawFigure(L, { path, finger: finger && [finger[0] - PX, finger[1] - PY], fade, won, winT, hintOdd, names: !!L.nm }, time);
+if (level === 1 && !path.length && !won && !fade) {
+const [x, y] = L.s[L.e[0][0]], p = (time % 1.4) / 1.4;
+ctx.globalAlpha = 0.9; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x + 5, y + 7, 3 * (p < 0.2 ? 0.8 + p : 1), 0, 7); ctx.fill();
+ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.globalAlpha = 0.6 * (1 - p);
+ctx.beginPath(); ctx.arc(x + 5, y + 7, 3 + 10 * p, 0, 7); ctx.stroke();
+ctx.globalAlpha = 1;
+}
+ctx.restore();
+}
+function eqDots(x, y, ins, out, r) {
+const items = [];
+ins.forEach((c, i) => { if (i) items.push('+'); items.push(c); });
+items.push('=', out);
+let w = 0; for (const it of items) w += typeof it === 'number' ? r * 2.3 : r * 1.5;
+let cx = x - w / 2;
+for (const it of items) {
+if (typeof it === 'number') {
+if (isDark(it)) { ctx.fillStyle = 'rgba(255,255,255,.35)'; disc(cx + r * 1.15, y, r + 0.9); }
+ctx.fillStyle = PAL[it]; disc(cx + r * 1.15, y, r);
+ctx.fillStyle = 'rgba(255,255,255,.3)'; disc(cx + r * 0.85, y - r * 0.3, r * 0.3);
+cx += r * 2.3;
+} else { text(it, cx + r * 0.75, y + r * 0.08, r * 1.6, 'rgba(255,255,255,.8)', 'center'); cx += r * 1.5; }
+}
+}
+let lastT = 0;
+function draw(time) {
+const dt = lastT ? Math.min(0.05, time - lastT) : 0; lastT = time;
+drawSpace(time, dt);
+ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+label(String(level), LW / 2, HY + 20, 22, '#f2f4ff', 'rgba(0,0,0,.35)');
+label(t('level') + (settings.diff !== 'normal' ? '  ·  ' + t('d_' + settings.diff).toUpperCase() : ''), LW / 2, HY + 37, 8, TH.gold);
+if (SUPPORT_URL) drawHudBtn(HEART.x, HEART.y, HEART_PAL, hudPressed('heart'), ICON_HEART);
+drawHudBtn(BOOKB.x, BOOKB.y, BOOK_PAL, hudPressed('book'), ICON_BOOK);
+if (bookNew) { ctx.fillStyle = '#fff'; disc(BOOKB.x + 10, BOOKB.y - 10, 3.4); ctx.fillStyle = '#ff4d6a'; disc(BOOKB.x + 10, BOOKB.y - 10, 2.4); }
+drawHudBtn(GEAR.x, GEAR.y, TH.alt, hudPressed('gear'), ICON_GEAR, 'evenodd');
+barRect = null;
+const hk = hintOdd && !won && oddOf(L).length ? 'h_odd' : L.hint;
+if (hk && !won) {
+const txt = hk === 'h_atlas' ? t('k_' + L.real) + '. ' + t('h_atlas') : t(hk);
+const ik = hk === 'h_odd' ? 'odd' : L.intro;
+const lines = wrap(txt, ik ? 144 : 156, 6.6), h = 5 + lines.length * 8, y0 = GY + BAR_Y - h / 2;
+ctx.fillStyle = TH.gold; rrect(OX + 7, y0, DW - 14, h, 4); ctx.fill();
+lines.forEach((ln, i) => text(ln, LW / 2 - (ik ? 6 : 0), y0 + 6.6 + i * 8, 6.6, '#3a2400', 'center'));
+if (ik) {
+ctx.fillStyle = '#3a2400'; disc(OX + DW - 17, y0 + h / 2, 5);
+text('?', OX + DW - 17, y0 + h / 2 + 0.4, 7.5, TH.gold, 'center');
+barRect = [OX + 7, y0, DW - 14, h, ik];
+}
+}
+drawBoard(time);
+if (toast) {
+const a = Math.min(1, toast.t * 4, (4 - toast.t) * 2);
+ctx.globalAlpha = a;
+const x0 = OX + 20, y0 = GY + 40;
+ctx.fillStyle = TH.card[0]; rrect(x0, y0, 140, 32, 10); ctx.fill();
+ctx.strokeStyle = TH.gold; ctx.lineWidth = 1; ctx.stroke();
+text(t('newC'), LW / 2, y0 + 10, 8, TH.gold, 'center');
+text(t('k_' + toast.id), LW / 2, y0 + 22, 8.5, '#fff', 'center');
+ctx.globalAlpha = 1;
+}
+}
+function toLogic(ev) {
+const r = cv.getBoundingClientRect();
+return { x: (ev.clientX - r.left) * LW / r.width, y: (ev.clientY - r.top) * LH / r.height };
+}
+function hudHit(p) {
+const R = HUD_BTN / 2 + 5;
+if (Math.abs(p.x - GEAR.x) < R && Math.abs(p.y - GEAR.y) < R) return 'gear';
+if (Math.abs(p.x - BOOKB.x) < R - 2 && Math.abs(p.y - BOOKB.y) < R) return 'book';
+if (SUPPORT_URL && Math.abs(p.x - HEART.x) < R && Math.abs(p.y - HEART.y) < R) return 'heart';
+return null;
+}
+const inToast = p => toast && p.x >= OX + 20 && p.x <= OX + 160 && p.y >= GY + 40 && p.y <= GY + 72;
+const nearStar = (x, y, r) => { let best = -1, bd = r; L.s.forEach(([sx, sy], i) => { const d = Math.hypot(sx + PX - x, sy + PY - y); if (d < bd) { bd = d; best = i; } }); return best; };
+cv.addEventListener('pointerdown', ev => {
+if (!L || !ovEl.hidden) return;
+SFX.unlock();
+const p = toLogic(ev);
+const hb = hudHit(p);
+if (hb) {
+ui.hud = { btn: hb, id: ev.pointerId, inside: true };
+try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
+if (hb === 'gear') requestAnimationFrame(() => { ui.hud = null; openSettings(); });
+if (hb === 'book') requestAnimationFrame(() => { ui.hud = null; openBook(); });
+return;
+}
+if (inToast(p)) { openBook(); return; }
+if (barRect && p.x >= barRect[0] && p.x <= barRect[0] + barRect[2] && p.y >= barRect[1] - 3 && p.y <= barRect[1] + barRect[3] + 3) { showIntro(barRect[4]); return; }
+if (won) return;
+const st = nearStar(p.x, p.y, 14);
+if (st < 0) return;
+pid = ev.pointerId; try { cv.setPointerCapture(pid); } catch (e) {}
+path = [st]; usedE = new Set(); fade = null; finger = [p.x, p.y];
+SFX.play('step', 0);
+});
+cv.addEventListener('pointermove', ev => {
+if (ui.hud && ev.pointerId === ui.hud.id) { ui.hud.inside = hudHit(toLogic(ev)) === ui.hud.btn; return; }
+if (ev.pointerId !== pid || won) return;
+const p = toLogic(ev);
+finger = [p.x, p.y];
+const st = nearStar(p.x, p.y, 11), cur = path[path.length - 1];
+if (st < 0 || st === cur) return;
+if (path.length >= 2 && st === path[path.length - 2]) {
+usedE.delete(ekey(cur, st)); path.pop(); SFX.play('back');
+return;
+}
+const k = ekey(cur, st);
+if (!L.e.some(([a, b]) => ekey(a, b) === k) || usedE.has(k)) return;
+usedE.add(k); path.push(st);
+SFX.play('step', usedE.size);
+if (usedE.size === L.e.length) winLevel();
+});
+function up(ev) {
+if (ui.hud && ev.pointerId === ui.hud.id) {
+const btn = ui.hud.btn, fire = hudHit(toLogic(ev)) === btn;
+ui.hud = null;
+if (fire && btn === 'heart') openSupport();
+return;
+}
+if (ev.pointerId !== pid) return;
+pid = null; finger = null;
+if (!won && usedE.size) {
+fade = { path: path.slice(), t: 0 };
+path = []; usedE = new Set(); hintOdd = 1;
+SFX.play('fail');
+} else if (!won) path = [];
+}
+cv.addEventListener('pointerup', up);
+cv.addEventListener('pointercancel', up);
+const ovEl = document.getElementById('ov'), ovCard = document.getElementById('ovCard');
+function openOverlay(html, actions, cls) {
+ovCard.className = 'card' + (cls ? ' ' + cls : '');
+ovCard.innerHTML = html;
+ovCard.querySelectorAll('button[data-act]').forEach(b => { b.onclick = () => actions[b.dataset.act](); });
+ovEl.hidden = false;
+}
+function closeOverlay() { ovEl.hidden = true; ovCard.innerHTML = ''; }
+ovEl.addEventListener('pointerdown', ev => { if (ev.target === ovEl && ovCard.classList.contains('book')) closeBook(); });
+function figPic(F, px, drawn, oddRings, names) {
+const xs = F.s.map(q => q[0]), ys = F.s.map(q => q[1]), pad = 16, padX = names ? 44 : 16;
+const x0 = Math.min(...xs) - padX, y0 = Math.min(...ys) - pad, w = Math.max(...xs) + padX - x0, h = Math.max(...ys) + pad - y0;
+const k = px / Math.max(w, h * 0.8), c2 = document.createElement('canvas');
+c2.width = Math.round(w * k * 2); c2.height = Math.round(h * k * 2);
+const keep = ctx;
+ctx = c2.getContext('2d');
+const g = ctx.createLinearGradient(0, 0, 0, c2.height);
+g.addColorStop(0, '#060a1e'); g.addColorStop(1, '#12173d');
+ctx.fillStyle = g; ctx.fillRect(0, 0, c2.width, c2.height);
+ctx.scale(2 * k, 2 * k); ctx.translate(-x0, -y0);
+drawFigure(F, { path: drawn ? eulerPath(F) : [], finger: null, fade: null, won: false, winT: 0, hintOdd: oddRings ? 1 : 0, names: !!names, nameSize: 6.5 }, 0.8);
+const url = c2.toDataURL();
+ctx = keep;
+return url;
+}
+function eulerPath(F) {
+const adj = F.s.map(() => []);
+F.e.forEach(([a, b], i) => { adj[a].push([b, i]); adj[b].push([a, i]); });
+const odd = oddOf(F), usedI = new Set(), st = [odd.length ? odd[0] : F.e[0][0]], out = [];
+while (st.length) {
+const v = st[st.length - 1], nx = adj[v].find(([, i]) => !usedI.has(i));
+if (nx) { usedI.add(nx[1]); st.push(nx[0]); } else out.push(st.pop());
+}
+return out.reverse();
+}
+function showWin() {
+const got = foundNow ? ATLAS.find(a => a.id === foundNow) : null;
+openOverlay(
+'<h2>' + t('done') + '</h2>' +
+(got ? '<div class="sub">' + t('newC') + '</div><img class="pic" alt="" style="max-width:170px;max-height:180px;display:block;margin:8px auto;border-radius:12px" src="' + figPic(got, 170, true, false, true) + '">' +
+'<div class="sub"><b>' + t('k_' + got.id) + '</b></div><div class="txt">' + t('k_' + got.id + '_f') + '</div>' : '') +
+'<div class="btns"><button data-act="next">' + t('next') + ' ›</button></div>' +
+(SUPPORT_URL && level % 5 === 0 ? '<button class="link" data-act="support">' + t('supportAsk') + '</button>' : ''),
+{ next: () => { closeOverlay(); startLevel(level + 1); }, support: openSupport });
+}
+const INTRO_FIG = {
+draw: { F: { s: [[30, 160], [120, 160], [75, 60]], e: [[0, 1], [1, 2], [2, 0]] }, drawn: true },
+odd: { F: { s: [[35, 190], [115, 190], [115, 110], [35, 110], [75, 40]], e: [[0, 1], [1, 2], [2, 3], [3, 0], [0, 2], [1, 3], [3, 4], [2, 4]] }, odd: true },
+atlas: { F: ATLAS[2], drawn: true },
+polar: { F: ATLAS[3], drawn: true, names: true }
+};
+function colorPic() {
+const w = 170, h = 70, c2 = document.createElement('canvas');
+c2.width = w * 2; c2.height = h * 2;
+const keep = ctx;
+ctx = c2.getContext('2d'); ctx.scale(2, 2);
+const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#060a1e'); g.addColorStop(1, '#12173d');
+ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+const row = ['M', 'K', 'G', 'A', 'B'];
+const lg = ctx.createLinearGradient(14, 0, w - 14, 0);
+row.forEach((k, i) => lg.addColorStop(i / 4, css(SPEC[k].c, 0.5)));
+ctx.fillStyle = lg; ctx.fillRect(14, 50, w - 28, 2);
+row.forEach((k, i) => {
+const x = 18 + i * (w - 36) / 4;
+bigStar(x, 26, 3, 0.8, SPEC[k].c);
+ctx.fillStyle = 'rgba(235,240,255,.9)'; ctx.font = '700 8px "Segoe UI", Roboto, system-ui, sans-serif';
+ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+ctx.fillText(SPEC[k].T.toLocaleString('ru-RU').replace(/\u00a0/g, ' ') + '°', x, 60);
+if (k === 'G') { ctx.font = '600 6.5px "Segoe UI", Roboto, system-ui, sans-serif'; ctx.fillStyle = 'rgba(255,232,170,.9)'; ctx.fillText(t('sun'), x, 8); }
+});
+const url = c2.toDataURL();
+ctx = keep;
+return url;
+}
+function showIntro(key) {
+if (key === 'color') {
+seenIntro.add(key); stSet('bs_seen', JSON.stringify([...seenIntro]));
+openOverlay('<h2>' + t('i_color_t') + '</h2>' +
+'<img class="pic" alt="" style="max-width:220px" src="' + colorPic() + '">' +
+'<img class="pic" alt="" style="max-width:150px;max-height:150px" src="' + figPic(ATLAS[4], 150, false, false, true) + '">' +
+'<div class="sub">' + t('i_color') + '</div>' +
+'<div class="btns"><button data-act="ok">' + t('ok') + '</button></div>',
+{ ok: () => closeOverlay() }, 'intro');
+return;
+}
+if (!key || !INTRO_FIG[key]) return;
+seenIntro.add(key); stSet('bs_seen', JSON.stringify([...seenIntro]));
+const f = INTRO_FIG[key];
+openOverlay('<h2>' + t('i_' + key + '_t') + '</h2>' +
+'<img class="pic" alt="" style="max-width:170px;max-height:190px" src="' + figPic(f.F, 170, f.drawn, f.odd, f.names) + '">' +
+'<div class="sub">' + t('i_' + key) + '</div>' +
+'<div class="btns"><button data-act="ok">' + t('ok') + '</button></div>',
+{ ok: () => closeOverlay() }, 'intro');
+}
+function openBook() {
+let html = '';
+for (const c of ATLAS) {
+const o = atlas.has(c.id);
+html += '<div class="crow' + (fresh.has(c.id) ? ' fresh' : '') + '"' + (o ? ' data-c="' + c.id + '" style="cursor:pointer"' : '') + '>' +
+(o ? '<img alt="" src="' + figPic(c, 72, true) + '">' : '<div class="ph">?</div>') +
+'<div><b>' + (o ? t('k_' + c.id) : t('locked')) + '</b>' + (o ? '<span>' + t('k_' + c.id + '_f') + '</span>' : '') + '</div></div>';
+}
+openOverlay('<h2>' + t('book') + '</h2><div class="cnt">' + atlas.size + t('of') + ATLAS.length +
+(atlas.size ? '<br>' + t('tapAtlas') : '') + '</div>' +
+'<div class="list">' + html + '</div><div class="btns"><button data-act="close">' + t('close') + '</button></div>',
+{ close: closeBook }, 'book');
+ovCard.querySelectorAll('[data-c]').forEach(el => { el.onclick = () => showConst(el.dataset.c); });
+bookNew = false; stSet('bs_atlasNew', '0'); toast = null;
+}
+function showConst(id) {
+const c = ATLAS.find(a => a.id === id);
+const facts = c.f.map(i => {
+const sp = starSpec(c, i);
+return '<div class="crow"><div><b>' + (sp ? '<span style="display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;background:' + css(sp.c) + ';box-shadow:0 0 6px ' + css(sp.c) + '"></span>' : '') +
+starName(c, i) + '</b>' + (sp ? '<span>' + t('col_' + c.sp[i]) + ', ~' + sp.T.toLocaleString(lang) + '°</span>' : '') +
+'<span>' + t('f_' + c.id + '_' + i) + '</span></div></div>';
+}).join('');
+openOverlay('<h2>' + t('k_' + c.id) + '</h2>' +
+'<div class="list">' +
+'<img class="pic" alt="" style="display:block;margin:4px auto 8px;max-width:210px;max-height:230px;border-radius:12px" src="' + figPic(c, 210, true, false, true) + '">' +
+'<div class="txt" style="margin-bottom:6px">' + t('k_' + c.id + '_f') + '</div>' +
+(facts ? '<div class="sec">' + t('stars') + '</div>' + facts : '') +
+'</div><div class="btns"><button data-act="back">‹ ' + t('book') + '</button></div>',
+{ back: () => openBook() }, 'book');
+}
+function closeBook() {
+fresh.clear(); closeOverlay();
+if (won) { winShown = true; showWin(); }
+}
+const thumbCache = {};
+function themeThumb(id) {
+if (thumbCache[id]) return thumbCache[id];
+const th = THEMES[id], c = document.createElement('canvas');
+c.width = 132; c.height = 48;
+const x = c.getContext('2d');
+x.scale(4, 4);
+const g = x.createLinearGradient(0, 0, 0, 12);
+g.addColorStop(0, th.card[0]); g.addColorStop(1, th.card[1]);
+x.fillStyle = g; x.fillRect(0, 0, 33, 12);
+x.fillStyle = th.btn[0]; rr(x, 4, 3.5, 12, 5, 2); x.fill();
+x.fillStyle = th.gold; x.beginPath(); x.arc(24, 6, 2.2, 0, 7); x.fill();
+return (thumbCache[id] = c.toDataURL());
+}
+let installEvt = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
+addEventListener('appinstalled', () => { installEvt = null; });
+function openSettings() {
+const v = Math.round(settings.volume * 100);
+const langBtns = LANGS.map(l => '<button class="' + (l === lang ? '' : 'alt') + '" data-act="lang_' + l + '">' + l.toUpperCase() + '</button>').join('');
+const themeBtns = THEME_IDS.map(id =>
+'<button class="' + (id === settings.theme ? 'sel' : '') + '" data-act="theme_' + id + '" title="' +
+t('th_' + id) + '" aria-label="' + t('th_' + id) + '"><img alt="" src="' + themeThumb(id) + '"></button>').join('');
+const diffBtns = DIFF_IDS.map(d => '<button class="' + (d === settings.diff ? '' : 'alt') + '" data-act="diff_' + d + '">' +
+t('d_' + d) + '<small>' + DIFFS[d].size + '</small></button>').join('');
+const actions = {
+restart: () => openOverlay('<h2>' + t('restartQ') + '</h2><div class="btns"><button data-act="yes">' + t('yes') + '</button>' +
+'<button class="alt" data-act="no">' + t('no') + '</button></div>',
+{ yes: () => { restart(); closeOverlay(); }, no: () => openSettings() }),
+support: openSupport,
+install: () => {
+const e = installEvt;
+if (!e) return;
+installEvt = null; e.prompt();
+e.userChoice.finally(() => { if (!ovEl.hidden) openSettings(); });
+},
+close: () => closeOverlay()
+};
+LANGS.forEach(l => { actions['lang_' + l] = () => { setLang(l); openSettings(); }; });
+THEME_IDS.forEach(id => { actions['theme_' + id] = () => { settings.theme = id; saveSettings(); applyTheme(id); openSettings(); }; });
+DIFF_IDS.forEach(d => { actions['diff_' + d] = () => {
+if (d === settings.diff) return;
+save();
+settings.diff = d; saveSettings();
+startLevel(savedLevel(d), true);
+openSettings();
+}; });
+openOverlay(
+'<h2>' + t('settings') + '</h2>' +
+'<div class="blk grid">' +
+'<span>' + t('sound') + '</span>' +
+'<input class="vol" type="range" min="0" max="100" step="1" value="' + v + '" style="--v:' + v + '" aria-label="' + t('sound') + '">' +
+'<span>' + t('lang') + '</span><div class="seg ctl">' + langBtns + '</div>' +
+(installEvt ? '<span>' + t('app') + '</span><button class="ctl" data-act="install">' + t('install') + '</button>' : '') +
+(SUPPORT_URL ? '<span>' + t('author') + '</span><button class="ctl sup" data-act="support">' + t('support') + '</button>' : '') +
+'</div>' +
+'<div class="blk"><h3>' + t('diff') + '</h3><div class="diffs">' + diffBtns + '</div></div>' +
+'<div class="blk"><h3>' + t('theme') + '</h3><div class="themes">' + themeBtns + '</div></div>' +
+'<div class="btns"><button class="alt" data-act="restart">' + t('restart') + '</button>' +
+'<button data-act="close">' + t('close') + '</button></div>',
+actions, 'set');
+const r = ovCard.querySelector('.vol');
+let lastProbe = 0;
+r.oninput = () => {
+settings.volume = r.value / 100;
+r.style.setProperty('--v', r.value);
+SFX.setVolume(settings.volume);
+const now = performance.now();
+if (now - lastProbe > 90) { lastProbe = now; SFX.play('probe'); }
+};
+r.onchange = () => { saveSettings(); if (settings.volume <= 0) SFX.pause(); };
+}
+function hashStr(s) { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16).padStart(8, '0'); }
+const figSig = F => F.s.map(p => p.map(v => v.toFixed(1)).join(':')).join(',') + '|' + F.e.map(q => q.join('-')).join(',');
+const connected = F => { const seen = new Set([0]), stck = [0]; while (stck.length) { const v = stck.pop(); for (const [a, b] of F.e) { const o = a === v ? b : b === v ? a : -1; if (o >= 0 && !seen.has(o)) { seen.add(o); stck.push(o); } } } return seen.size === F.s.length; };
+const validPath = (F, pth) => {
+if (pth.length !== F.e.length + 1) return false;
+const u = new Set();
+for (let i = 1; i < pth.length; i++) {
+const k = ekey(pth[i - 1], pth[i]);
+if (u.has(k) || !F.e.some(([a, b]) => ekey(a, b) === k)) return false;
+u.add(k);
+}
+return true;
+};
+function bsCheck() {
+const res = [];
+const ok = (name, cond, info) => { res.push((cond ? 'OK   ' : 'FAIL ') + name + (cond || info === undefined ? '' : ' — ' + info)); };
+ok('путь Эйлера: Домик — одной линией, с нижнего угла', validPath(INTRO_FIG.odd.F, eulerPath(INTRO_FIG.odd.F)) && [0, 1].includes(eulerPath(INTRO_FIG.odd.F)[0]));
+ok('атлас: 12 созвездий, каждое связно и проходится одной линией, на трёх языках',
+ATLAS.length === 12 && ATLAS.every(F => connected(F) && oddOf(F).length <= 2 && validPath(F, eulerPath(F)) && LANGS.every(l => STRINGS[l]['k_' + F.id] && STRINGS[l]['k_' + F.id + '_f'])));
+let bad = [], det = true, tight = [];
+const lists = { normal: 200, easy: 120, hard: 120 };
+for (const d in lists) for (let n = 1; n <= lists[d]; n++) {
+const F = genLevel(n, d);
+if (figSig(F) !== figSig(genLevel(n, d))) det = false;
+if (!connected(F) || oddOf(F).length > 2 || !validPath(F, eulerPath(F))) bad.push(d + n);
+if (!F.real) {
+const minD = Math.min(...F.s.flatMap((p, i) => F.s.slice(i + 1).map(q => Math.hypot(p[0] - q[0], p[1] - q[1]))));
+const through = F.e.some(([a, b]) => F.s.some((q, k) => k !== a && k !== b && segDist(q[0], q[1], F.s[a][0], F.s[a][1], F.s[b][0], F.s[b][1]) < 9));
+if (minD < 29 || through || F.s.some(([x, y]) => x < 0 || y < 0 || x > 150 || y > 216)) tight.push(d + n);
+}
+}
+ok('один номер — одна фигура (440 уровней, три сложности)', det);
+ok('каждая фигура связна и проходится одной линией', !bad.length, bad.slice(0, 8).join(','));
+ok('звёзды не теснее 30, линии не идут сквозь звёзды, всё в поле', !tight.length, tight.slice(0, 8).join(','));
+ok('каждый пятый уровень — настоящее созвездие; 6-й — с «нечётными» звёздами',
+genLevel(5).real === 'tri' && genLevel(10).real === 'cas' && genLevel(15).real === 'big' && oddOf(genLevel(6)).length === 2);
+ok('уровни растут: 1-й — 3 звезды, 30-й — больше', genLevel(1).s.length === 3 && genLevel(31).s.length > 6, genLevel(31).s.length);
+ok('имена: у каждой звезды атласа есть русское и латинское имя; рассказы — на трёх языках',
+ATLAS.every(F => F.nm.ru.length === F.s.length && F.nm.la.length === F.s.length && F.f.every(i => LANGS.every(l => STRINGS[l]['f_' + F.id + '_' + i]))));
+const P = ATLAS.find(a => a.id === 'pol'), [pm, pd, pp] = P.pointer.map(i => P.s[i]);
+const ratio = Math.hypot(pp[0] - pd[0], pp[1] - pd[1]) / Math.hypot(pd[0] - pm[0], pd[1] - pm[1]);
+const cosv = ((pd[0] - pm[0]) * (pp[0] - pd[0]) + (pd[1] - pm[1]) * (pp[1] - pd[1])) / (Math.hypot(pd[0] - pm[0], pd[1] - pm[1]) * Math.hypot(pp[0] - pd[0], pp[1] - pd[1]));
+ok('Полярная: на продолжении линии Мерак → Дубхе, в 5 шагах', Math.abs(ratio - 5) < 0.25 && cosv > 0.99, ratio.toFixed(2) + ' шага, cos ' + cosv.toFixed(3));
+ok('цвет: у каждой звезды атласа — спектральный класс; Бетельгейзе и Антарес красные, Ригель и Сириус голубоватые',
+ATLAS.every(F => F.sp.length === F.s.length && [...F.sp].every(k => SPEC[k])) &&
+starSpec(ATLAS[4], 0) === SPEC.M && starSpec(ATLAS[11], 4) === SPEC.M && 'OB'.includes(ATLAS[4].sp[6]) && 'AB'.includes(ATLAS[10].sp[0]));
+ok('уровень 25 — Орион с карточкой «цвет — температура»', genLevel(25).real === 'ori' && genLevel(25).intro === 'color');
+ok('уровень 20 — урок «Как найти Полярную» с карточкой', genLevel(20).real === 'pol' && genLevel(20).intro === 'polar' && INTRO_FIG.polar);
+ok('строки: у EN и ES есть всё, что у RU', LANGS.every(l => Object.keys(STRINGS.ru).every(k => STRINGS[l][k])));
+const sum = hashStr(Array.from({ length: 100 }, (_, i) => figSig(genLevel(i + 1))).join('|'));
+const fail = res.filter(r => r.startsWith('FAIL'));
+console.log(res.join('\n') + '\nсумма уровней 1–100: ' + sum);
+return (fail.length ? 'ОШИБКИ: ' + fail.length + ' из ' + res.length : 'ВСЁ OK (' + res.length + ')') + ' ' + sum;
+}
+let last = 0;
+function frame(time) {
+requestAnimationFrame(frame);
+if (innerWidth !== fitW || innerHeight !== fitH) fit();
+const dt = last ? Math.min(0.05, (time - last) / 1000) : 0;
+last = time;
+update(dt);
+draw(time / 1000);
+}
+if (QS.has('dbg')) {
+window.bsCheck = bsCheck;
+window.BS = { genLevel, eulerPath, get L() { return L; }, startLevel, restart, openBook, openSettings, showIntro,
+get atlas() { return atlas; }, SFX, settings, applyTheme, setLang, DIFFS, oddOf,
+layout: () => ({ LW, LH, OX, BX, BY, T, SCALE, GY }) };
+}
+addEventListener('resize', fit);
+addEventListener('orientationchange', fit);
+document.addEventListener('visibilitychange', () => { if (document.hidden) { if (L) save(); SFX.pause(); } });
+addEventListener('pagehide', () => { if (L) save(); });
+applyTheme(settings.theme);
+fit();
+if (!DIFFS[settings.diff]) settings.diff = 'normal';
+const startN = savedLevel(settings.diff);
+const qLvl = parseInt(QS.get('lvl'), 10);
+if (qLvl > 0) {
+startLevel(qLvl, false);
+try { history.replaceState(null, '', location.pathname + location.search.replace(/([?&])lvl=[^&]*&?/, '$1').replace(/[?&]$/, '')); } catch (e) {}
+} else startLevel(startN, true);
+requestAnimationFrame(frame);
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator && location.protocol !== 'file:')
+addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+</script>
+</body>
+</html>
