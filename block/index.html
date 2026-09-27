@@ -424,15 +424,20 @@ out.push(i);
 }
 return out;
 }
-function trayPlaceable(board, tray) {
-let nodes = 0;
+function traySolutions(board, tray, cap) {
+let nodes = 0, found = 0;
 const go = (b, left) => {
-if (left.length === 1) return fitsAnywhere(b, SHAPES[left[0]]);
+if (left.length === 1) {
+const sh = SHAPES[left[0]];
+for (let y = 0; y + sh.h <= N; y++) for (let x = 0; x + sh.w <= N; x++)
+if (fits(b, sh, x, y) && ++found >= cap) return true;
+return false;
+}
 for (let k = 0; k < left.length; k++) {
 const sh = SHAPES[left[k]], rest = left.filter((_, j) => j !== k);
 for (let y = 0; y + sh.h <= N; y++) for (let x = 0; x + sh.w <= N; x++) {
 if (!fits(b, sh, x, y)) continue;
-if (++nodes > SOLVE_CAP) return true;
+if (++nodes > SOLVE_CAP) { found = cap; return true; }
 const c = b.slice();
 for (const [cx, cy] of sh.cells) c[(y + cy) * N + x + cx] = 1;
 const { rows, cols } = fullLines(c);
@@ -444,17 +449,28 @@ if (go(c, rest)) return true;
 return false;
 };
 const left = tray.filter(i => i >= 0);
-return !left.length || go(board, left);
+if (!left.length) return cap;
+go(board, left);
+return Math.min(found, cap);
 }
+const trayPlaceable = (board, tray) => traySolutions(board, tray, 1) > 0;
+const TIGHT = { normal: 12, hard: 14 };
+const SOL_CAP = 64;
 let fairMiss = 0;
 function refill(g) {
 const pick = g.easy ? pickEasy : pickShape;
-let tray = null, some = null;
-for (let a = 0; a < FAIR_TRIES; a++) {
+let want = g.easy ? 1 : TIGHT[g.mode === 'hard' ? 'hard' : 'normal'];
+let tray = null, some = null, best = null, bestN = Infinity;
+for (let a = 0; a < FAIR_TRIES && want > 0; a++) {
 tray = pickDistinct(g, pick, []);
-if (trayPlaceable(g.board, tray)) { g.tray = tray; return; }
-if (!some && tray.some(i => fitsAnywhere(g.board, SHAPES[i]))) some = tray;
+const n = traySolutions(g.board, tray, g.easy ? 1 : SOL_CAP);
+if (n > 0) {
+if (n < bestN) { best = tray; bestN = n; }
+if (n === 1) break;
+want--;
+} else if (!some && tray.some(i => fitsAnywhere(g.board, SHAPES[i]))) some = tray;
 }
+if (best) { g.tray = best; return; }
 fairMiss++;
 g.tray = some || tray;
 }
@@ -472,7 +488,7 @@ if (full) cols.push(c);
 }
 return { rows, cols };
 }
-function place(g, slot, x, y) {
+function place(g, slot, x, y, dry) {
 if (g.over) return null;
 const si = g.tray[slot];
 if (si == null || si < 0) return null;
@@ -504,12 +520,12 @@ if (g.msc >= COMBO_GRACE) g.combo = 0;
 const clean = lines > 0 && g.board.every(v => !v);
 if (clean) gained += CLEAN_BONUS;
 g.score += gained;
-if (g.tray.every(i => i < 0)) refill(g);
+if (!dry && g.tray.every(i => i < 0)) refill(g);
 g.over = !anyFits(g);
 return { s, x, y, rows, cols, lines, cleared, gained, combo: g.combo, clean };
 }
 function predict(g, slot, x, y) {
-return place({ ...g, board: g.board.slice(), tray: g.tray.slice() }, slot, x, y);
+return place({ ...g, board: g.board.slice(), tray: g.tray.slice() }, slot, x, y, true);
 }
 function hashG(g) {
 let h = 0x811c9dc5;
@@ -1581,6 +1597,9 @@ ok('язык ' + l + ': все строки', !miss.length, miss.join(' ') || ke
 {
 const b = new Array(N * N).fill(1);
 for (let y = 0; y < N; y++) b[y * N + (y * 3) % N] = 0;
+const one = new Array(N * N).fill(1); one[3 * N + 4] = 0;
+ok('тесная тройка: решения считаются (одна дырка — одно; пусто — простор)',
+traySolutions(one, [shape('dot')], SOL_CAP) === 1 && traySolutions(new Array(N * N).fill(0), [shape('i2_0')], SOL_CAP) === SOL_CAP);
 ok('честная тройка: раскладка только в верном порядке находится',
 trayPlaceable(b, [shape('i2_0'), shape('i3_0'), shape('dot')]) && !trayPlaceable(b, [shape('i2_0'), shape('i3_0'), shape('i4_0')]));
 const miss0 = fairMiss;
@@ -1641,7 +1660,7 @@ const sh = SHAPES[si];
 for (let y = 0; y + sh.h <= N; y++) for (let x = 0; x + sh.w <= N; x++) {
 if (!fits(g.board, sh, x, y)) continue;
 const c = { ...g, board: g.board.slice(), tray: g.tray.slice() };
-const r = place(c, slot, x, y);
+const r = place(c, slot, x, y, true);
 let contact = 0;
 for (const [cx, cy] of sh.cells) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
 const a = x + cx + dx, b = y + cy + dy;
@@ -1676,7 +1695,7 @@ return out;
 if (QS.has('dbg')) {
 window.BB = { get G() { return G; }, get ui() { return ui; },
 get layout() { const g = trayGeo(); return { LW, LH, OX, BX, BY, TRAY_Y, TRAY_H, SLOT_X, CELL, slotCx: g.cx, trayCell: g.cell }; },
-get supportUrl() { return SUPPORT_URL; }, set supportUrl(v) { SUPPORT_URL = v; }, draw, fit, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings };
+get supportUrl() { return SUPPORT_URL; }, set supportUrl(v) { SUPPORT_URL = v; }, draw, fit, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings, TIGHT, traySolutions };
 window.bbCheck = bbCheck;
 window.bbSim = bbSim;
 }
