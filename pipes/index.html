@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>BBG Pipes</title>
+<script>
+(function () {
+var NL = String.fromCharCode(10);
+var box = null;
+function say(t) {
+if (!box) {
+box = document.createElement('pre');
+box.style.cssText = 'position:fixed;left:0;top:0;right:0;z-index:9999;' +
+'margin:0;padding:8px;background:#310c0c;color:#ffb4b4;' +
+'font:12px/1.45 monospace;white-space:pre-wrap;' +
+'max-height:70vh;overflow:auto;border-bottom:1px solid #a33';
+(document.body || document.documentElement).appendChild(box);
+box.textContent = 'ЧТО-ТО СЛОМАЛОСЬ' + NL +
+'адрес: ' + location.protocol + '//' +
+(location.host || '(локальный файл)') + NL +
+'браузер: ' + navigator.userAgent + NL + NL;
+}
+box.textContent += t + NL;
+}
+window.addEventListener('error', function (e) {
+say('ОШИБКА: ' + (e.message || (e.error && e.error.message) || e.type) +
+NL + '   строка ' + (e.lineno || '?') + ':' + (e.colno || '?'));
+});
+window.addEventListener('unhandledrejection', function (e) {
+var r = e.reason;
+say('ОБЕЩАНИЕ ОТВАЛИЛОСЬ: ' + ((r && r.message) || r));
+});
+})();
+</script>
+<style>
+html, body {
+margin: 0; height: 100%; overflow: hidden;
+background: #0e1330;
+-webkit-user-select: none; user-select: none;
+-webkit-touch-callout: none; touch-action: none;
+font-family: "Segoe UI", Roboto, system-ui, sans-serif;
+}
+body { display: flex; align-items: center; justify-content: center; }
+#cv { display: block; touch-action: none; }
+#ov {
+position: fixed; inset: 0; display: flex;
+align-items: center; justify-content: center;
+background: var(--veil, rgba(6, 9, 26, .62)); z-index: 10;
+}
+#ov[hidden] { display: none; }
+.card {
+min-width: 220px; max-width: 80vw; max-height: 92vh; overflow: auto; padding: 22px 26px 20px;
+border-radius: 16px; text-align: center; color: var(--cardText, #e9ecff);
+background: linear-gradient(var(--card1, #26305e), var(--card2, #1a2147));
+box-shadow: 0 10px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.12);
+}
+.card h2 { margin: 0 0 10px; font-size: 22px; letter-spacing: .5px; }
+.card .big { font-size: 44px; font-weight: 800; color: var(--gold, #ffd84a); margin: 4px 0; }
+.card .sub { font-size: 15px; opacity: .8; margin-bottom: 4px; }
+.card .btns { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+.card button {
+font: inherit; font-size: 17px; font-weight: 700; color: #fff;
+border: 0; border-radius: 10px; padding: 10px 22px; cursor: pointer;
+background: linear-gradient(var(--btn1, #4f8cff), var(--btn2, #3563d8));
+box-shadow: 0 3px 0 var(--btn3, #22408f);
+}
+.card button.link { display: block; margin: 14px auto 0; padding: 4px 8px; font-size: 14px;
+font-weight: 600; background: none; box-shadow: none; color: var(--gold); opacity: .85;
+text-decoration: underline; text-underline-offset: 3px; }
+.card button.link:active { transform: none; box-shadow: none; }
+.card button.sup { background: linear-gradient(#ff7a9a, #e0466e); box-shadow: 0 3px 0 #9c2848; }
+.card button.alt { background: linear-gradient(var(--alt1), var(--alt2)); box-shadow: 0 3px 0 var(--alt3); }
+.card button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--btn3, #22408f); }
+.card.set { min-width: 250px; padding: 18px 20px 18px; }
+.card.set::-webkit-scrollbar { display: none; }
+.card.set { scrollbar-width: none; }
+.diffs { display: flex; gap: 6px; }
+.diffs button { flex: 1; padding: 7px 4px !important; font-size: 14px !important; line-height: 1.15; }
+.diffs small { display: block; font-size: 11px; font-weight: 600; opacity: .8; }
+.set .blk { padding: 12px 14px; border-radius: 12px; background: rgba(0,0,0,.13); margin-top: 10px; }
+.set .grid { display: grid; grid-template-columns: auto 1fr; gap: 12px 16px; align-items: center;
+text-align: left; font-size: 15px; font-weight: 700; }
+.set .grid .ctl { justify-self: end; }
+.set .grid .vol { width: 100%; }
+.set .blk h3 { margin: 0 0 10px; font-size: 16px; text-align: center; }
+.vol { -webkit-appearance: none; appearance: none; flex: 1; min-width: 120px; height: 14px;
+border-radius: 8px; outline: none; cursor: pointer; margin: 0;
+background: linear-gradient(90deg, transparent calc(var(--v, 70) * 1%), rgba(0,0,0,.45) calc(var(--v, 70) * 1%)), var(--rainbow);
+box-shadow: inset 0 2px 3px rgba(0,0,0,.35); }
+.vol::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 7px;
+background: linear-gradient(#fff, #dfe4f5); border: 0;
+box-shadow: 0 3px 0 rgba(0,0,0,.3), inset 0 -3px 0 rgba(0,0,0,.12); }
+.vol::-moz-range-thumb { width: 24px; height: 24px; border-radius: 7px; border: 0;
+background: linear-gradient(#fff, #dfe4f5); box-shadow: 0 3px 0 rgba(0,0,0,.3); }
+.seg { display: flex; gap: 6px; }
+.seg button { padding: 7px 12px !important; font-size: 14px !important; }
+.themes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.themes button { padding: 5px !important; display: flex; align-items: center; justify-content: center; background: linear-gradient(var(--alt1), var(--alt2)) !important;
+box-shadow: 0 3px 0 var(--alt3) !important; border: 2px solid transparent !important; }
+.themes button.sel { border-color: var(--gold) !important; }
+.themes img { width: 100%; max-width: 110px; aspect-ratio: 132 / 48; border-radius: 5px; display: block; }
+.card.book { width: min(86vw, 400px); padding: 16px 14px 16px; display: flex; flex-direction: column; overflow: hidden; }
+.book .cnt { font-size: 14px; opacity: .75; margin: -4px 0 4px; }
+.book .list { overflow-y: auto; touch-action: pan-y; text-align: left; padding: 0 2px; flex: 1;
+scrollbar-width: none; -ms-overflow-style: none; }
+.book .list::-webkit-scrollbar { display: none; }
+.book .sec { font-size: 12px; opacity: .7; margin: 12px 4px 2px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+.book .row { display: flex; align-items: center; gap: 6px; padding: 8px 9px; margin: 6px 0; border-radius: 12px; background: rgba(0,0,0,.14); }
+.book .row.fresh { background: rgba(255, 216, 74, .2); }
+.book .eq { display: flex; align-items: center; gap: 5px; flex: none; }
+.book .dot { width: 28px; height: 28px; border-radius: 50%; flex: none; position: relative; }
+.book .dot::after { content: ''; position: absolute; width: 30%; height: 30%; left: 20%; top: 20%;
+border-radius: 50%; background: rgba(255,255,255,.3); }
+.book .dot.q::after { display: none; }
+.book .dot.q { background: rgba(0,0,0,.25); box-shadow: none; display: flex; align-items: center; justify-content: center;
+font-weight: 800; opacity: .5; font-size: 14px; }
+.book .op { font-weight: 800; font-size: 17px; opacity: .6; width: 11px; text-align: center; }
+.book .nm { font-size: 12px; opacity: .8; margin-left: 4px; line-height: 1.25; }
+.card .eqw { display: flex; justify-content: center; margin: 8px 0 2px; }
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#141b45">
+<meta name="description" content="BBG Pipes — головоломка: поворачивай трубы, смешивай краски.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BBG Pipes">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+</head>
+<body>
+<canvas id="cv" width="720" height="1280"></canvas>
+<div id="safe" style="position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;
+padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)"></div>
+<div id="ov" hidden><div class="card" id="ovCard"></div></div>
+<script>
+'use strict';
+(function () {
+const DW = 180, DH = 320;
+let LW = DW, LH = DH, SCALE = 4, OX = 0, HY = 0, GY = 0;
+const GEAR = { x: 162, y: 20 }, HEART = { x: 18, y: 20 }, BOOKB = { x: 136, y: 20 };
+const AREA_TOP = 76, AREA_BOT = 312, BAR_Y = 62;
+let BX = 10, BY = 80, T = 30;
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const safeEl = document.getElementById('safe');
+function layout(cssW, cssH, safeTop, safeBot) {
+const k = Math.min(cssW / DW, cssH / DH);
+LW = cssW / k; LH = cssH / k;
+const dpr = Math.min(3, window.devicePixelRatio || 1);
+cv.width = Math.max(1, Math.round(cssW * dpr));
+cv.height = Math.max(1, Math.round(cssH * dpr));
+SCALE = cv.width / LW;
+OX = (LW - DW) / 2;
+const top = safeTop / k, bot = safeBot / k;
+const extra = Math.max(0, LH - DH - top - bot);
+HY = top + extra * 0.3;
+GY = top + extra * 0.7;
+GEAR.x = OX + 162; GEAR.y = 20 + HY;
+HEART.x = OX + 18; HEART.y = 20 + HY;
+BOOKB.x = OX + 136; BOOKB.y = 20 + HY;
+if (L) boardLayout();
+}
+function boardLayout() {
+const h = AREA_BOT - AREA_TOP;
+T = Math.min(40, 166 / (L.C + 0.56), h / (L.H + 0.56));
+BX = OX + (DW - L.C * T) / 2;
+BY = GY + AREA_TOP + (h - L.H * T) / 2;
+}
+let fitW = 0, fitH = 0;
+function fit() {
+fitW = innerWidth; fitH = innerHeight;
+const w = Math.max(1, innerWidth), h = Math.max(1, innerHeight);
+const cs = getComputedStyle(safeEl);
+layout(w, h, parseFloat(cs.paddingTop) || 0, parseFloat(cs.paddingBottom) || 0);
+cv.style.width = w + 'px';
+cv.style.height = h + 'px';
+}
+const NATIVE = (window.BBStore && typeof window.BBStore.get === 'function') ? window.BBStore : null;
+function stGet(k) {
+if (NATIVE) {
+try { const v = NATIVE.get(k); if (v != null && v !== '') return String(v); } catch (e) {}
+}
+try { return localStorage.getItem(k); } catch (e) { return null; }
+}
+function stSet(k, v) {
+if (NATIVE) { try { NATIVE.set(k, v); } catch (e) {} }
+try { localStorage.setItem(k, v); } catch (e) {}
+}
+const KEY_SET = 'bp_settings';
+const settings = { volume: 0.7, lang: '', theme: 'juicy', diff: 'normal' };
+try { Object.assign(settings, JSON.parse(stGet(KEY_SET)) || {}); } catch (e) {}
+settings.volume = Math.min(1, Math.max(0, +settings.volume || 0));
+delete settings.vib;
+function saveSettings() { stSet(KEY_SET, JSON.stringify(settings)); }
+const STRINGS = {
+ru: {
+level: 'УРОВЕНЬ', done: 'Готово!', next: 'Дальше', newF: 'Новая формула!',
+book: 'Книга цветов', of: ' из ', locked: 'ещё не открыто', extra: 'Ещё твои открытия',
+s_mix: 'Смешиваем краски', s_white: 'Белый делает светлее', s_brown: 'Противоположные дают коричневый',
+s_mach: 'Машины — скоро', m_filt: 'Фильтр', m_filtN: 'пропускает только свою краску',
+m_sep: 'Центрифуга', m_sepN: 'разделяет смесь',
+h_rotate: 'Касайся труб — они поворачиваются. Доведи воду до колбы',
+h_mix: 'Две краски встретятся — получится новый цвет',
+h_star: 'У колбы-источника бывает несколько выходов — вода идёт во все',
+h_white: 'Белый делает цвет светлее',
+h_brown: 'Противоположные цвета вместе дают коричневый',
+h_all: 'Задействуй все трубы на поле',
+settings: 'Настройки', sound: 'Звук',
+lang: 'Язык', theme: 'Тема', restart: 'Уровень заново', restartQ: 'Начать уровень заново?',
+yes: 'Да', no: 'Нет', close: 'Закрыть', app: 'Приложение', install: 'Установить',
+support: 'Поддержать ♥', supportAsk: 'Нравится игра? Поддержи автора ♥', author: 'Автор',
+th_juicy: 'Сочная', th_wood: 'Дерево', th_night: 'Ночь', th_day: 'День',
+diff: 'Сложность', d_easy: 'Лёгкая', d_normal: 'Обычная', d_hard: 'Сложная',
+c1: 'красный', c2: 'жёлтый', c4: 'синий', c3: 'оранжевый', c6: 'зелёный', c5: 'фиолетовый', c7: 'коричневый',
+c8: 'белый', c9: 'розовый', c10: 'светло-жёлтый', c12: 'голубой', c11: 'персиковый', c14: 'мятный', c13: 'сиреневый', c15: 'бежевый'
+},
+en: {
+level: 'LEVEL', done: 'Done!', next: 'Next', newF: 'New formula!',
+book: 'Color book', of: ' of ', locked: 'not found yet', extra: 'More of your finds',
+s_mix: 'Mixing paints', s_white: 'White makes it lighter', s_brown: 'Opposites make brown',
+s_mach: 'Machines — soon', m_filt: 'Filter', m_filtN: 'lets only its paint through',
+m_sep: 'Centrifuge', m_sepN: 'splits a mix',
+h_rotate: 'Tap pipes to turn them. Lead the water to the flask',
+h_mix: 'When two paints meet, a new color appears',
+h_star: 'A source flask can have several outlets — water flows out of all',
+h_white: 'White makes a color lighter',
+h_brown: 'Opposite colors together make brown',
+h_all: 'Use every pipe on the board',
+settings: 'Settings', sound: 'Sound',
+lang: 'Language', theme: 'Theme', restart: 'Restart level', restartQ: 'Restart this level?',
+yes: 'Yes', no: 'No', close: 'Close', app: 'App', install: 'Install',
+support: 'Support ♥', supportAsk: 'Enjoying the game? Support the author ♥', author: 'Author',
+th_juicy: 'Juicy', th_wood: 'Wood', th_night: 'Night', th_day: 'Day',
+diff: 'Difficulty', d_easy: 'Easy', d_normal: 'Normal', d_hard: 'Hard',
+c1: 'red', c2: 'yellow', c4: 'blue', c3: 'orange', c6: 'green', c5: 'purple', c7: 'brown',
+c8: 'white', c9: 'pink', c10: 'light yellow', c12: 'light blue', c11: 'peach', c14: 'mint', c13: 'lilac', c15: 'beige'
+},
+es: {
+level: 'NIVEL', done: '¡Listo!', next: 'Siguiente', newF: '¡Nueva fórmula!',
+book: 'Libro de colores', of: ' de ', locked: 'aún sin descubrir', extra: 'Más descubrimientos',
+s_mix: 'Mezclamos pinturas', s_white: 'El blanco aclara', s_brown: 'Los opuestos dan marrón',
+s_mach: 'Máquinas — pronto', m_filt: 'Filtro', m_filtN: 'deja pasar solo su pintura',
+m_sep: 'Centrífuga', m_sepN: 'separa la mezcla',
+h_rotate: 'Toca los tubos para girarlos. Lleva el agua al frasco',
+h_mix: 'Si dos pinturas se juntan, sale un color nuevo',
+h_star: 'Un frasco fuente puede tener varias salidas — el agua sale por todas',
+h_white: 'El blanco aclara el color',
+h_brown: 'Los colores opuestos juntos dan marrón',
+h_all: 'Usa todos los tubos del tablero',
+settings: 'Ajustes', sound: 'Sonido',
+lang: 'Idioma', theme: 'Tema', restart: 'Reiniciar nivel', restartQ: '¿Reiniciar el nivel?',
+yes: 'Sí', no: 'No', close: 'Cerrar', app: 'App', install: 'Instalar',
+support: 'Apoyar ♥', supportAsk: '¿Te gusta el juego? Apoya al autor ♥', author: 'Autor',
+th_juicy: 'Jugosa', th_wood: 'Madera', th_night: 'Noche', th_day: 'Día',
+diff: 'Dificultad', d_easy: 'Fácil', d_normal: 'Normal', d_hard: 'Difícil',
+c1: 'rojo', c2: 'amarillo', c4: 'azul', c3: 'naranja', c6: 'verde', c5: 'morado', c7: 'marrón',
+c8: 'blanco', c9: 'rosa', c10: 'amarillo claro', c12: 'celeste', c11: 'melocotón', c14: 'menta', c13: 'lila', c15: 'beige'
+}
+};
+const LANGS = ['ru', 'en', 'es'];
+const QS = new URLSearchParams(location.search);
+function detectLang() {
+const n = (navigator.language || '').toLowerCase();
+return /^(ru|uk|be)/.test(n) ? 'ru' : /^es/.test(n) ? 'es' : 'en';
+}
+let lang = STRINGS[QS.get('lang')] ? QS.get('lang') : STRINGS[settings.lang] ? settings.lang : detectLang();
+function setLang(l) { lang = l; settings.lang = l; saveSettings(); document.documentElement.lang = l; }
+document.documentElement.lang = lang;
+function t(k) { return STRINGS[lang][k] ?? STRINGS.en[k] ?? k; }
+const PAL = {
+1: '#e8404a', 2: '#f7c21a', 4: '#2f7bea', 3: '#f5821f', 6: '#3cbf5a', 5: '#9a48e0', 7: '#7b4a2c',
+8: '#f2f4fa', 9: '#ff8da1', 10: '#ffe98a', 12: '#8cc4ff', 11: '#ffbf85', 14: '#9fe8ae', 13: '#cda4f5', 15: '#dcc3a3'
+};
+const hex2rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const RGB = {}; for (const k in PAL) RGB[k] = hex2rgb(PAL[k]);
+const css = (a, al) => al === undefined ? 'rgb(' + a.map(Math.round).join(',') + ')' : 'rgba(' + a.map(Math.round).join(',') + ',' + al + ')';
+const mixTo = (a, to, k) => a.map(c => c + (to - c) * k);
+const BOOK = [
+{ sec: 's_mix', items: [[1, 2], [2, 4], [1, 4]] },
+{ sec: 's_white', items: [[1, 8], [2, 8], [4, 8], [3, 8], [6, 8], [5, 8], [7, 8]] },
+{ sec: 's_brown', items: [[1, 6], [2, 5], [3, 4]] }
+];
+const BOOK_MACH = [{ name: 'm_filt', note: 'm_filtN', outs: 1 }, { name: 'm_sep', note: 'm_sepN', outs: 2 }];
+const mixKey = ins => ins.slice().sort((a, b) => a - b).join('+');
+const BOOK_KEYS = BOOK.flatMap(s => s.items.map(mixKey));
+const orAll = a => a.reduce((x, c) => x | c, 0);
+const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
+const rotm = (m, r) => { for (let i = 0; i < (r & 3); i++) m = ((m << 1) | (m >> 3)) & 15; return m; };
+const pop = m => (m & 1) + (m >> 1 & 1) + (m >> 2 & 1) + (m >> 3 & 1);
+const dirsOf = m => [0, 1, 2, 3].filter(d => m >> d & 1);
+function mulberry32(a) {
+return () => {
+a |= 0; a = a + 0x6D2B79F5 | 0;
+let x = Math.imul(a ^ a >>> 15, 1 | a);
+x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x;
+return ((x ^ x >>> 14) >>> 0) / 4294967296;
+};
+}
+const MIX = [[1, 2], [2, 4], [1, 4]], TINT1 = [[1, 8], [2, 8], [4, 8]], TINT2 = [[3, 8], [6, 8], [5, 8]];
+const BROWN = [[1, 6], [2, 5], [4, 3]];
+const DIFFS = {
+easy: { salt: 0x5EA5E0A1, size: '3×3–5×5' },
+normal: { salt: 0xB10C5EED, size: '3×3–6×8' },
+hard: { salt: 0x4A2D0C11, size: '4×4–6×9' }
+};
+const DIFF_IDS = Object.keys(DIFFS);
+function recipe(n, R, diff) {
+const pick = a => a[R() * a.length | 0];
+const net = (leaf, sinks) => ({ leaf, mid: 0, sinks: sinks || 1, want: Array(sinks || 1).fill(orAll(leaf)) });
+const star = () => {
+const a = pick([1, 2, 4]), b = pick([1, 2, 4, 8].filter(c => c !== a));
+return { leaf: [b], mid: a, sinks: 2, want: [a, a | b].sort((x, y) => x - y) };
+};
+const any = () => { const u = R(); return u < 0.3 ? net(pick(MIX)) : u < 0.55 ? net(pick(TINT1.concat(TINT2))) : u < 0.75 ? net(pick(BROWN)) : star(); };
+const P = [1, 2, 4];
+if (diff === 'easy') {
+if (n <= 3) return { c: 3, r: 3, nets: [net([[4, 1, 2][n - 1]])], hint: n === 1 ? 'h_rotate' : null };
+if (n <= 6) return { c: 3, r: 4, nets: [net(MIX[n - 4])], hint: n === 4 ? 'h_mix' : null };
+if (n <= 12) return { c: 4, r: 4, nets: [net(pick(MIX))] };
+if (n <= 15) return { c: 4, r: 4, nets: [net(TINT1[n - 13])], hint: n === 13 ? 'h_white' : null };
+if (n <= 24) return { c: 4, r: 5, nets: [R() < 0.35 ? star() : net(pick(MIX.concat(TINT1)))], hint: n === 16 ? 'h_star' : null };
+if (n <= 27) return { c: 4, r: 5, nets: [net(BROWN[n - 25])], hint: n === 25 ? 'h_brown' : null };
+if (n <= 40) return { c: 5, r: 5, nets: [any()] };
+return { c: 5, r: 5, nets: R() < 0.5 ? [any()] : [net(pick(MIX)), net([pick(P)])] };
+}
+if (diff === 'hard') {
+const big = () => R() < 0.3 ? net(pick([[1, 4, 8], [1, 2, 8], [2, 4, 8], [1, 6, 8], [3, 4, 8]])) : any();
+if (n === 1) return { c: 4, r: 4, nets: [net(pick(MIX))], hint: 'h_rotate' };
+if (n <= 4) return { c: 4, r: 5, nets: [net(pick(MIX)), net(pick(MIX))], hint: n === 2 ? 'h_all' : null };
+if (n <= 8) return { c: 5, r: 6, nets: [star(), net(pick(MIX))], hint: n === 5 ? 'h_star' : null };
+if (n <= 12) return { c: 5, r: 6, nets: [net(pick(TINT1.concat(TINT2))), star()], hint: n === 9 ? 'h_white' : null };
+if (n <= 16) return { c: 6, r: 7, nets: [net(pick(BROWN)), any(), any()], hint: n === 13 ? 'h_brown' : null };
+if (n <= 40) return { c: 6, r: 8, nets: [big(), any(), any()] };
+return { c: 6, r: 9, nets: [big(), big(), any(), any()] };
+}
+if (n === 1) return { c: 3, r: 3, nets: [net([4])], hint: 'h_rotate' };
+if (n === 2) return { c: 3, r: 4, nets: [net([1])] };
+if (n <= 5) return { c: 4, r: 4, nets: [net(MIX[n - 3])], hint: n === 3 ? 'h_mix' : null };
+if (n <= 8) return { c: 4, r: 5, nets: [net(pick(MIX)), net([pick([1, 2, 4])])], hint: n === 6 ? 'h_all' : null };
+if (n <= 11) return { c: 5, r: 5, nets: [star()], hint: n === 9 ? 'h_star' : null };
+if (n <= 14) return { c: 5, r: 5, nets: [net(TINT1[n - 12]), net([pick([1, 2, 4])])], hint: n === 12 ? 'h_white' : null };
+if (n <= 24) return { c: 5, r: 6, nets: [net(pick(MIX)), R() < 0.5 ? net(pick(TINT1.concat(TINT2))) : star()] };
+if (n <= 27) return { c: 5, r: 6, nets: [net(BROWN[n - 25]), net(pick(MIX))], hint: n === 25 ? 'h_brown' : null };
+if (n <= 44) return { c: 6, r: 7, nets: [any(), any(), net([pick([1, 2, 4])])] };
+const big = () => R() < 0.25 ? net(pick([[1, 4, 8], [1, 2, 8], [2, 4, 8], [1, 6, 8]])) : any();
+return { c: 6, r: 8, nets: [big(), any(), any()] };
+}
+function hamPath(C, H, R) {
+const n = C * H, p = [];
+for (let y = 0; y < H; y++) for (let k = 0; k < C; k++) p.push(y * C + (y % 2 ? C - 1 - k : k));
+const pos = new Int32Array(n);
+p.forEach((c, i) => { pos[c] = i; });
+const moves = n * n * 2;
+for (let m = 0; m < moves; m++) {
+if (R() < 0.5) { p.reverse(); p.forEach((c, i) => { pos[c] = i; }); }
+const e = p[0], ex = e % C, ey = e / C | 0, d = R() * 4 | 0;
+const x = ex + DX[d], y = ey + DY[d];
+if (x < 0 || y < 0 || x >= C || y >= H) continue;
+const i = pos[y * C + x];
+if (i <= 1) continue;
+for (let a = 0, b = i - 1; a < b; a++, b--) { const tmp = p[a]; p[a] = p[b]; p[b] = tmp; }
+for (let k = 0; k < i; k++) pos[p[k]] = k;
+}
+return p;
+}
+function genLevel(n, diff) {
+diff = DIFFS[diff] ? diff : 'normal';
+const R = mulberry32(Math.imul(n, 0x9E3779B1) ^ DIFFS[diff].salt);
+for (let a = 0; a < 3000; a++) {
+const L = tryGen(n, R, diff);
+if (L) return L;
+}
+throw new Error('уровень ' + n + ' не построился');
+}
+function tryGen(n, R, diff) {
+const rc = recipe(n, R, diff), C = rc.c, H = rc.r, N = C * H;
+const path = hamPath(C, H, R);
+const per = rc.nets.map(s => s.leaf.length + s.sinks - 1);
+const P = per.reduce((a, b) => a + b, 0);
+const minL = N >= 16 ? 3 : 2;
+if (P * minL > N) return null;
+const lens = Array(P).fill(minL);
+for (let e = N - P * minL; e > 0; e--) lens[R() * P | 0]++;
+const pieces = [];
+let k = 0;
+for (const l of lens) { pieces.push(path.slice(k, k + l)); k += l; }
+const mask = new Int32Array(N), netOf = new Int32Array(N).fill(-1);
+const adj = (a, b) => Math.abs(a % C - b % C) + Math.abs((a / C | 0) - (b / C | 0)) === 1;
+const link = (a, b) => {
+const dx = b % C - a % C, dy = (b / C | 0) - (a / C | 0);
+const d = DX.findIndex((v, i) => v === dx && DY[i] === dy);
+mask[a] |= 1 << d; mask[b] |= 1 << ((d + 2) & 3);
+};
+let pi = 0;
+const trees = [];
+for (let ni = 0; ni < rc.nets.length; ni++) {
+const tree = [];
+for (let j = 0; j < per[ni]; j++) {
+const q = pieces[pi++];
+for (let i = 1; i < q.length; i++) link(q[i - 1], q[i]);
+if (j) {
+const opts = [];
+for (const end of [q[0], q[q.length - 1]])
+for (const c of tree) if (pop(mask[c]) === 2 && adj(end, c)) opts.push([end, c]);
+if (!opts.length) return null;
+const [end, c] = opts[R() * opts.length | 0];
+link(end, c);
+}
+for (const c of q) { tree.push(c); netOf[c] = ni; }
+}
+trees.push(tree);
+}
+const tiles = new Array(N).fill(null);
+for (let i = 0; i < N; i++) tiles[i] = { x: i % C, y: i / C | 0, type: 'pipe', base: mask[i], rot: 0, col: 0, need: 0, anim: 0 };
+rc.nets.forEach((s, ni) => {
+const leaves = trees[ni].filter(c => pop(mask[c]) === 1);
+for (let i = leaves.length - 1; i > 0; i--) { const j = R() * (i + 1) | 0; [leaves[i], leaves[j]] = [leaves[j], leaves[i]]; }
+s.leaf.forEach((c, i) => { tiles[leaves[i]].type = 'src'; tiles[leaves[i]].col = c; });
+for (let i = s.leaf.length; i < leaves.length; i++) tiles[leaves[i]].type = 'sink';
+if (s.mid) {
+const inner = trees[ni].filter(c => pop(mask[c]) >= 2);
+const c = inner[R() * inner.length | 0];
+tiles[c].type = 'src'; tiles[c].col = s.mid;
+}
+});
+const L = { n, C, H, tiles, hint: rc.hint || null, diff };
+const e0 = evalLevel(L);
+for (const s of e0.sinks) s.t.need = s.got;
+for (let ni = 0; ni < rc.nets.length; ni++) {
+const got = e0.sinks.filter(s => netOf[s.t.y * C + s.t.x] === ni).map(s => s.got).sort((a, b) => a - b);
+if (got.join() !== rc.nets[ni].want.slice().sort((a, b) => a - b).join()) return null;
+}
+if (!evalLevel(L).win) return null;
+const rot = tiles.filter(t => t.type === 'pipe' && pop(t.base) < 4);
+for (const t of rot) t.rot = R() * 4 | 0;
+let wrong = rot.filter(t => rotm(t.base, t.rot) !== t.base).length;
+const need = Math.max(1, Math.ceil(rot.length * 0.6));
+for (const t of rot) if (wrong < need && rotm(t.base, t.rot) === t.base) {
+t.rot = t.base === 5 || t.base === 10 ? 1 : 1 + (R() * 3 | 0); wrong++;
+}
+if (evalLevel(L).win) return null;
+L.init = tiles.map(t => t.rot);
+return L;
+}
+const arms = t => t.type === 'pipe' ? rotm(t.base, t.rot) : t.base;
+function buildGraph(L) {
+const nodes = new Map(), edges = [], byKey = new Map();
+const node = (k, x, y) => { if (!nodes.has(k)) nodes.set(k, { k, x, y, adj: [], term: null }); return nodes.get(k); };
+const mid = (x, y, d) => {
+const ax = Math.min(x, x + DX[d]), ay = Math.min(y, y + DY[d]);
+return node((DX[d] ? 'h' : 'v') + ax + ',' + ay, x + 0.5 + DX[d] / 2, y + 0.5 + DY[d] / 2);
+};
+const add = (a, b, len, pt, t, key, arc) => {
+const e = { a, b, len, pt, tile: t, key, arc };
+a.adj.push(e); b.adj.push(e); edges.push(e); byKey.set(key, e);
+};
+for (const t of L.tiles) if (t) {
+const m = arms(t), ds = dirsOf(m);
+const cx = t.x + 0.5, cy = t.y + 0.5, id = t.x + ',' + t.y + ':';
+if (t.type === 'pipe' && ds.length === 2) {
+const a = mid(t.x, t.y, ds[0]), b = mid(t.x, t.y, ds[1]);
+if ((ds[1] - ds[0]) % 2 === 0) add(a, b, 1, f => [a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f], t, id + 's' + m, false);
+else {
+const ox = cx + (DX[ds[0]] + DX[ds[1]]) / 2, oy = cy + (DY[ds[0]] + DY[ds[1]]) / 2;
+const a0 = Math.atan2(a.y - oy, a.x - ox);
+let da = Math.atan2(b.y - oy, b.x - ox) - a0;
+if (da > Math.PI) da -= 2 * Math.PI; if (da < -Math.PI) da += 2 * Math.PI;
+add(a, b, Math.PI / 4, f => [ox + Math.cos(a0 + da * f) / 2, oy + Math.sin(a0 + da * f) / 2], t, id + 's' + m, true);
+}
+} else {
+for (const d of ds) {
+const c = node('c' + t.x + ',' + t.y + (t.type === 'src' ? '#' + d : ''), cx, cy);
+if (t.type !== 'pipe') c.term = t;
+const b = mid(t.x, t.y, d);
+add(c, b, 0.5, f => [cx + (b.x - cx) * f, cy + (b.y - cy) * f], t, id + d, false);
+}
+}
+}
+return { nodes: [...nodes.values()], edges, byKey };
+}
+function evalLevel(L) {
+const G = buildGraph(L), N = G.nodes.length;
+G.nodes.forEach((n, i) => { n.i = i; });
+const other = (e, n) => e.a === n ? e.b : e.a;
+const bitsOf = c => (c[0] ? 1 : 0) | (c[1] ? 2 : 0) | (c[2] ? 4 : 0) | (c[3] ? 8 : 0);
+const own = n => {
+const c = [0, 0, 0, 0];
+if (n.term && n.term.type === 'src') for (let b = 0; b < 4; b++) if (n.term.col >> b & 1) c[b]++;
+return c;
+};
+const comp = new Int32Array(N).fill(-1), comps = [];
+const disc = new Int32Array(N), low = new Int32Array(N);
+const subSrc = G.nodes.map(own), subSink = G.nodes.map(n => n.term && n.term.type === 'sink' ? 1 : 0);
+let timer = 0;
+const dfs = (v, pe, ci) => {
+comp[v] = ci; disc[v] = low[v] = ++timer;
+const n = G.nodes[v];
+for (const e of n.adj) {
+if (e === pe) continue;
+const w = other(e, n).i;
+if (!disc[w]) {
+dfs(w, e, ci);
+low[v] = Math.min(low[v], low[w]);
+for (let b = 0; b < 4; b++) subSrc[v][b] += subSrc[w][b];
+subSink[v] += subSink[w];
+if (low[w] > disc[v]) e.bridge = { child: w, parent: v };
+} else low[v] = Math.min(low[v], disc[w]);
+}
+};
+for (let i = 0; i < N; i++) if (!disc[i]) {
+const ci = comps.length;
+dfs(i, null, ci);
+comps.push({ cnt: subSrc[i].slice(), sinks: subSink[i], src: bitsOf(subSrc[i]) });
+}
+const dist = new Float64Array(N).fill(Infinity), done = new Uint8Array(N);
+G.nodes.forEach(n => { if (n.term && n.term.type === 'src') dist[n.i] = 0; });
+for (;;) {
+let v = -1;
+for (let i = 0; i < N; i++) if (!done[i] && dist[i] < Infinity && (v < 0 || dist[i] < dist[v])) v = i;
+if (v < 0) break;
+done[v] = 1;
+for (const e of G.nodes[v].adj) { const w = other(e, G.nodes[v]).i; if (dist[v] + e.len < dist[w]) dist[w] = dist[v] + e.len; }
+}
+const flows = [];
+for (const e of G.edges) {
+const C = comps[comp[e.a.i]];
+if (!C.src) continue;
+let u, v, col;
+if (e.bridge) {
+const w = G.nodes[e.bridge.child], p = G.nodes[e.bridge.parent];
+const aS = bitsOf(subSrc[w.i]), aK = subSink[w.i] > 0;
+const bS = bitsOf(C.cnt.map((c, b) => c - subSrc[w.i][b])), bK = C.sinks - subSink[w.i] > 0;
+if (aS && bK && !aK) { u = w; v = p; col = aS; }
+else if (bS && aK && !bK) { u = p; v = w; col = bS; }
+else { u = aS ? w : p; v = other(e, u); col = aS | bS; }
+} else {
+u = dist[e.a.i] <= dist[e.b.i] ? e.a : e.b; v = other(e, u); col = C.src;
+}
+flows.push({ e, u, v, col });
+}
+for (const f of flows) f.ins = flows.filter(g => g.v === f.u && g.e !== f.e);
+const leaks = G.nodes.filter(n => n.adj.length === 1 && !n.term && comps[comp[n.i]].src);
+const sinks = [];
+let srcOk = true;
+for (const n of G.nodes) if (n.term) {
+const C = comps[comp[n.i]];
+if (n.term.type === 'sink') sinks.push({ n, t: n.term, got: C.src, ok: C.src === n.term.need });
+else if (!C.sinks) srcOk = false;
+}
+const wetTile = new Set();
+for (const e of G.edges) if (comps[comp[e.a.i]].src) wetTile.add(e.tile);
+const allWet = L.tiles.every(t => !t || wetTile.has(t));
+const mixes = [];
+for (const n of G.nodes) if (n.adj.length >= 3 && !n.term && comps[comp[n.i]].src) {
+const ins = [...new Set(flows.filter(g => g.v === n).map(g => g.col))];
+const out = orAll(ins);
+if (ins.length >= 2 && !ins.includes(out)) mixes.push({ n, ins: ins.sort((a, b) => a - b), out });
+}
+const win = sinks.length > 0 && sinks.every(s => s.ok) && !leaks.length && srcOk && allWet;
+return { G, flows, leaks, sinks, mixes, win, allWet, wetTile };
+}
+function rekey(key, prefix) {
+const part = key.slice(prefix.length);
+if (part[0] === 's') {
+const m = +part.slice(1), nm = rotm(m, 1);
+return { key: prefix + 's' + nm, flip: ((dirsOf(m)[0] + 1) & 3) !== dirsOf(nm)[0] };
+}
+return { key: prefix + ((+part + 1) & 3), flip: false };
+}
+let SUPPORT_URL = 'https://send.monobank.ua/jar/6K1DTLciVs';
+function openSupport() {
+if (!SUPPORT_URL) return;
+try { window.open(SUPPORT_URL, '_blank', 'noopener'); } catch (e) { location.href = SUPPORT_URL; }
+}
+const SFX = (function () {
+let ac = null, master = null, send = null;
+const GAIN = 0.55;
+function build(a) {
+master = a.createGain();
+master.gain.value = settings.volume * GAIN;
+const lp = a.createBiquadFilter();
+lp.type = 'lowpass'; lp.frequency.value = 4500; lp.Q.value = 0.5;
+master.connect(lp); lp.connect(a.destination);
+const len = Math.floor(a.sampleRate * 1.0), ir = a.createBuffer(2, len, a.sampleRate);
+const decay = Math.pow(0.001, 1 / len);
+for (let ch = 0; ch < 2; ch++) {
+const d = ir.getChannelData(ch);
+let env = 1;
+for (let i = 0; i < len; i++) { d[i] = (Math.random() * 2 - 1) * env; env *= decay; }
+}
+const conv = a.createConvolver(), wet = a.createGain();
+conv.buffer = ir; wet.gain.value = 0.22;
+send = a.createGain(); send.gain.value = 1;
+send.connect(conv); conv.connect(wet); wet.connect(lp);
+}
+function ctxOn() {
+if (settings.volume <= 0) return null;
+if (!ac) {
+const AC = window.AudioContext || window.webkitAudioContext;
+if (!AC) return null;
+ac = new AC();
+build(ac);
+}
+if (ac.state === 'suspended') ac.resume();
+return ac;
+}
+function voice(f, dur, o) {
+o = o || {};
+const a = ctxOn(); if (!a) return;
+const t0 = a.currentTime + (o.at || 0), vol = o.vol || 0.2, att = o.att || 0.013;
+const osc = a.createOscillator(), g = a.createGain();
+osc.type = 'sine';
+osc.frequency.setValueAtTime(f, t0);
+if (o.glide) osc.frequency.exponentialRampToValueAtTime(f * o.glide, t0 + (o.gt || dur * 0.5));
+g.gain.setValueAtTime(0.0001, t0);
+g.gain.exponentialRampToValueAtTime(vol, t0 + att);
+g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+osc.connect(g); g.connect(master); g.connect(send);
+osc.start(t0); osc.stop(t0 + dur + 0.03);
+}
+const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+const S = {
+turn() { voice(430 + Math.random() * 60, 0.1, { vol: 0.1, glide: 1.35, gt: 0.05 }); },
+fill(col) {
+const m = 55 + [0, 0, 4, 2, 7, 5, 9, 11, 12][Math.min(8, col & 7)] + (col & 8 ? 12 : 0);
+voice(hz(m), 0.2, { vol: 0.14, glide: 1.5, gt: 0.07 });
+voice(hz(m + 7), 0.18, { vol: 0.1, glide: 1.5, gt: 0.07, at: 0.08 });
+},
+leak() { voice(260, 0.2, { vol: 0.08, glide: 0.7, gt: 0.14 }); },
+found() {
+[55, 60, 64, 67, 72].forEach((m, i) => voice(hz(m), 0.2, { vol: 0.13, glide: 1.45, gt: 0.07, at: i * 0.09 }));
+},
+done() {
+[50, 53, 55, 58, 62, 65, 67, 62, 58].forEach((m, i) =>
+voice(hz(m), 0.18, { vol: 0.12, glide: 1.5, gt: 0.07, at: 0.1 + i * 0.065 + Math.random() * 0.02 }));
+},
+probe() { voice(660, 0.12, { vol: 0.12, glide: 1.3, gt: 0.05 }); }
+};
+return {
+unlock: ctxOn,
+play(name, a) { try { S[name](a); } catch (e) {} },
+setVolume(v) { if (master) master.gain.value = v * GAIN; if (v > 0) ctxOn(); },
+pause() { if (ac && ac.state === 'running') ac.suspend(); }
+};
+})();
+const THEMES = {
+juicy: {
+bgTop: '#2a3a8c', bgBot: '#141b45', board: '#10163a', cell: '#1d2552', cellHi: '#26306a', pipe: ['#3a4679', '#121833'],
+text: '#f2f4ff', textStroke: 'rgba(0,0,0,.35)', gold: '#ffd84a', dim: '#9aa3d6',
+card: ['#26305e', '#1a2147'], cardText: '#e9ecff', btn: ['#4f8cff', '#3563d8', '#22408f'],
+alt: ['#5b6385', '#454c6b', '#2d3249'], veil: 'rgba(6,9,26,.62)'
+},
+wood: {
+bgTop: '#8a5a32', bgBot: '#4f2f18', board: '#3b2212', cell: '#4d2d17', cellHi: '#65401f', pipe: ['#9a6a3e', '#2a160a'],
+text: '#fff1d6', textStroke: 'rgba(60,30,10,.55)', gold: '#ffd27a', dim: '#e2bf93',
+card: ['#7a4c29', '#5a3419'], cardText: '#fff1d6', btn: ['#d9a15e', '#b97d3c', '#7c4f22'],
+alt: ['#8c6a4d', '#6c4f37', '#4a3524'], veil: 'rgba(30,14,4,.6)'
+},
+night: {
+bgTop: '#15122e', bgBot: '#06050f', board: '#0b0a1c', cell: '#15132c', cellHi: '#252250', pipe: ['#383466', '#07060f'],
+text: '#ecebff', textStroke: 'rgba(0,0,0,.5)', gold: '#ffe36b', dim: '#9d9ad6',
+card: ['#1e1a40', '#110f26'], cardText: '#ecebff', btn: ['#8a5cff', '#6536e0', '#3e1f9a'],
+alt: ['#3c3960', '#2b2848', '#1b1930'], veil: 'rgba(3,2,10,.7)'
+},
+day: {
+bgTop: '#cfe0ff', bgBot: '#f6efff', board: '#b9c6ea', cell: '#dfe6fa', cellHi: '#f6f9ff', pipe: ['#8e9bd0', '#4d5a8e'],
+text: '#34406e', textStroke: 'rgba(255,255,255,.7)', gold: '#d9801a', dim: '#6b76a8',
+card: ['#ffffff', '#eef1fd'], cardText: '#34406e', btn: ['#6f8dff', '#4f6ae8', '#3549b0'],
+alt: ['#aab2d4', '#8f98bf', '#6c7496'], veil: 'rgba(90,100,150,.45)'
+}
+};
+const THEME_IDS = Object.keys(THEMES);
+let TH = THEMES.juicy;
+function applyTheme(id) {
+TH = THEMES[id] || THEMES.juicy;
+const st = document.documentElement.style;
+const v = {
+veil: TH.veil, card1: TH.card[0], card2: TH.card[1], cardText: TH.cardText, gold: TH.gold,
+btn1: TH.btn[0], btn2: TH.btn[1], btn3: TH.btn[2], alt1: TH.alt[0], alt2: TH.alt[1], alt3: TH.alt[2],
+rainbow: 'linear-gradient(90deg,' + [1, 3, 2, 6, 4, 5].map(c => PAL[c]).join(',') + ')'
+};
+for (const k in v) st.setProperty('--' + k, v[k]);
+document.body.style.background = TH.bgBot;
+}
+const SPEED = 2.2;
+let L = null, E = null, level = 1;
+let fills = new Map();
+let waitT = new Map(), sinkLv = new Map(), puddles = new Map(), drops = [];
+let won = false, winT = 0, winShown = false, toast = null, tapped = false, foundNow = [];
+let book = new Set();
+try { book = new Set(JSON.parse(stGet('bp_book') || '[]')); } catch (e) {}
+let bookNew = stGet('bp_bookNew') === '1';
+const fresh = new Set();
+const ui = { hud: null };
+const dkey = (k, d) => d === 'normal' ? k : k + '_' + d;
+const savedLevel = d => Math.max(1, parseInt(stGet(dkey('bp_level', d)), 10) || 1);
+function startLevel(n, keep) {
+level = n; L = genLevel(n, settings.diff);
+if (keep) {
+try {
+const s = JSON.parse(stGet(dkey('bp_state', settings.diff)) || 'null');
+if (s && s.n === n && s.rots.length === L.tiles.length) L.tiles.forEach((t, i) => { t.rot = s.rots[i] & 3; });
+} catch (e) {}
+}
+fills = new Map(); waitT = new Map(); sinkLv = new Map(); puddles = new Map(); drops = [];
+won = false; winT = 0; winShown = false; tapped = keep && L.tiles.some((t, i) => t.rot !== L.init[i]); foundNow = [];
+E = evalLevel(L); boardLayout(); save();
+}
+function save() {
+stSet(dkey('bp_level', L.diff), String(level));
+stSet(dkey('bp_state', L.diff), JSON.stringify({ n: level, rots: L.tiles.map(t => t.rot) }));
+}
+function rotate(t) {
+if (won || E.win) return;
+const prefix = t.x + ',' + t.y + ':', moved = [];
+for (const [k, s] of fills) if (k.startsWith(prefix)) { moved.push([k, s]); fills.delete(k); }
+t.rot = (t.rot + 1) & 3; t.anim -= Math.PI / 2; tapped = true;
+for (const [k, s] of moved) {
+const r = rekey(k, prefix);
+fills.set(r.key, r.flip ? { lo: 1 - s.hi, hi: 1 - s.lo, dir: -s.dir, rgb: s.rgb } : s);
+}
+E = evalLevel(L); save();
+SFX.play('turn');
+}
+function restart() {
+L.tiles.forEach((t, i) => { t.rot = L.init[i]; });
+E = evalLevel(L); save();
+}
+function discover(ins, out) {
+const k = mixKey(ins);
+if (book.has(k)) return;
+book.add(k); fresh.add(k); bookNew = true; foundNow.push([ins, out]);
+stSet('bp_book', JSON.stringify([...book])); stSet('bp_bookNew', '1');
+toast = { ins, out, t: 0 };
+SFX.play('found');
+}
+function update(dt) {
+for (const t of L.tiles) if (t.anim) t.anim = Math.min(0, t.anim + dt * 11);
+const flowBy = new Map(E.flows.map(f => [f.e.key, f]));
+const full = f => { const s = fills.get(f.e.key); return !!s && s.lo <= 0 && s.hi >= 1; };
+for (const [k, s] of fills) if (!flowBy.has(k)) {
+const e = E.G.byKey.get(k);
+if (!e) { fills.delete(k); continue; }
+const v = dt * SPEED * 1.6 / e.len;
+if (s.dir > 0) s.lo += v; else s.hi -= v;
+if (s.hi - s.lo <= 0) fills.delete(k);
+}
+const nodeWait = new Set();
+for (const f of E.flows) {
+const fwd = f.u === f.e.a, v = dt * SPEED / f.e.len, tg = RGB[f.col];
+let s = fills.get(f.e.key);
+if (!s) { s = { lo: fwd ? 0 : 1, hi: fwd ? 0 : 1, dir: fwd ? 1 : -1, rgb: tg.slice() }; fills.set(f.e.key, s); }
+s.dir = fwd ? 1 : -1;
+const src = f.u.term && f.u.term.type === 'src';
+const anyIn = f.ins.some(full), allIn = f.ins.length && f.ins.every(full);
+if (anyIn && !allIn) nodeWait.add(f.u.k);
+if (src || allIn || (anyIn && (waitT.get(f.u.k) || 0) > 0.9)) { s.lo = Math.max(0, s.lo - v); s.hi = Math.min(1, s.hi + v); }
+if (s.hi - s.lo < 0.02) s.rgb = tg.slice();
+else s.rgb = s.rgb.map((c, i) => c + (tg[i] - c) * Math.min(1, dt * 2.5));
+}
+for (const k of [...waitT.keys()]) if (!nodeWait.has(k)) waitT.delete(k);
+for (const k of nodeWait) waitT.set(k, (waitT.get(k) || 0) + dt);
+for (const s of E.sinks) {
+const f = E.flows.find(g => g.v === s.n);
+const st = sinkLv.get(s.n.k) || { lv: 0, rgb: [0, 0, 0], rang: false };
+if (f && full(f)) {
+st.lv = Math.min(1, st.lv + dt * 0.9); st.rgb = fills.get(f.e.key).rgb.slice();
+if (!st.rang && st.lv > 0.3) { st.rang = true; SFX.play('fill', s.got); }
+} else { st.lv = Math.max(0, st.lv - dt * 1.2); if (st.lv <= 0) st.rang = false; }
+sinkLv.set(s.n.k, st);
+}
+const leakNow = new Set();
+for (const n of E.leaks) {
+const f = E.flows.find(g => g.v === n);
+if (!f || !full(f)) continue;
+leakNow.add(n.k);
+let p = puddles.get(n.k);
+if (!p) { p = { a: 0, n }; puddles.set(n.k, p); if (tapped) SFX.play('leak'); }
+p.a = Math.min(1, p.a + dt * 0.8); p.rgb = fills.get(f.e.key).rgb; p.n = n; p.tile = f.e.tile;
+if (Math.random() < dt * 14) {
+const [px, py] = f.e.pt(f.u === f.e.a ? 0.8 : 0.2);
+const out = Math.atan2(n.y - py, n.x - px);
+const ang = out + Math.PI + (Math.random() < 0.5 ? 1 : -1) * (0.9 + Math.random() * 0.6), sp = 0.5 + Math.random() * 0.8;
+drops.push({ x: n.x, y: n.y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, t: 0, rgb: p.rgb, tile: p.tile });
+}
+}
+for (const [k, p] of puddles) if (!leakNow.has(k)) { p.a -= dt * 1.5; if (p.a <= 0) puddles.delete(k); }
+drops = drops.filter(d => (d.t += dt) < 0.45);
+for (const d of drops) { d.x += d.vx * dt; d.y += d.vy * dt; d.vx *= 0.9; d.vy *= 0.9; }
+for (const m of E.mixes) {
+const ins = E.flows.filter(g => g.v === m.n);
+if (ins.length && ins.every(full)) discover(m.ins, m.out);
+}
+if (E.win && !won && E.sinks.every(s => (sinkLv.get(s.n.k) || { lv: 0 }).lv >= 0.98)) {
+won = true; winT = 0; SFX.play('done');
+}
+if (won) {
+winT += dt;
+if (winT > 1.1 && !winShown && ovEl.hidden) { winShown = true; showWin(); }
+}
+if (toast && (toast.t += dt) > 4) toast = null;
+}
+function rr(c, x, y, w, h, r) {
+c.beginPath();
+c.moveTo(x + r, y);
+c.arcTo(x + w, y, x + w, y + h, r);
+c.arcTo(x + w, y + h, x, y + h, r);
+c.arcTo(x, y + h, x, y, r);
+c.arcTo(x, y, x + w, y, r);
+c.closePath();
+}
+const rrect = (x, y, w, h, r) => rr(ctx, x, y, w, h, r);
+const disc = (x, y, r) => { ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); };
+function strokePts(p) { ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]); for (let i = 1; i < p.length; i++) ctx.lineTo(p[i][0], p[i][1]); ctx.stroke(); }
+function edgePts(e, from, to) {
+const n = e.arc ? Math.max(2, Math.ceil(14 * Math.abs(to - from))) : 2, o = [];
+for (let i = 0; i < n; i++) o.push(e.pt(from + (to - from) * i / (n - 1)));
+return o;
+}
+function inTile(t, fn) {
+ctx.save();
+if (t.anim) { ctx.translate(t.x + 0.5, t.y + 0.5); ctx.rotate(t.anim); ctx.translate(-t.x - 0.5, -t.y - 0.5); }
+ctx.beginPath(); ctx.rect(t.x, t.y, 1, 1); ctx.clip();
+fn(); ctx.restore();
+}
+const hash = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+const LABEL_LW = 0.17, LABEL_GAP = 0.7;
+function label(text, x, y, size, fill, stroke, alpha) {
+ctx.globalAlpha = alpha ?? 1;
+ctx.font = '800 ' + size + 'px "Segoe UI", Roboto, system-ui, sans-serif';
+ctx.textBaseline = 'middle';
+const mw = DW - 10;
+if (!stroke) {
+ctx.textAlign = 'center';
+ctx.fillStyle = fill; ctx.fillText(text, x, y, mw);
+ctx.globalAlpha = 1;
+return;
+}
+const lw = size * LABEL_LW, gap = lw * LABEL_GAP;
+const chars = [...text], ws = chars.map(c => ctx.measureText(c).width);
+const total = ws.reduce((a, b) => a + b, 0) + gap * (chars.length - 1);
+const k = total > mw ? mw / total : 1;
+ctx.save();
+ctx.translate(x - total * k / 2, y); ctx.scale(k, 1);
+ctx.textAlign = 'left';
+ctx.lineJoin = 'round'; ctx.lineWidth = lw; ctx.strokeStyle = stroke;
+let cx = 0;
+chars.forEach((c, i) => { ctx.strokeText(c, cx, 0); cx += ws[i] + gap; });
+ctx.fillStyle = fill; cx = 0;
+chars.forEach((c, i) => { ctx.fillText(c, cx, 0); cx += ws[i] + gap; });
+ctx.restore();
+ctx.globalAlpha = 1;
+}
+function text(str, x, y, size, fill, align) {
+ctx.font = '800 ' + size + 'px "Segoe UI", Roboto, system-ui, sans-serif';
+ctx.textAlign = align || 'left'; ctx.textBaseline = 'middle';
+ctx.fillStyle = fill; ctx.fillText(str, x, y);
+}
+function wrap(str, w, size) {
+ctx.font = '800 ' + size + 'px "Segoe UI", Roboto, system-ui, sans-serif';
+const out = [];
+let cur = '';
+for (const word of str.split(' ')) {
+const s = cur ? cur + ' ' + word : word;
+if (ctx.measureText(s).width > w && cur) { out.push(cur); cur = word; } else cur = s;
+}
+if (cur) out.push(cur);
+return out;
+}
+const ICON_GEAR = new Path2D('M12.7848 0.449982C13.8239 0.449982 14.7167 1.16546 14.9122 2.15495L14.9991 2.59495C15.3408 4.32442 17.1859 5.35722 18.9016 4.7794L19.3383 4.63233C20.3199 4.30175 21.4054 4.69358 21.9249 5.56605L22.7097 6.88386C23.2293 7.75636 23.0365 8.86366 22.2504 9.52253L21.9008 9.81555C20.5267 10.9672 20.5267 13.0328 21.9008 14.1844L22.2504 14.4774C23.0365 15.1363 23.2293 16.2436 22.7097 17.1161L21.925 18.4339C21.4054 19.3064 20.3199 19.6982 19.3382 19.3676L18.9017 19.2205C17.1859 18.6426 15.3408 19.6754 14.9991 21.405L14.9122 21.845C14.7167 22.8345 13.8239 23.55 12.7848 23.55H11.2152C10.1761 23.55 9.28331 22.8345 9.08781 21.8451L9.00082 21.4048C8.65909 19.6754 6.81395 18.6426 5.09822 19.2205L4.66179 19.3675C3.68016 19.6982 2.59465 19.3063 2.07505 18.4338L1.2903 17.1161C0.770719 16.2436 0.963446 15.1363 1.74956 14.4774L2.09922 14.1844C3.47324 13.0327 3.47324 10.9672 2.09922 9.8156L1.74956 9.52254C0.963446 8.86366 0.77072 7.75638 1.2903 6.8839L2.07508 5.56608C2.59466 4.69359 3.68014 4.30176 4.66176 4.63236L5.09831 4.77939C6.81401 5.35722 8.65909 4.32449 9.00082 2.59506L9.0878 2.15487C9.28331 1.16542 10.176 0.449982 11.2152 0.449982H12.7848ZM12 15.3C13.8225 15.3 15.3 13.8225 15.3 12C15.3 10.1774 13.8225 8.69998 12 8.69998C10.1774 8.69998 8.69997 10.1774 8.69997 12C8.69997 13.8225 10.1774 15.3 12 15.3Z');
+const ICON_HEART = new Path2D('M7 2C3.31333 2 1 5.21475 1 8.5C1 11.8412 2.67415 14.6994 4.77151 16.9297C6.8721 19.1634 9.47698 20.8565 11.5528 21.8944C11.8343 22.0352 12.1657 22.0352 12.4472 21.8944C14.523 20.8565 17.1279 19.1634 19.2285 16.9297C21.3259 14.6994 23 11.8412 23 8.5C23 5.22013 20.7289 2 17 2C15.275 2 14.0531 2.47979 13.1186 3.20977C12.6785 3.55357 12.311 3.95011 11.9974 4.33639C11.6802 3.94929 11.3091 3.55266 10.8649 3.2079C9.92877 2.48125 8.70883 2 7 2Z');
+const ICON_BOOK = new Path2D('M11 5.2C8.8 3.7 6 3.2 2.5 3.6V19.4C6 19 8.8 19.5 11 21ZM13 5.2C15.2 3.7 18 3.2 21.5 3.6V19.4C18 19 15.2 19.5 13 21Z');
+const HUD_BTN = 24, HUD_ICON = 13;
+const HEART_PAL = ['#ff7a9a', '#e0466e', '#9c2848'], BOOK_PAL = ['#ffb04a', '#f5821f', '#a8520e'];
+function drawIcon(path, x, y, size, fill, rule) {
+const k = size / 24;
+ctx.save(); ctx.translate(x - size / 2, y - size / 2); ctx.scale(k, k);
+ctx.fillStyle = fill; ctx.fill(path, rule || 'nonzero');
+ctx.restore();
+}
+function drawHudBtn(x, y, pal, pressed, icon, rule) {
+const S = HUD_BTN, r = 7, x0 = x - S / 2, y0 = y - S / 2, dip = pressed ? 1.8 : 0;
+ctx.fillStyle = pal[2]; rrect(x0, y0 + 2.2, S, S, r); ctx.fill();
+const g = ctx.createLinearGradient(0, y0 + dip, 0, y0 + S + dip);
+g.addColorStop(0, pal[0]); g.addColorStop(1, pal[1]);
+ctx.fillStyle = g; rrect(x0, y0 + dip, S, S, r); ctx.fill();
+ctx.strokeStyle = 'rgba(255,255,255,.22)'; ctx.lineWidth = 0.8;
+rrect(x0 + 0.5, y0 + dip + 0.5, S - 1, S - 1, r - 0.5); ctx.stroke();
+drawIcon(icon, x, y + dip, HUD_ICON, '#fff', rule);
+}
+const hudPressed = btn => ui.hud && ui.hud.btn === btn && ui.hud.inside;
+function drawBoard(time) {
+const pad = T * 0.28;
+ctx.fillStyle = TH.board; rrect(BX - pad, BY - pad, L.C * T + 2 * pad, L.H * T + 2 * pad, 6); ctx.fill();
+ctx.save(); ctx.translate(BX, BY); ctx.scale(T, T);
+ctx.lineJoin = 'round';
+for (let y = 0; y < L.H; y++) for (let x = 0; x < L.C; x++) {
+ctx.fillStyle = (x + y) % 2 ? TH.cell : TH.cellHi;
+rrect(x + 0.04, y + 0.04, 0.92, 0.92, 0.12); ctx.fill();
+}
+const G = E.G, chambers = G.nodes.filter(n => n.adj.length >= 3 && !n.term);
+ctx.lineCap = 'round';
+TH.pipe.forEach((c, k) => {
+ctx.strokeStyle = ctx.fillStyle = c; ctx.lineWidth = k ? 0.4 : 0.5;
+for (const e of G.edges) inTile(e.tile, () => strokePts(edgePts(e, 0, 1)));
+for (const n of chambers) disc(n.x, n.y, k ? 0.29 : 0.34);
+});
+const live = [];
+for (const [k, s] of fills) {
+const e = G.byKey.get(k);
+if (!e || s.hi - s.lo <= 0) continue;
+live.push({ e, s, pts: s.dir > 0 ? edgePts(e, s.lo, s.hi) : edgePts(e, s.hi, s.lo) });
+}
+const layer = (w, style, off) => {
+ctx.lineWidth = w;
+for (const q of live) {
+ctx.strokeStyle = style(q.s.rgb);
+inTile(q.e.tile, () => {
+if (off) { ctx.save(); ctx.translate(-off, -off); strokePts(q.pts); ctx.restore(); } else strokePts(q.pts);
+});
+}
+};
+layer(0.37, c => css(mixTo(c, 0, 0.38)));
+layer(0.27, c => css(c));
+layer(0.12, c => css(mixTo(c, 255, 0.35)), 0.04);
+ctx.lineCap = 'butt';
+for (const q of live) inTile(q.e.tile, () => {
+const { e, s, pts } = q, len = e.len, d0 = e.tile.x * 3.1 + e.tile.y * 7.7;
+ctx.save();
+ctx.setLineDash([0.16, 0.42]); ctx.lineDashOffset = -(d0 - time * SPEED * 0.7);
+ctx.lineWidth = 0.2; ctx.strokeStyle = 'rgba(255,255,255,.13)'; strokePts(pts);
+ctx.setLineDash([0.07, 0.61]); ctx.lineDashOffset = -(d0 * 1.3 - time * SPEED * 0.95);
+ctx.lineWidth = 0.09; ctx.strokeStyle = 'rgba(255,255,255,.16)'; strokePts(pts);
+ctx.restore();
+const nb = Math.round(len * 3);
+for (let i = 0; i < nb; i++) {
+const h = hash(i + d0 + len);
+const sp = ((i * len / nb + h * len + time * SPEED * (0.55 + 0.3 * h)) % len) / len;
+const a = s.dir > 0 ? sp : 1 - sp;
+if (a < s.lo + 0.02 || a > s.hi - 0.02) continue;
+const p0 = e.pt(a), p1 = e.pt(Math.min(1, a + 0.02));
+const nx = -(p1[1] - p0[1]), ny = p1[0] - p0[0], nl = Math.hypot(nx, ny) || 1;
+const o = (hash(i * 3.1 + d0) - 0.5) * 0.16 + Math.sin(time * 4 + i) * 0.015;
+const r = 0.018 + 0.02 * hash(i * 5.7 + d0), bx = p0[0] + nx / nl * o, by = p0[1] + ny / nl * o;
+ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 0.012;
+ctx.beginPath(); ctx.arc(bx, by, r, 0, 7); ctx.fill(); ctx.stroke();
+ctx.fillStyle = 'rgba(255,255,255,.8)'; disc(bx - r * 0.35, by - r * 0.35, r * 0.3);
+}
+ctx.save(); ctx.translate(-0.075, -0.075);
+ctx.lineWidth = 0.035; ctx.strokeStyle = 'rgba(255,255,255,.5)'; strokePts(pts);
+ctx.restore();
+if ((s.dir > 0 && s.hi < 1) || (s.dir < 0 && s.lo > 0)) {
+const p = pts[pts.length - 1], wob = 1 + Math.sin(time * 18) * 0.05;
+ctx.fillStyle = css(mixTo(s.rgb, 255, 0.45)); disc(p[0] - 0.03, p[1] - 0.03, 0.06 * wob);
+}
+});
+for (const tl of L.tiles) inTile(tl, () => {
+for (const d of dirsOf(arms(tl))) {
+const x = tl.x + 0.5 + DX[d] * 0.455, y = tl.y + 0.5 + DY[d] * 0.455;
+const w = DX[d] ? 0.09 : 0.6, h = DX[d] ? 0.6 : 0.09;
+ctx.fillStyle = TH.pipe[0]; rrect(x - w / 2, y - h / 2, w, h, 0.03); ctx.fill();
+ctx.fillStyle = 'rgba(255,255,255,.18)';
+if (DX[d]) ctx.fillRect(x - w / 2 + 0.015, y - h / 2 + 0.03, 0.025, h - 0.06);
+else ctx.fillRect(x - w / 2 + 0.03, y - h / 2 + 0.015, w - 0.06, 0.025);
+}
+});
+for (const n of chambers) {
+const ins = E.flows.filter(g => g.v === n).filter(g => { const s = fills.get(g.e.key); return s && s.lo <= 0 && s.hi >= 1; });
+if (!ins.length) continue;
+const out = E.flows.filter(g => g.u === n).map(g => fills.get(g.e.key)).find(s => s && s.hi - s.lo > 0);
+const body = out ? out.rgb : fills.get(ins[0].e.key).rgb, R = 0.29;
+const cols = [...new Set(ins.map(g => g.col))];
+const mixing = cols.length > 1 && !cols.includes(orAll(cols));
+ctx.save(); ctx.beginPath(); ctx.arc(n.x, n.y, R, 0, 7); ctx.clip();
+ctx.fillStyle = css(mixTo(body, 0, 0.38)); disc(n.x, n.y, R);
+ctx.fillStyle = css(body); disc(n.x, n.y, R * 0.8);
+if (mixing) {
+ctx.lineCap = 'round';
+const rot = time * 2.4;
+cols.forEach((c, i) => {
+for (const ph of [0, Math.PI]) {
+let px = null, py = null;
+for (let k = 0; k <= 16; k++) {
+const q = k / 16, r = R * (0.1 + 0.85 * q), a = rot + ph + i * Math.PI / cols.length - q * 3.4;
+const qx = n.x + Math.cos(a) * r, qy = n.y + Math.sin(a) * r;
+if (px !== null) {
+ctx.strokeStyle = css(RGB[c], (0.9 * q).toFixed(3)); ctx.lineWidth = 0.015 + 0.07 * q;
+ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(qx, qy); ctx.stroke();
+}
+px = qx; py = qy;
+}
+}
+});
+ctx.lineCap = 'butt';
+}
+const gr = ctx.createRadialGradient(n.x - R * 0.35, n.y - R * 0.35, R * 0.05, n.x, n.y, R);
+gr.addColorStop(0, 'rgba(255,255,255,.35)'); gr.addColorStop(0.5, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(0,0,0,.28)');
+ctx.fillStyle = gr; disc(n.x, n.y, R);
+ctx.fillStyle = 'rgba(0,0,0,.18)'; disc(n.x, n.y, R * 0.12);
+ctx.restore();
+}
+ctx.fillStyle = 'rgba(255,255,255,.22)';
+for (const n of chambers) { ctx.beginPath(); ctx.ellipse(n.x - 0.12, n.y - 0.13, 0.09, 0.04, -0.7, 0, 7); ctx.fill(); }
+for (const p of puddles.values()) inTile(p.tile, () => {
+const r = 0.1 + 0.16 * p.a;
+ctx.fillStyle = css(p.rgb, (0.38 * p.a).toFixed(3));
+ctx.beginPath();
+for (let i = 0; i <= 18; i++) {
+const a = i / 18 * Math.PI * 2, q = r * (1 + 0.18 * Math.sin(a * 5 + time * 3) + 0.1 * Math.sin(a * 3 - time * 2));
+ctx[i ? 'lineTo' : 'moveTo'](p.n.x + Math.cos(a) * q, p.n.y + Math.sin(a) * q);
+}
+ctx.fill();
+ctx.lineWidth = 0.025;
+for (const ph of [0, 0.5]) {
+const q = (time * 0.7 + ph) % 1;
+ctx.strokeStyle = css(mixTo(p.rgb, 255, 0.3), ((1 - q) * 0.6 * p.a).toFixed(3));
+ctx.beginPath(); ctx.arc(p.n.x, p.n.y, r * (0.5 + q * 1.1), 0, 7); ctx.stroke();
+}
+});
+for (const d of drops) inTile(d.tile, () => { ctx.fillStyle = css(d.rgb, (1 - d.t / 0.45).toFixed(3)); disc(d.x, d.y, 0.05); });
+const rim = mixTo(hex2rgb(TH.pipe[0]), 0, 0.2);
+for (const t of L.tiles) if (t.type !== 'pipe') {
+const x = t.x + 0.5, y = t.y + 0.5, R = 0.36;
+ctx.fillStyle = css(rim); disc(x, y, R + 0.06);
+ctx.fillStyle = TH.pipe[1]; disc(x, y, R);
+let rgb = t.type === 'src' ? RGB[t.col] : null, lv = 0.72, ok = false;
+if (t.type === 'sink') {
+const st = sinkLv.get('c' + t.x + ',' + t.y);
+lv = st ? st.lv * 0.72 : 0; rgb = st ? st.rgb : null;
+const s = E.sinks.find(q => q.t === t);
+ok = s && s.ok && E.win;
+}
+if (rgb && lv > 0) {
+ctx.save(); ctx.beginPath(); ctx.arc(x, y, R, 0, 7); ctx.clip();
+const top = y + R - 2 * R * lv;
+ctx.fillStyle = css(rgb);
+ctx.beginPath(); ctx.moveTo(x - R, y + R);
+for (let i = 0; i <= 12; i++) ctx.lineTo(x - R + 2 * R * i / 12, top + Math.sin(i * 0.9 + time * 3.2 + t.x) * 0.025);
+ctx.lineTo(x + R, y + R); ctx.closePath(); ctx.fill();
+ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.fillRect(x - R, top + 0.02, 2 * R, 0.04);
+ctx.restore();
+}
+if (t.type === 'sink') {
+ctx.lineWidth = 0.07; ctx.strokeStyle = PAL[t.need];
+if (ok && lv > 0.5) { ctx.shadowColor = PAL[t.need]; ctx.shadowBlur = (6 + Math.sin(time * 4) * 3) * SCALE / 4; }
+ctx.beginPath(); ctx.arc(x, y, R - 0.02, 0, 7); ctx.stroke();
+ctx.shadowBlur = 0;
+if (ok && lv >= 0.7) {
+ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.06; ctx.lineCap = 'round';
+ctx.beginPath(); ctx.moveTo(x - R * 0.35, y); ctx.lineTo(x - R * 0.05, y + R * 0.3); ctx.lineTo(x + R * 0.4, y - R * 0.3); ctx.stroke();
+ctx.lineCap = 'butt';
+}
+}
+ctx.fillStyle = 'rgba(255,255,255,.22)';
+ctx.beginPath(); ctx.ellipse(x - R * 0.35, y - R * 0.4, R * 0.28, R * 0.14, -0.6, 0, 7); ctx.fill();
+}
+if (level === 1 && !tapped && !won) {
+const t = L.tiles.find(q => q.type === 'pipe' && arms(q) !== q.base);
+if (t) {
+const p = (time % 1.4) / 1.4, x = t.x + 0.5, y = t.y + 0.5;
+ctx.globalAlpha = 0.9;
+ctx.fillStyle = '#fff'; disc(x + 0.12, y + 0.18, 0.1 * (p < 0.2 ? 0.8 + p : 1));
+ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.04; ctx.globalAlpha = 0.6 * (1 - p);
+ctx.beginPath(); ctx.arc(x + 0.12, y + 0.18, 0.1 + 0.35 * p, 0, 7); ctx.stroke();
+ctx.globalAlpha = 1;
+}
+}
+ctx.restore();
+}
+function eqDots(x, y, ins, out, r) {
+const items = [];
+ins.forEach((c, i) => { if (i) items.push('+'); items.push(c); });
+items.push('=', out);
+let w = 0; for (const it of items) w += typeof it === 'number' ? r * 2.3 : r * 1.5;
+let cx = x - w / 2;
+for (const it of items) {
+if (typeof it === 'number') {
+ctx.fillStyle = PAL[it]; disc(cx + r * 1.15, y, r);
+ctx.fillStyle = 'rgba(255,255,255,.3)'; disc(cx + r * 0.85, y - r * 0.3, r * 0.3);
+cx += r * 2.3;
+} else { text(it, cx + r * 0.75, y + r * 0.08, r * 1.6, 'rgba(255,255,255,.8)', 'center'); cx += r * 1.5; }
+}
+}
+function draw(time) {
+ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+const bg = ctx.createLinearGradient(0, 0, 0, LH);
+bg.addColorStop(0, TH.bgTop); bg.addColorStop(1, TH.bgBot);
+ctx.fillStyle = bg; ctx.fillRect(0, 0, LW, LH);
+label(String(level), LW / 2, HY + 20, 22, TH.text, TH.textStroke);
+label(t('level') + (settings.diff !== 'normal' ? '  ·  ' + t('d_' + settings.diff).toUpperCase() : ''), LW / 2, HY + 37, 8, TH.gold);
+if (SUPPORT_URL) drawHudBtn(HEART.x, HEART.y, HEART_PAL, hudPressed('heart'), ICON_HEART);
+drawHudBtn(BOOKB.x, BOOKB.y, BOOK_PAL, hudPressed('book'), ICON_BOOK);
+if (bookNew) { ctx.fillStyle = '#fff'; disc(BOOKB.x + 10, BOOKB.y - 10, 3.4); ctx.fillStyle = '#ff4d6a'; disc(BOOKB.x + 10, BOOKB.y - 10, 2.4); }
+drawHudBtn(GEAR.x, GEAR.y, TH.alt, hudPressed('gear'), ICON_GEAR, 'evenodd');
+if (L.hint && !won) {
+const lines = wrap(t(L.hint), 156, 6.6), h = 5 + lines.length * 8, y0 = GY + BAR_Y - h / 2;
+ctx.fillStyle = TH.gold; rrect(OX + 7, y0, DW - 14, h, 4); ctx.fill();
+lines.forEach((ln, i) => text(ln, LW / 2, y0 + 6.6 + i * 8, 6.6, '#3a2400', 'center'));
+}
+drawBoard(time);
+if (toast) {
+const a = Math.min(1, toast.t * 4, (4 - toast.t) * 2);
+ctx.globalAlpha = a;
+const x0 = OX + 20, y0 = GY + 40;
+ctx.fillStyle = TH.card[0]; rrect(x0, y0, 140, 38, 10); ctx.fill();
+ctx.strokeStyle = TH.gold; ctx.lineWidth = 1; ctx.stroke();
+text(t('newF'), LW / 2, y0 + 9, 8, TH.gold, 'center');
+eqDots(LW / 2, y0 + 25, toast.ins, toast.out, 5.5);
+ctx.globalAlpha = 1;
+}
+}
+function toLogic(ev) {
+const r = cv.getBoundingClientRect();
+return { x: (ev.clientX - r.left) * LW / r.width, y: (ev.clientY - r.top) * LH / r.height };
+}
+function hudHit(p) {
+const R = HUD_BTN / 2 + 5;
+if (Math.abs(p.x - GEAR.x) < R && Math.abs(p.y - GEAR.y) < R) return 'gear';
+if (Math.abs(p.x - BOOKB.x) < R - 2 && Math.abs(p.y - BOOKB.y) < R) return 'book';
+if (SUPPORT_URL && Math.abs(p.x - HEART.x) < R && Math.abs(p.y - HEART.y) < R) return 'heart';
+return null;
+}
+const inToast = p => toast && p.x >= OX + 20 && p.x <= OX + 160 && p.y >= GY + 40 && p.y <= GY + 78;
+cv.addEventListener('pointerdown', ev => {
+if (!L || !ovEl.hidden) return;
+SFX.unlock();
+const p = toLogic(ev);
+const hb = hudHit(p);
+if (hb) {
+ui.hud = { btn: hb, id: ev.pointerId, inside: true };
+try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
+if (hb === 'gear') requestAnimationFrame(() => { ui.hud = null; openSettings(); });
+if (hb === 'book') requestAnimationFrame(() => { ui.hud = null; openBook(); });
+return;
+}
+if (inToast(p)) { openBook(); return; }
+if (won) return;
+const cx = Math.floor((p.x - BX) / T), cy = Math.floor((p.y - BY) / T);
+if (cx < 0 || cy < 0 || cx >= L.C || cy >= L.H) return;
+const tl = L.tiles[cy * L.C + cx];
+if (tl && tl.type === 'pipe') rotate(tl);
+});
+cv.addEventListener('pointermove', ev => {
+if (!ui.hud || ev.pointerId !== ui.hud.id) return;
+ui.hud.inside = hudHit(toLogic(ev)) === ui.hud.btn;
+});
+cv.addEventListener('pointerup', ev => {
+if (!ui.hud || ev.pointerId !== ui.hud.id) return;
+const btn = ui.hud.btn, fire = hudHit(toLogic(ev)) === btn;
+ui.hud = null;
+if (fire && btn === 'heart') openSupport();
+});
+cv.addEventListener('pointercancel', ev => { if (ui.hud && ev.pointerId === ui.hud.id) ui.hud = null; });
+const ovEl = document.getElementById('ov'), ovCard = document.getElementById('ovCard');
+function openOverlay(html, actions, cls) {
+ovCard.className = 'card' + (cls ? ' ' + cls : '');
+ovCard.innerHTML = html;
+ovCard.querySelectorAll('button[data-act]').forEach(b => { b.onclick = () => actions[b.dataset.act](); });
+ovEl.hidden = false;
+}
+function closeOverlay() { ovEl.hidden = true; ovCard.innerHTML = ''; }
+ovEl.addEventListener('pointerdown', ev => { if (ev.target === ovEl && ovCard.classList.contains('book')) closeBook(); });
+const dotHtml = c => c ? '<span class="dot" style="background:' + PAL[c] + '"></span>' : '<span class="dot q">?</span>';
+function eqHtml(ins, out, open) {
+const parts = [];
+ins.forEach((c, i) => { if (i) parts.push('<span class="op">+</span>'); parts.push(dotHtml(open ? c : 0)); });
+parts.push('<span class="op">=</span>', dotHtml(open ? out : 0));
+return '<div class="eq">' + parts.join('') + '</div>';
+}
+function showWin() {
+const found = foundNow.map(([ins, out]) => '<div class="eqw book">' + eqHtml(ins, out, true) + '</div>').join('');
+openOverlay(
+'<h2>' + t('done') + '</h2>' +
+(found ? '<div class="sub">' + t('newF') + '</div>' + found : '') +
+'<div class="btns"><button data-act="next">' + t('next') + ' ›</button></div>' +
+(SUPPORT_URL && level % 5 === 0 ? '<button class="link" data-act="support">' + t('supportAsk') + '</button>' : ''),
+{ next: () => { closeOverlay(); startLevel(level + 1); }, support: openSupport });
+}
+function openBook() {
+let html = '', open = 0;
+for (const s of BOOK) {
+html += '<div class="sec">' + t(s.sec) + '</div>';
+for (const it of s.items) {
+const k = mixKey(it), o = book.has(k), out = orAll(it);
+if (o) open++;
+html += '<div class="row' + (fresh.has(k) ? ' fresh' : '') + '">' + eqHtml(it, out, o) +
+'<div class="nm">' + (o ? it.map(c => t('c' + c)).join(' + ') + '<br>= ' + t('c' + out) : t('locked')) + '</div></div>';
+}
+}
+const extra = [...book].filter(k => !BOOK_KEYS.includes(k));
+if (extra.length) {
+html += '<div class="sec">' + t('extra') + '</div>';
+for (const k of extra) {
+const ins = k.split('+').map(Number), out = orAll(ins);
+html += '<div class="row' + (fresh.has(k) ? ' fresh' : '') + '">' + eqHtml(ins, out, true) +
+'<div class="nm">' + ins.map(c => t('c' + c)).join(' + ') + '<br>= ' + t('c' + out) + '</div></div>';
+}
+}
+html += '<div class="sec">' + t('s_mach') + '</div>';
+for (const m of BOOK_MACH)
+html += '<div class="row"><div class="eq">' + dotHtml(0) + '<span class="op">›</span>' + Array(m.outs).fill(dotHtml(0)).join('') +
+'</div><div class="nm">' + t(m.name) + '<br>' + t(m.note) + '</div></div>';
+openOverlay('<h2>' + t('book') + '</h2><div class="cnt">' + open + t('of') + BOOK_KEYS.length + '</div>' +
+'<div class="list">' + html + '</div><div class="btns"><button data-act="close">' + t('close') + '</button></div>',
+{ close: closeBook }, 'book');
+bookNew = false; stSet('bp_bookNew', '0'); toast = null;
+}
+function closeBook() {
+fresh.clear(); closeOverlay();
+if (won && !winShown) { winShown = true; showWin(); }
+else if (won) showWin();
+}
+const thumbCache = {};
+function themeThumb(id) {
+if (thumbCache[id]) return thumbCache[id];
+const th = THEMES[id], c = document.createElement('canvas');
+c.width = 132; c.height = 48;
+const x = c.getContext('2d');
+x.scale(4, 4);
+const g = x.createLinearGradient(0, 0, 0, 12);
+g.addColorStop(0, th.bgTop); g.addColorStop(1, th.bgBot);
+x.fillStyle = g; x.fillRect(0, 0, 33, 12);
+x.fillStyle = th.board; rr(x, 2, 1.5, 29, 9, 1.5); x.fill();
+[4, 12, 20].forEach((bx, i) => { x.fillStyle = i % 2 ? th.cell : th.cellHi; x.fillRect(bx, 2.5, 7.5, 7); });
+x.lineCap = 'round';
+const seg = (w, c2) => { x.strokeStyle = c2; x.lineWidth = w; x.beginPath(); x.moveTo(5.5, 6); x.lineTo(26, 6); x.stroke(); };
+seg(3.6, th.pipe[0]); seg(2.8, th.pipe[1]);
+x.strokeStyle = PAL[4]; x.lineWidth = 2; x.beginPath(); x.moveTo(5.5, 6); x.lineTo(18, 6); x.stroke();
+x.fillStyle = PAL[1]; x.beginPath(); x.arc(27, 6, 2.6, 0, 7); x.fill();
+return (thumbCache[id] = c.toDataURL());
+}
+let installEvt = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
+addEventListener('appinstalled', () => { installEvt = null; });
+function openSettings() {
+const v = Math.round(settings.volume * 100);
+const langBtns = LANGS.map(l => '<button class="' + (l === lang ? '' : 'alt') + '" data-act="lang_' + l + '">' + l.toUpperCase() + '</button>').join('');
+const themeBtns = THEME_IDS.map(id =>
+'<button class="' + (id === settings.theme ? 'sel' : '') + '" data-act="theme_' + id + '" title="' +
+t('th_' + id) + '" aria-label="' + t('th_' + id) + '"><img alt="" src="' + themeThumb(id) + '"></button>').join('');
+const diffBtns = DIFF_IDS.map(d => '<button class="' + (d === settings.diff ? '' : 'alt') + '" data-act="diff_' + d + '">' +
+t('d_' + d) + '<small>' + DIFFS[d].size + '</small></button>').join('');
+const actions = {
+restart: () => openOverlay('<h2>' + t('restartQ') + '</h2><div class="btns"><button data-act="yes">' + t('yes') + '</button>' +
+'<button class="alt" data-act="no">' + t('no') + '</button></div>',
+{ yes: () => { restart(); closeOverlay(); }, no: () => openSettings() }),
+support: openSupport,
+install: () => {
+const e = installEvt;
+if (!e) return;
+installEvt = null; e.prompt();
+e.userChoice.finally(() => { if (!ovEl.hidden) openSettings(); });
+},
+close: () => closeOverlay()
+};
+LANGS.forEach(l => { actions['lang_' + l] = () => { setLang(l); openSettings(); }; });
+THEME_IDS.forEach(id => { actions['theme_' + id] = () => { settings.theme = id; saveSettings(); applyTheme(id); openSettings(); }; });
+DIFF_IDS.forEach(d => { actions['diff_' + d] = () => {
+if (d === settings.diff) return;
+save();
+settings.diff = d; saveSettings();
+startLevel(savedLevel(d), true);
+openSettings();
+}; });
+openOverlay(
+'<h2>' + t('settings') + '</h2>' +
+'<div class="blk grid">' +
+'<span>' + t('sound') + '</span>' +
+'<input class="vol" type="range" min="0" max="100" step="1" value="' + v + '" style="--v:' + v + '" aria-label="' + t('sound') + '">' +
+'<span>' + t('lang') + '</span><div class="seg ctl">' + langBtns + '</div>' +
+(installEvt ? '<span>' + t('app') + '</span><button class="ctl" data-act="install">' + t('install') + '</button>' : '') +
+(SUPPORT_URL ? '<span>' + t('author') + '</span><button class="ctl sup" data-act="support">' + t('support') + '</button>' : '') +
+'</div>' +
+'<div class="blk"><h3>' + t('diff') + '</h3><div class="diffs">' + diffBtns + '</div></div>' +
+'<div class="blk"><h3>' + t('theme') + '</h3><div class="themes">' + themeBtns + '</div></div>' +
+'<div class="btns"><button class="alt" data-act="restart">' + t('restart') + '</button>' +
+'<button data-act="close">' + t('close') + '</button></div>',
+actions, 'set');
+const r = ovCard.querySelector('.vol');
+let lastProbe = 0;
+r.oninput = () => {
+settings.volume = r.value / 100;
+r.style.setProperty('--v', r.value);
+SFX.setVolume(settings.volume);
+const now = performance.now();
+if (now - lastProbe > 90) { lastProbe = now; SFX.play('probe'); }
+};
+r.onchange = () => { saveSettings(); if (settings.volume <= 0) SFX.pause(); };
+}
+function hashStr(s) { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16).padStart(8, '0'); }
+const levelSig = L => L.C + 'x' + L.H + ':' + L.tiles.map(t => t.type[1] + t.base + '.' + t.rot + '.' + (t.col || t.need)).join(',');
+const solved = A => ({ ...A, tiles: A.tiles.map(t => ({ ...t, rot: 0 })) });
+function bpCheck() {
+const res = [];
+const ok = (name, cond, info) => { res.push((cond ? 'OK   ' : 'FAIL ') + name + (cond || info === undefined ? '' : ' — ' + info)); };
+ok('поворот: 4 раза — та же маска, колено С-В -> В-Ю', [1, 3, 5, 7, 15].every(m => rotm(m, 4) === m) && rotm(3, 1) === 6);
+let hamOk = true;
+for (let s = 1; s <= 40; s++) {
+const C = 3 + s % 4, H = 3 + s % 6, p = hamPath(C, H, mulberry32(s));
+const adjOk = p.every((c, i) => !i || Math.abs(c % C - p[i - 1] % C) + Math.abs((c / C | 0) - (p[i - 1] / C | 0)) === 1);
+if (new Set(p).size !== C * H || !adjOk) hamOk = false;
+}
+ok('змейка проходит каждую клетку ровно раз (40 полей)', hamOk);
+let bad = [], det = true, oneMove = [];
+const NL = 300;
+for (let n = 1; n <= NL; n++) {
+const A = genLevel(n), B = genLevel(n);
+if (levelSig(A) !== levelSig(B)) det = false;
+const es = evalLevel(solved(A)), ea = evalLevel(A);
+const full = A.tiles.length === A.C * A.H && A.tiles.every(t => t && pop(t.base) >= 1);
+const palOk = A.tiles.every(t => t.type !== 'sink' || PAL[t.need]);
+if (!es.win || ea.win || !full || !palOk) bad.push(n);
+const wrong = A.tiles.filter(t => t.type === 'pipe' && rotm(t.base, t.rot) !== t.base).length;
+if (wrong < 3 && A.tiles.length >= 9) oneMove.push(n);
+}
+ok('один номер — один уровень (' + NL + ')', det);
+ok('ответ решает, перемешанный — нет, все клетки — трубы (' + NL + ')', !bad.length, bad.slice(0, 8).join(','));
+ok('нет уровней в 1–2 касания', !oneMove.length, oneMove.slice(0, 8).join(','));
+ok('колбы неподвижны: у всех источников и стоков поворот 0 (300 уровней)',
+Array.from({ length: NL }, (_, i) => genLevel(i + 1)).every(A => A.tiles.every(q => q.type === 'pipe' || q.rot === 0)));
+let spare = [];
+for (let n = 1; n <= 60; n++) {
+const A = solved(genLevel(n));
+for (const tl of A.tiles) {
+if (tl.type !== 'pipe' || rotm(tl.base, 1) === tl.base) continue;
+tl.rot = 1;
+if (evalLevel(A).win) spare.push(n + ':' + tl.x + ',' + tl.y);
+tl.rot = 0;
+}
+}
+ok('в ответе нужна каждая клетка (уровни 1–60)', !spare.length, spare.slice(0, 6).join(' '));
+const needOf = n => genLevel(n).tiles.filter(t => t.type === 'sink').map(t => t.need).sort((a, b) => a - b).join(',');
+ok('ур. 1 — синий, ур. 3/4/5 — оранжевый/зелёный/фиолетовый',
+needOf(1) === '4' && needOf(3) === '3' && needOf(4) === '6' && needOf(5) === '5', [1, 3, 4, 5].map(needOf).join(' | '));
+const n9 = needOf(9).split(',');
+ok('ур. 9 — колба с двумя выходами: два стока разных цветов', n9.length === 2 && n9[0] !== n9[1] &&
+genLevel(9).tiles.some(t => t.type === 'src' && pop(t.base) >= 2), needOf(9));
+ok('ур. 12 — розовый (белый), ур. 25 — коричневый', needOf(12).split(',').includes('9') && needOf(25).split(',').includes('7'),
+needOf(12) + ' | ' + needOf(25));
+const mk = (C, H, list) => {
+const tiles = [];
+for (let i = 0; i < C * H; i++) tiles.push(null);
+for (const [x, y, type, base, v] of list) tiles[y * C + x] = { x, y, type, base, rot: 0, col: type === 'src' ? v : 0, need: type === 'sink' ? v : 0, anim: 0 };
+return { C, H, tiles: tiles.filter(Boolean) };
+};
+const base = [[0, 0, 'src', 2, 1], [1, 0, 'pipe', 14, 0], [2, 0, 'src', 8, 4], [1, 1, 'sink', 1, 5]];
+const e1 = evalLevel(mk(3, 2, base));
+ok('К + С в тройнике -> фиолетовый, победа', e1.win && e1.sinks[0].got === 5);
+ok('смесь найдена: 1+4 -> 5', e1.mixes.length === 1 && mixKey(e1.mixes[0].ins) === '1+4' && e1.mixes[0].out === 5);
+ok('рукав до смесителя — свой цвет, после — смесь',
+e1.flows.some(f => f.col === 1) && e1.flows.some(f => f.col === 4) && e1.flows.some(f => f.col === 5));
+ok('сток ждёт зелёный — не победа', !evalLevel(mk(3, 2, base.map(r => r[2] === 'sink' ? [1, 1, 'sink', 1, 6] : r))).win);
+const e3 = evalLevel(mk(3, 2, base.map(r => r[2] === 'pipe' ? [1, 0, 'pipe', 7, 0] : r)));
+ok('открытый конец в мокрой сети — протечка', e3.leaks.length > 0 && !e3.win);
+ok('красный + белый -> розовый', evalLevel(mk(3, 2, base.map(r => r[0] === 2 ? [2, 0, 'src', 8, 8] : r[2] === 'sink' ? [1, 1, 'sink', 1, 9] : r))).win);
+ok('красный + зелёный -> коричневый', evalLevel(mk(3, 2, base.map(r => r[0] === 2 ? [2, 0, 'src', 8, 6] : r[2] === 'sink' ? [1, 1, 'sink', 1, 7] : r))).win);
+const star = mk(4, 2, [[0, 0, 'sink', 2, 1], [1, 0, 'src', 10, 1], [2, 0, 'pipe', 14, 0], [3, 0, 'src', 8, 4], [2, 1, 'sink', 1, 5]]);
+const e7 = evalLevel(star);
+ok('колба с двумя выходами: в колбу вода не втекает (красный и фиолетовый)', e7.win &&
+e7.sinks.map(s => s.got).sort().join() === '1,5');
+const e8 = evalLevel(mk(3, 2, base.concat([[0, 1, 'pipe', 5, 0]])));
+ok('сухая труба на поле — не победа', !e8.win && !e8.allWet);
+const ring = mk(3, 3, [[0, 0, 'pipe', 6, 0], [1, 0, 'pipe', 14, 0], [2, 0, 'pipe', 12, 0], [0, 1, 'pipe', 5, 0], [2, 1, 'pipe', 5, 0],
+[0, 2, 'pipe', 3, 0], [1, 2, 'pipe', 11, 0], [2, 2, 'pipe', 9, 0], [1, 1, 'src', 5, 2]]);
+const e6 = evalLevel(ring);
+ok('кольцо труб считается (без стока — не победа)', e6.flows.length > 0 && !e6.win);
+const r1 = rekey('1,1:s3', '1,1:'), r2 = rekey('1,1:s9', '1,1:'), r3 = rekey('1,1:3', '1,1:');
+ok('поворот уносит воду: колено С-В -> В-Ю без разворота, З-С -> С-В с разворотом, рукав З -> С',
+r1.key === '1,1:s6' && !r1.flip && r2.key === '1,1:s3' && r2.flip && r3.key === '1,1:0');
+ok('книга: ' + BOOK_KEYS.length + ' формул, без повторов, каждая даёт новый цвет',
+new Set(BOOK_KEYS).size === BOOK_KEYS.length && BOOK.every(s => s.items.every(it => !it.includes(orAll(it)))));
+const seen = new Set();
+for (let n = 1; n <= 200; n++) for (const m of evalLevel(solved(genLevel(n))).mixes) seen.add(mixKey(m.ins));
+const miss = BOOK_KEYS.filter(k => !seen.has(k));
+ok('все формулы книги встречаются в уровнях 1–200', !miss.length, 'нет: ' + miss.join(' '));
+const dBad = [];
+for (const d of ['easy', 'hard']) for (let n = 1; n <= 150; n++) {
+const A = genLevel(n, d);
+const es = evalLevel(solved(A)), ea = evalLevel(A);
+const [mn, mx] = DIFFS[d].size.split('–').map(z => z.split('×').map(Number));
+const sizeOk = A.C * A.H >= mn[0] * mn[1] && A.C <= mx[0] && A.H <= mx[1];
+if (!es.win || ea.win || !sizeOk || levelSig(A) !== levelSig(genLevel(n, d))) dBad.push(d + n);
+}
+ok('Лёгкая и Сложная: 150 уровней каждая — решаемы, один номер = один уровень, поле в рамке', !dBad.length, dBad.slice(0, 6).join(' '));
+const nets = (n, d) => genLevel(n, d).tiles.filter(q => q.type === 'sink').length;
+ok('сложности различаются: ур. 30 — лёгкая меньше обычной, сложная больше',
+genLevel(30, 'easy').C * genLevel(30, 'easy').H < genLevel(30).C * genLevel(30).H &&
+genLevel(30, 'hard').C * genLevel(30, 'hard').H > genLevel(30).C * genLevel(30).H &&
+nets(50, 'hard') > nets(50, 'easy'));
+const langOk = LANGS.every(l => Object.keys(STRINGS.ru).every(k => STRINGS[l][k]));
+ok('строки: у EN и ES есть всё, что у RU', langOk);
+const sum = hashStr(Array.from({ length: 100 }, (_, i) => levelSig(genLevel(i + 1))).join('|'));
+const fail = res.filter(r => r.startsWith('FAIL'));
+console.log(res.join('\n') + '\nсумма уровней 1–100: ' + sum);
+return (fail.length ? 'ОШИБКИ: ' + fail.length + ' из ' + res.length : 'ВСЁ OK (' + res.length + ')') + ' ' + sum;
+}
+let last = 0;
+function frame(time) {
+requestAnimationFrame(frame);
+if (innerWidth !== fitW || innerHeight !== fitH) fit();
+const dt = last ? Math.min(0.05, (time - last) / 1000) : 0;
+last = time;
+update(dt);
+draw(time / 1000);
+}
+if (QS.has('dbg')) {
+window.bpCheck = bpCheck;
+window.BP = { genLevel, evalLevel, get L() { return L; }, get E() { return E; }, startLevel, rotate, restart, openBook, openSettings,
+get fills() { return fills; }, get puddles() { return puddles; }, get book() { return book; }, SFX, settings, applyTheme, setLang, DIFFS,
+layout: () => ({ LW, LH, OX, BX, BY, T, SCALE, GY }) };
+}
+addEventListener('resize', fit);
+addEventListener('orientationchange', fit);
+document.addEventListener('visibilitychange', () => { if (document.hidden) { if (L) save(); SFX.pause(); } });
+addEventListener('pagehide', () => { if (L) save(); });
+applyTheme(settings.theme);
+fit();
+if (!DIFFS[settings.diff]) settings.diff = 'normal';
+const startN = savedLevel(settings.diff);
+const qLvl = parseInt(QS.get('lvl'), 10);
+if (qLvl > 0) {
+startLevel(qLvl, false);
+try { history.replaceState(null, '', location.pathname + location.search.replace(/([?&])lvl=[^&]*&?/, '$1').replace(/[?&]$/, '')); } catch (e) {}
+} else startLevel(startN, true);
+requestAnimationFrame(frame);
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator && location.protocol !== 'file:')
+addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+</script>
+</body>
+</html>
