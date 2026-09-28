@@ -122,8 +122,9 @@ padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)"
 const PORTAL = window.BB_PORTAL ||
 (/[?&]dbg\b/.test(location.search) && /[?&]portal\b/.test(location.search) ? 'test' : '');
 const DW = 180, DH = 320;
-const N = 10, CELL = 16;
-const TRAY_H = 72;
+const N = 10;
+let CELL = 16;
+let TRAY_H = 72;
 const TRAY_GAP = 4;
 let LW = DW, LH = DH, SCALE = 4;
 let OX = 0, HY = 0;
@@ -131,6 +132,9 @@ let BX = 10, BY = 74;
 let COMBO_Y = 63;
 let TRAY_Y = 238;
 let SLOT_X = BX - 3;
+let LAND = false, TRAY_V = false;
+let CBX = 7, CBW = 166, TX = 7, TW = 166, EX = 7, EW = 166, ECO_Y = 312, HX = 90, VX0 = 0, VX1 = 180;
+const ECO_PH = 16;
 const GEAR = { x: 162, y: 20, r: 10 };
 const HEART = { x: 18, y: 20, r: 10 };
 const cv = document.getElementById('cv');
@@ -151,10 +155,37 @@ const gy = top + extra * 0.7;
 const up = PORTAL ? 12 : 0;
 BX = OX + 10; BY = 74 + gy - up;
 COMBO_Y = 63 + gy - up;
+LAND = false; TRAY_V = false; CELL = 16; TRAY_H = 72;
+if (LW > LH && landCellOf(top, bot) > CELL * 1.08) { layoutLand(top, bot); return; }
 TRAY_Y = BY + N * CELL + TRAY_GAP;
 SLOT_X = BX - 3;
 GEAR.x = OX + 162; GEAR.y = 20 + HY;
 HEART.x = OX + 18; HEART.y = 20 + HY;
+CBX = TX = EX = BX - 3; CBW = TW = EW = N * CELL + 6;
+ECO_Y = TRAY_Y + TRAY_H + 2; HX = LW / 2; VX0 = OX; VX1 = OX + DW;
+}
+const SIDE_MIN = 120, SIDE_MAX = 200, LAND_HEAD = 60;
+const landCellOf = (top, bot) => Math.min((LH - bot - 6 - (top + 2 + LAND_HEAD) - 6) / N,
+(LW - SIDE_MIN - 18 - 6) / N);
+function layoutLand(top, bot) {
+const M = 6;
+LAND = true; TRAY_V = true;
+VX0 = 0; VX1 = LW;
+HY = top + 2;
+COMBO_Y = HY + 51;
+const spY = HY + LAND_HEAD, spH = LH - bot - M - spY;
+CELL = landCellOf(top, bot);
+const pw = N * CELL + 6, side = Math.min(SIDE_MAX, LW - pw - 3 * M);
+const px = (LW - (pw + M + side)) / 2;
+BX = px + 3; BY = spY + (spH - N * CELL) / 2;
+const sx = px + pw + M, gr = sx + side;
+HX = (px + gr) / 2;
+HEART.x = px + 13; GEAR.x = gr - 13; HEART.y = GEAR.y = HY + 20;
+CBX = px; CBW = gr - px;
+TX = EX = SLOT_X = sx; TW = EW = side;
+ECO_Y = spY;
+TRAY_Y = PORTAL ? ECO_Y + ECO_PH + 4 : spY;
+TRAY_H = spY + spH - TRAY_Y;
 }
 let fitW = 0, fitH = 0;
 function fit() {
@@ -662,16 +693,19 @@ rewarded(done) { note(t('adTest')); SFX.pause(); setTimeout(done, 1200); },
 start() {}, stop() {}
 };
 if (PORTAL !== 'crazygames' || !window.CrazyGames || !window.CrazyGames.SDK) return none;
-let sdk = null, playing = false;
+let sdk = null, playing = false, off = false;
 window.CrazyGames.SDK.init().then(() => { sdk = window.CrazyGames.SDK; needDraw = true; if (playing) sdk.game.gameplayStart(); }).catch(() => {});
 return {
-ok: () => !!sdk,
+ok: () => !!sdk && !off,
 rewarded(done) {
-if (!sdk) return;
+if (!sdk || off) return;
 sdk.ad.requestAd('rewarded', {
 adStarted: () => SFX.pause(),
 adFinished: () => done(),
-adError: () => { note(t('adFail')); needDraw = true; }
+adError: e => {
+if (e && e.code === 'adsDisabledBasicLaunch') off = true;
+note(t('adFail')); needDraw = true;
+}
 });
 },
 start() { playing = true; if (sdk) sdk.game.gameplayStart(); },
@@ -937,24 +971,41 @@ if (G.tray.every(i => i >= 0) ? sig !== slotSig : !slotCells) {
 slotSig = sig;
 slotCells = G.tray.map(i => i < 0 ? 3 : Math.max(2, SHAPES[i].w));
 }
-const W = N * CELL + 6, total = slotCells.reduce((a, b) => a + b, 0);
+if (TRAY_V) {
+const hs = G.tray.map(i => i < 0 ? 3 : Math.max(2, SHAPES[i].h));
+const total = hs.reduce((a, b) => a + b, 0);
+const maxW = Math.max(1, ...G.tray.filter(i => i >= 0).map(i => SHAPES[i].w));
+const cell = Math.min(CELL, (TRAY_H - 3 * TRAY_PAD) / total, (TW - 10) / maxW);
+const pad = (TRAY_H - total * cell) / 3;
+const y0 = [], cy = [], cx = [];
+let y = TRAY_Y;
+for (let k = 0; k < 3; k++) {
+const h = hs[k] * cell + pad;
+y0.push(y); cy.push(y + h / 2); cx.push(TX + TW / 2); y += h;
+}
+y0.push(y);
+return { cell, y0, cx, cy };
+}
+const W = TW, total = slotCells.reduce((a, b) => a + b, 0);
 const maxH = Math.max(1, ...G.tray.filter(i => i >= 0).map(i => SHAPES[i].h));
 const cell = Math.min(CELL, (W - 3 * TRAY_PAD) / total, (TRAY_H - 8) / maxH);
 const pad = (W - total * cell) / 3;
-const x0 = [], cx = [];
+const x0 = [], cx = [], cy = [];
 let x = SLOT_X;
 for (let k = 0; k < 3; k++) {
 const w = slotCells[k] * cell + pad;
-x0.push(x); cx.push(x + w / 2); x += w;
+x0.push(x); cx.push(x + w / 2); cy.push(TRAY_Y + TRAY_H / 2); x += w;
 }
 x0.push(x);
-return { cell, x0, cx };
+return { cell, x0, cx, cy };
 }
-function slotAt(px) {
+function slotAt(p) {
 const g = trayGeo();
-for (let k = 0; k < 3; k++) if (px < g.x0[k + 1]) return k;
+if (TRAY_V) { for (let k = 0; k < 3; k++) if (p.y < g.y0[k + 1]) return k; return 2; }
+for (let k = 0; k < 3; k++) if (p.x < g.x0[k + 1]) return k;
 return 2;
 }
+const inTray = (p, pad) => p.x >= TX - 4 && p.x <= TX + TW + 4 && p.y >= TRAY_Y - 4 && p.y <= TRAY_Y + TRAY_H + pad;
 function updateTarget() {
 const d = ui.drag;
 ui.target = null; ui.preview = null;
@@ -986,16 +1037,16 @@ return;
 }
 if (ecoHit(p)) return;
 if (ui.drag || ui.rotTap) return;
-if (ui.rotMode && p.y >= TRAY_Y - 4 && p.y <= TRAY_Y + TRAY_H + 4) {
-const slot = slotAt(p.x);
+if (ui.rotMode && inTray(p, 4)) {
+const slot = slotAt(p);
 if (G.tray[slot] < 0) return;
 ui.rotTap = { slot, x: p.x, y: p.y, id: ev.pointerId, mouse: ev.pointerType === 'mouse' };
 try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
 return;
 }
 if (G.over) return;
-if (p.y >= TRAY_Y - 4 && p.y <= TRAY_Y + TRAY_H + (PORTAL ? 0 : 8)) {
-const slot = slotAt(p.x);
+if (inTray(p, PORTAL && !LAND ? 0 : 8)) {
+const slot = slotAt(p);
 if (G.tray[slot] < 0) return;
 ui.drag = { slot, x: p.x, y: p.y, lift: ev.pointerType !== 'mouse', t: 0, id: ev.pointerId };
 ui.back = null;
@@ -1075,7 +1126,7 @@ const s = res.s;
 ui.rotMode = false;
 if (res.starsGot) {
 stars += res.starsGot; saveStars();
-ui.floats.push({ x: ECO_X(), y: TRAY_Y + TRAY_H + 4, text: '+' + res.starsGot + '★', t: 0, big: true });
+ui.floats.push({ x: ECO_X(), y: ECO_Y + 8, text: '+' + res.starsGot + '★', t: 0, big: true });
 SFX.play('star');
 }
 for (const [cx, cy] of s.cells) ui.pops.push({ x: gx + cx, y: gy + cy, t: 0 });
@@ -1187,11 +1238,11 @@ saveRun();
 needDraw = true;
 }
 const ECO_H = 20;
-const ECO_X = () => BX + 16;
+const ECO_X = () => EX + 19;
 function ecoButtons() {
-const y = TRAY_Y + TRAY_H + 4, h = 12, w = 36, gap = 4;
 const keys = ['rot', 'swap'].concat(Ads.ok() ? ['ad'] : []);
-const right = BX - 3 + N * CELL + 6 - 5;
+const gap = 4, y = ECO_Y + 2, h = 12, w = LAND ? Math.min(36, (EW - 50) / keys.length - gap) : 36;
+const right = EX + EW - 5;
 const b = {};
 keys.forEach((k, n) => { b[k] = { x: right - (keys.length - n) * (w + gap) + gap, y, w, h }; });
 return b;
@@ -1255,8 +1306,9 @@ ctx.beginPath(); ctx.moveTo(x - r * 0.6, y - r); ctx.lineTo(x + r, y); ctx.lineT
 ctx.restore();
 }
 function drawEco() {
-const bs = ecoButtons(), x0 = BX - 3, w = N * CELL + 6, sy = TRAY_Y + TRAY_H;
-ctx.fillStyle = 'rgba(255,255,255,.07)'; ctx.fillRect(x0 + 6, sy, w - 12, 0.6);
+const bs = ecoButtons(), x0 = EX, w = EW, sy = TRAY_Y + TRAY_H;
+if (LAND) { ctx.fillStyle = COL.panel; rrect(x0, ECO_Y, w, ECO_PH, 4); ctx.fill(); }
+else { ctx.fillStyle = 'rgba(255,255,255,.07)'; ctx.fillRect(x0 + 6, sy, w - 12, 0.6); }
 const wy = bs.rot.y;
 const wr = bs.rot.x - 4, sr = x0 + 11 + 6.6;
 ctx.fillStyle = 'rgba(0,0,0,.32)'; rrect(x0 + 9, wy, wr - x0 - 9, 12, 6); ctx.fill();
@@ -1272,13 +1324,14 @@ ctx.fillStyle = g; rrect(b.x, b.y, b.w, b.h, 5); ctx.fill();
 ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 0.6;
 rrect(b.x + 0.4, b.y + 0.4, b.w - 0.8, b.h - 0.8, 4.6); ctx.stroke();
 const ink = dark ? '#4a2c00' : '#fff', A = dim ? 0.45 : 1, cy = b.y + b.h / 2;
-const pw = labelWidth(price, 7), iw = 7.6, sw = 5.8, g1 = 2.4, g2 = 0.8;
+const q = Math.min(1, b.w / 36);
+const pw = labelWidth(price, 7 * q), iw = 7.6 * q, sw = 5.8 * q, g1 = 2.4 * q, g2 = 0.8 * q;
 let gx = b.x + (b.w - (iw + g1 + pw + g2 + sw)) / 2;
-ecoIcon(kind, gx + iw / 2, cy, 3.3, ink);
+ecoIcon(kind, gx + iw / 2, cy, 3.3 * q, ink);
 gx += iw + g1;
-label(price, gx + pw / 2, cy + 0.3, 7, ink, dark ? null : 'rgba(0,0,0,.25)', A);
+label(price, gx + pw / 2, cy + 0.3, 7 * q, ink, dark ? null : 'rgba(0,0,0,.25)', A);
 gx += pw + g2;
-drawStar(gx + sw / 2, cy, 2.9, A);
+drawStar(gx + sw / 2, cy, 2.9 * q, A);
 ctx.globalAlpha = 1;
 };
 chip(bs.rot, ui.rotMode ? ECO_GOLD : TH.btn, 'rot', String(ECO.rot), stars < ECO.rot && !ui.rotMode, ui.rotMode);
@@ -1586,7 +1639,7 @@ const p = (ui.tutT % TUT_CYCLE) / TUT_CYCLE;
 const ease = k => k < 0.5 ? 2 * k * k : 1 - 2 * (1 - k) * (1 - k);
 const mv = p < 0.15 ? 0 : p < 0.65 ? ease((p - 0.15) / 0.5) : 1;
 const alpha = p < 0.1 ? p / 0.1 : p > 0.85 ? (1 - p) / 0.15 : 1;
-const tg = trayGeo(), x0 = tg.cx[slot], y0 = TRAY_Y + TRAY_H / 2;
+const tg = trayGeo(), x0 = tg.cx[slot], y0 = tg.cy[slot];
 const x1 = BX + (gx + s.w / 2) * CELL, y1 = BY + (gy + s.h / 2) * CELL;
 const cx = x0 + (x1 - x0) * mv, cy = y0 + (y1 - y0) * mv;
 const ts = tg.cell, size = ts + (CELL - ts) * mv;
@@ -1605,26 +1658,26 @@ ctx.globalAlpha = 1;
 function drawCombo() {
 const y = COMBO_Y;
 if (ui.tut) {
-ctx.fillStyle = COL.gold; rrect(BX - 3, y - 6, N * CELL + 6, 12, 4); ctx.fill();
-text(t('tut' + ui.tut), LW / 2, y + 0.3, 7, '#3a2400', 'center');
+ctx.fillStyle = COL.gold; rrect(CBX, y - 6, CBW, 12, 4); ctx.fill();
+text(t('tut' + ui.tut), CBX + CBW / 2, y + 0.3, 7, '#3a2400', 'center');
 return;
 }
 const on = G.combo > 0;
 const left = on ? COMBO_GRACE - G.msc : 0;
 const warn = on && left === 1;
-ctx.fillStyle = COL.panel; rrect(BX - 3, y - 6, N * CELL + 6, 12, 4); ctx.fill();
-text(t('comboBar'), BX + 2, y + 0.3, 6.5, on ? COL.dim : COL.faint);
+ctx.fillStyle = COL.panel; rrect(CBX, y - 6, CBW, 12, 4); ctx.fill();
+text(t('comboBar'), CBX + 5, y + 0.3, 6.5, on ? COL.dim : COL.faint);
 if (on) {
 ctx.font = '800 6.5px "Segoe UI", Roboto, system-ui, sans-serif';
-text(String(G.combo), BX + 5 + ctx.measureText(t('comboBar')).width, y + 0.3, 9, '#ff9d3c');
+text(String(G.combo), CBX + 8 + ctx.measureText(t('comboBar')).width, y + 0.3, 9, '#ff9d3c');
 }
 for (let k = 0; k < COMBO_GRACE; k++) {
 const lit = k < left;
 ctx.fillStyle = !lit ? COL.pipOff : warn ? '#ff5a5a' : COL.gold;
-rrect(BX + 62 + k * 9, y - 2.5, 7, 5, 1.5); ctx.fill();
+rrect(CBX + 65 + k * 9, y - 2.5, 7, 5, 1.5); ctx.fill();
 }
-if (on) text(t('comboNext') + (G.combo + 1), BX + N * CELL - 2, y + 0.3, 7, warn ? '#ff8a8a' : COL.gold, 'right');
-else text(t('comboNone'), BX + N * CELL - 2, y + 0.3, 6.5, COL.faint, 'right');
+if (on) text(t('comboNext') + (G.combo + 1), CBX + CBW - 5, y + 0.3, 7, warn ? '#ff8a8a' : COL.gold, 'right');
+else text(t('comboNone'), CBX + CBW - 5, y + 0.3, 6.5, COL.faint, 'right');
 }
 function drawShape(s, cx, cy, size, ci, alpha) {
 const x0 = cx - s.w * size / 2, y0 = cy - s.h * size / 2;
@@ -1637,8 +1690,8 @@ ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
 const bg = ctx.createLinearGradient(0, 0, 0, LH);
 bg.addColorStop(0, COL.bgTop); bg.addColorStop(1, COL.bgBot);
 ctx.fillStyle = bg; ctx.fillRect(0, 0, LW, LH);
-label(String(Math.round(ui.shown)), LW / 2, HY + 20, 22, COL.text, COL.textStroke);
-label(t('best') + '  ' + best + (G.mode === 'hard' ? '  ·  ' + t('hardTag') : ''), LW / 2, HY + 37, 8, COL.gold);
+label(String(Math.round(ui.shown)), HX, HY + 20, 22, COL.text, COL.textStroke);
+label(t('best') + '  ' + best + (G.mode === 'hard' ? '  ·  ' + t('hardTag') : ''), HX, HY + 37, 8, COL.gold);
 drawGear(GEAR.x, GEAR.y);
 if (SUPPORT_URL) drawHeart(HEART.x, HEART.y);
 drawCombo();
@@ -1683,22 +1736,22 @@ ctx.fillStyle = PAL[p.c].light;
 ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
 }
 ctx.globalAlpha = 1;
-ctx.fillStyle = COL.panel; rrect(BX - 3, TRAY_Y, N * CELL + 6, TRAY_H + (PORTAL ? ECO_H : 0), 4); ctx.fill();
+ctx.fillStyle = COL.panel; rrect(TX, TRAY_Y, TW, TRAY_H + (PORTAL && !LAND ? ECO_H : 0), 4); ctx.fill();
 const tg = trayGeo();
 for (let k = 0; k < 3; k++) {
 const si = G.tray[k];
 if (si < 0 || (drag && drag.slot === k) || (ui.back && ui.back.slot === k)) continue;
 const s = SHAPES[si];
 const ci = fitsAnywhere(G.board, s) ? s.color : GREY;
-drawShape(s, tg.cx[k], TRAY_Y + TRAY_H / 2, tg.cell, ci);
-if (ui.rotMode && s.rot !== si) text('↻', tg.cx[k], TRAY_Y + 7, 8, COL.gold, 'center');
+drawShape(s, tg.cx[k], tg.cy[k], tg.cell, ci);
+if (ui.rotMode && s.rot !== si) text('↻', TRAY_V ? TX + 8 : tg.cx[k], TRAY_V ? tg.cy[k] : TRAY_Y + 7, 8, COL.gold, 'center');
 }
 if (PORTAL) drawEco();
 for (const f of ui.floats) {
 const k = f.t / FLOAT_LIFE;
 const size = f.big ? 11 : 8;
 const half = labelWidth(f.text, size) / 2 + 2;
-const fx = Math.min(OX + DW - half, Math.max(OX + half, f.x));
+const fx = Math.min(VX1 - half, Math.max(VX0 + half, f.x));
 label(f.text, fx, f.y - 14 * easeOut(k), size, '#fff', 'rgba(0,0,0,.5)', 1 - k * k);
 }
 for (const b of ui.banners) {
@@ -1706,13 +1759,13 @@ const sc = b.t < 0.18 ? 0.6 + 0.4 * easeOut(b.t / 0.18) : 1;
 const a = b.t > BANNER_LIFE - 0.3 ? (BANNER_LIFE - b.t) / 0.3 : 1;
 let y = BY + N * CELL / 2 - (b.lines.length - 1) * 10;
 for (const l of b.lines) {
-label(l.text, LW / 2, y, l.size * sc, l.color, 'rgba(20,10,0,.75)', a);
+label(l.text, BX + N * CELL / 2, y, l.size * sc, l.color, 'rgba(20,10,0,.75)', a);
 y += 20;
 }
 }
 if (ui.back && G.tray[ui.back.slot] >= 0) {
 const b = ui.back, k = easeOut(Math.min(1, b.t / BACK_LIFE));
-const tg2 = trayGeo(), tx = tg2.cx[b.slot], ty = TRAY_Y + TRAY_H / 2;
+const tg2 = trayGeo(), tx = tg2.cx[b.slot], ty = tg2.cy[b.slot];
 drawShape(SHAPES[G.tray[b.slot]], b.x + (tx - b.x) * k, b.y + (ty - b.y) * k,
 b.size + (tg2.cell - b.size) * k, SHAPES[G.tray[b.slot]].color);
 }
@@ -1729,7 +1782,7 @@ let ly = BY + ui.target.y * CELL - 7;
 if (ly < BY + 2) ly = BY + (ui.target.y + dragS.h) * CELL + 7;
 const str = '+' + r.gained + (r.combo >= 2 ? '  ×' + r.combo : '');
 const half = labelWidth(str, 9) / 2 + 2;
-const lx = Math.min(OX + DW - half, Math.max(OX + half, BX + (ui.target.x + dragS.w / 2) * CELL));
+const lx = Math.min(VX1 - half, Math.max(VX0 + half, BX + (ui.target.x + dragS.w / 2) * CELL));
 label(str, lx, ly, 9, '#fff', 'rgba(0,0,0,.7)');
 }
 }
@@ -2035,7 +2088,7 @@ return out;
 }
 if (QS.has('dbg')) {
 window.BB = { get G() { return G; }, get ui() { return ui; },
-get layout() { const g = trayGeo(); return { LW, LH, OX, BX, BY, TRAY_Y, TRAY_H, SLOT_X, CELL, slotCx: g.cx, trayCell: g.cell }; },
+get layout() { const g = trayGeo(); return { LW, LH, OX, BX, BY, TRAY_Y, TRAY_H, SLOT_X, CELL, LAND, TX, TW, slotCx: g.cx, slotCy: g.cy, trayCell: g.cell }; },
 get supportUrl() { return SUPPORT_URL; }, set supportUrl(v) { SUPPORT_URL = v; }, draw, fit, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings,
 get stars() { return stars; }, set stars(v) { stars = v; saveStars(); }, ECO, PORTAL, showGameOver, traySolutions, TUNE };
 window.bbCheck = bbCheck;
