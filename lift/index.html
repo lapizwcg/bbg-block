@@ -1262,6 +1262,7 @@ SFX.play('pick');
 try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
 needDraw = true;
 if (hb === 'gear') requestAnimationFrame(() => { ui.hud = null; openSettings(); });
+if (hb === 'cup') requestAnimationFrame(() => { ui.hud = null; openHistory(); });
 return;
 }
 if (ecoHit(p)) return;
@@ -1347,7 +1348,7 @@ cv.addEventListener('pointercancel', ev => { if (ui.drag && ev.pointerId === ui.
 function hudHit(p) {
 const R = HUD_BTN / 2 + 5;
 if (Math.abs(p.x - GEAR.x) < R && Math.abs(p.y - GEAR.y) < R) return 'gear';
-if (SUPPORT_URL && Math.abs(p.x - HEART.x) < R && Math.abs(p.y - HEART.y) < R) return 'heart';
+if (Math.abs(p.x - HEART.x) < R && Math.abs(p.y - HEART.y) < R) return 'cup';
 return null;
 }
 cv.addEventListener('pointermove', ev => {
@@ -1360,7 +1361,6 @@ if (!ui.hud || ev.pointerId !== ui.hud.id) return;
 const btn = ui.hud.btn, fire = hudHit(toLogic(ev)) === btn;
 ui.hud = null; needDraw = true;
 if (!fire) return;
-if (btn === 'heart') openSupport();
 });
 cv.addEventListener('pointercancel', ev => {
 if (ui.hud && ev.pointerId === ui.hud.id) { ui.hud = null; needDraw = true; }
@@ -1680,7 +1680,6 @@ const themeBtns = THEME_IDS.map(id =>
 t('th_' + id) + '" aria-label="' + t('th_' + id) + '"><img alt="" src="' + themeThumb(id) + '"></button>').join('');
 const actions = {
 restart: () => askRestart(),
-history: () => openHistory(),
 credits: () => openCredits(),
 support: openSupport,
 install: () => {
@@ -1726,12 +1725,11 @@ openOverlay(
 '<span>' + t('diff') + '</span><div class="seg ctl">' + diffBtns + '</div>' +
 '<span>' + t('lang') + '</span><div class="flags ctl">' + langBtns + '</div>' +
 (installEvt ? '<span>' + t('app') + '</span><button class="ctl" data-act="install">' + t('install') + '</button>' : '') +
-(SUPPORT_URL ? '<span>' + t('author') + '</span><button class="ctl sup" data-act="support">' + t('support') + '</button>' : '') +
-'<span>' + t('history') + '</span><button class="ctl alt" data-act="history">' + t('histOpen') + '</button>' +
 '<span>' + t('credits') + '</span><button class="ctl alt" data-act="credits">' + t('histOpen') + '</button>' +
 '</div>' +
 '<div class="blk"><h3>' + t('theme') + '</h3><div class="themes">' + themeBtns + '</div>' + pieceRow + '</div>' +
 '<div class="btns col"><button class="alt" data-act="restart">' + t('restart') + '</button>' +
+(SUPPORT_URL ? '<button class="sup" data-act="support">' + t('support') + '</button>' : '') +
 '<button data-act="close">' + t('close') + '</button></div>' +
 (window.BB_VER ? '<div class="ver">v ' + window.BB_VER + '</div>' : ''),
 actions, 'set');
@@ -1761,13 +1759,13 @@ openOverlay(
 (st.n ? '<div class="hstats"><div><b>' + st.n + '</b>' + t('gamesW') + '</div><div><b>' + st.avg + '</b>' + t('avgW') + '</div><div><b>' + top + '</b>' + t('bestW') + '</div></div>' +
 '<div class="hlist">' + rows + '</div>'
 : '<div class="sub">' + t('histEmpty') + '</div>') +
-'<div class="btns"><button data-act="back">' + t('back') + '</button></div>',
-{ back: () => openSettings() });
+'<div class="btns"><button data-act="close">' + t('close') + '</button></div>',
+{ close: () => { closeOverlay(); needDraw = true; } });
 }
 const CREDITS = [
 { k: 'creditsGame', name: 'LapizWCG', url: 'https://lapizwcg.itch.io/' },
-{ k: 'creditsMusic', name: 'chajamakesmusic', url: 'https://chajamakesmusic.itch.io/', note: 'CC0' },
-{ k: 'creditsFlags', name: 'Twemoji', url: 'https://github.com/jdecked/twemoji', note: 'CC-BY 4.0' }
+{ k: 'creditsMusic', name: 'chajamakesmusic', url: 'https://chajamakesmusic.itch.io/' },
+{ k: 'creditsFlags', name: 'Twemoji', url: 'https://github.com/jdecked/twemoji' }
 ];
 function openCredits() {
 const acts = { back: () => openSettings() };
@@ -2017,9 +2015,10 @@ ctx.fillStyle = fill; ctx.fillText(str, x, y);
 }
 const easeOut = k => 1 - (1 - k) * (1 - k);
 const ICON_GEAR = new Path2D('M12.7848 0.449982C13.8239 0.449982 14.7167 1.16546 14.9122 2.15495L14.9991 2.59495C15.3408 4.32442 17.1859 5.35722 18.9016 4.7794L19.3383 4.63233C20.3199 4.30175 21.4054 4.69358 21.9249 5.56605L22.7097 6.88386C23.2293 7.75636 23.0365 8.86366 22.2504 9.52253L21.9008 9.81555C20.5267 10.9672 20.5267 13.0328 21.9008 14.1844L22.2504 14.4774C23.0365 15.1363 23.2293 16.2436 22.7097 17.1161L21.925 18.4339C21.4054 19.3064 20.3199 19.6982 19.3382 19.3676L18.9017 19.2205C17.1859 18.6426 15.3408 19.6754 14.9991 21.405L14.9122 21.845C14.7167 22.8345 13.8239 23.55 12.7848 23.55H11.2152C10.1761 23.55 9.28331 22.8345 9.08781 21.8451L9.00082 21.4048C8.65909 19.6754 6.81395 18.6426 5.09822 19.2205L4.66179 19.3675C3.68016 19.6982 2.59465 19.3063 2.07505 18.4338L1.2903 17.1161C0.770719 16.2436 0.963446 15.1363 1.74956 14.4774L2.09922 14.1844C3.47324 13.0327 3.47324 10.9672 2.09922 9.8156L1.74956 9.52254C0.963446 8.86366 0.77072 7.75638 1.2903 6.8839L2.07508 5.56608C2.59466 4.69359 3.68014 4.30176 4.66176 4.63236L5.09831 4.77939C6.81401 5.35722 8.65909 4.32449 9.00082 2.59506L9.0878 2.15487C9.28331 1.16542 10.176 0.449982 11.2152 0.449982H12.7848ZM12 15.3C13.8225 15.3 15.3 13.8225 15.3 12C15.3 10.1774 13.8225 8.69998 12 8.69998C10.1774 8.69998 8.69997 10.1774 8.69997 12C8.69997 13.8225 10.1774 15.3 12 15.3Z');
-const ICON_HEART = new Path2D('M7 2C3.31333 2 1 5.21475 1 8.5C1 11.8412 2.67415 14.6994 4.77151 16.9297C6.8721 19.1634 9.47698 20.8565 11.5528 21.8944C11.8343 22.0352 12.1657 22.0352 12.4472 21.8944C14.523 20.8565 17.1279 19.1634 19.2285 16.9297C21.3259 14.6994 23 11.8412 23 8.5C23 5.22013 20.7289 2 17 2C15.275 2 14.0531 2.47979 13.1186 3.20977C12.6785 3.55357 12.311 3.95011 11.9974 4.33639C11.6802 3.94929 11.3091 3.55266 10.8649 3.2079C9.92877 2.48125 8.70883 2 7 2Z');
 const HUD_BTN = 24, HUD_ICON = 13;
-const HEART_PAL = ['#ff7a9a', '#e0466e', '#9c2848'];
+const CUP_PAL = ['#ffd45e', '#e9a21f', '#9a6410'];
+const ICON_CUP = new Path2D('M6 3h12v2h3a1 1 0 0 1 1 1v2.5A4.5 4.5 0 0 1 17.5 13h-.6A5.5 5.5 0 0 1 13 15.9V18h3a1 1 0 0 1 1 1v2H7v-2a1 1 0 0 1 1-1h3v-2.1A5.5 5.5 0 0 1 7.1 13h-.6A4.5 4.5 0 0 1 2 8.5V6a1 1 0 0 1 1-1h3V3z' +
+'M4 7v1.5A2.5 2.5 0 0 0 6 11V7H4z' + 'M18 7v4a2.5 2.5 0 0 0 2-2.5V7h-2z');
 function drawIcon(path, x, y, size, fill, rule) {
 const k = size / 24;
 ctx.save();
@@ -2042,7 +2041,7 @@ rrect(x0 + 0.5, y0 + dip + 0.5, S - 1, S - 1, r - 0.5); ctx.stroke();
 drawIcon(icon, x, y + dip, HUD_ICON, '#fff', rule);
 }
 const hudPressed = btn => ui.hud && ui.hud.btn === btn && ui.hud.inside;
-function drawHeart(x, y) { drawHudBtn(x, y, HEART_PAL, hudPressed('heart'), ICON_HEART); }
+function drawCup(x, y) { drawHudBtn(x, y, CUP_PAL, hudPressed('cup'), ICON_CUP, 'evenodd'); }
 function drawGear(x, y) { drawHudBtn(x, y, TH.alt, hudPressed('gear'), ICON_GEAR, 'evenodd'); }
 const TUT_CYCLE = 2.4, TUT_SINK = 2.6;
 function tutPlan() {
@@ -2433,7 +2432,7 @@ label(scoreStr, HX, HY + 20, sz, gr, 'rgba(70,12,0,.9)');
 } else label(scoreStr, HX, HY + 20, 22, COL.text, COL.textStroke);
 label(t('best') + '  ' + best + (G.mode === 'hard' ? '  ·  ' + t('hardTag') : ''), HX, HY + 37, 8, COL.gold);
 drawGear(GEAR.x, GEAR.y);
-if (SUPPORT_URL) drawHeart(HEART.x, HEART.y);
+drawCup(HEART.x, HEART.y);
 drawCombo();
 for (const p of ui.sparks) {
 const k = p.t / p.life;
