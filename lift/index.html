@@ -3418,20 +3418,23 @@ const snd = Promise.race([SFX.warm(), new Promise(r => setTimeout(r, 1500))]);
 bootStep(0.25); await tick();
 THEME_IDS.forEach(themeThumb);
 bootStep(0.4); await tick();
+await snd;
+bootStep(0.55);
+while (LOAD.cycles < 1) await tick();
+const rafWait = () => new Promise(r => { let d = false; const go = () => { if (!d) { d = true; r(); } };
+requestAnimationFrame(go); setTimeout(go, 400); });
 if (ovEl.hidden) {
 ovEl.classList.add('warm');
-const wins = [openSettings, openHistory, openCredits];
+const wins = [openHistory, openCredits, openSettings];
 for (let i = 0; i < wins.length; i++) {
 wins[i](); void ovCard.offsetHeight;
-await tick();
-bootStep(0.4 + 0.4 * (i + 1) / wins.length);
+await Promise.all([...ovCard.querySelectorAll('img')].map(im => im.decode ? im.decode().catch(() => {}) : 0));
+for (let f = 0; f < 3; f++) await rafWait();
+bootStep(0.55 + 0.4 * (i + 1) / wins.length);
 }
 closeOverlay();
 ovEl.classList.remove('warm');
 }
-await snd;
-bootStep(0.95);
-while (LOAD.cycles < 1) await tick();
 } catch (e) { ovEl.classList.remove('warm'); }
 bootStep(1);
 LOAD.done = true;
