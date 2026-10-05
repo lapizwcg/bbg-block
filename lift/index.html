@@ -174,7 +174,6 @@ box-shadow: inset 0 -3px 0 rgba(0,0,0,.28) !important; border: 2px solid transpa
 <div id="safe" style="position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;
 padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)"></div>
 <div id="ov" hidden><div class="card" id="ovCard"></div></div>
-<div id="boot"><div class="bt">Weight a Minute</div><div class="bar"><i id="bootBar"></i></div></div>
 <script>
 'use strict';
 (function () {
@@ -293,7 +292,6 @@ cv.style.width = w + 'px';
 cv.style.height = h + 'px';
 needDraw = true;
 }
-let DEMO = false;
 const NATIVE = (window.BBStore && typeof window.BBStore.get === 'function') ? window.BBStore : null;
 function stGet(k) {
 if (NATIVE) {
@@ -302,7 +300,6 @@ try { const v = NATIVE.get(k); if (v != null && v !== '') return String(v); } ca
 try { return localStorage.getItem(k); } catch (e) { return null; }
 }
 function stSet(k, v) {
-if (DEMO) return;
 if (NATIVE) { try { NATIVE.set(k, v); } catch (e) {} }
 try { localStorage.setItem(k, v); } catch (e) {}
 }
@@ -1171,7 +1168,7 @@ setMusic(v) { mVol(); if (v > 0) ctxOn(); music(); },
 get el() { return mEl; },
 get track() { return mEl ? { name: mLast, paused: mEl.paused, t: mEl.currentTime, dur: mEl.duration, wa: !!mEl._wa, wait: !!mWait } : null; },
 resume() { if (ac && ac.state === 'suspended' && (settings.music > 0 || settings.volume > 0)) ac.resume(); music(); },
-play(name, a, b, c) { if (DEMO) return; try { S[name](a, b, c); } catch (e) {} },
+play(name, a, b, c) { try { S[name](a, b, c); } catch (e) {} },
 setVolume(v) { if (master) master.gain.value = v * GAIN; if (v > 0) ctxOn(); },
 pause() { if (ac && ac.state === 'running') ac.suspend(); if (mEl && !mEl.paused) mEl.pause(); }
 };
@@ -1399,7 +1396,7 @@ for (const c of w.cols) segs.push({ col: c });
 ui.preview = { hl, segs, res, n: halfCounts(cp.board), off: offOf(cp.board) };
 }
 cv.addEventListener('pointerdown', ev => {
-if (DEMO || !G || !ovEl.hidden) return;
+if (LOADING || !G || !ovEl.hidden) return;
 SFX.unlock();
 const p = toLogic(ev);
 const hb = hudHit(p);
@@ -2918,11 +2915,114 @@ label(str, lx, ly, 9, '#fff', 'rgba(0,0,0,.7)');
 }
 }
 let last = 0, wasBusy = false, softBusy = false, lastSoft = 0;
+let LOADING = true;
+const LOAD = { t: 0, k: 0, done: false, cycles: 0 };
+const LD_IN = 0.25, LD_MOVE = 0.6, LD_HOLD = 0.3, LD_POP = 0.15, LD_CLR = 0.65, LD_CYCLE = LD_IN + LD_MOVE + LD_HOLD + LD_POP + LD_CLR;
+function drawLoader(dt) {
+LOAD.t += dt;
+if (LOAD.t >= LD_CYCLE) {
+LOAD.cycles++;
+if (LOAD.done) { LOADING = false; ui.trayIn = 0; needDraw = true; return; }
+LOAD.t = 0;
+}
+const T = LOAD.t;
+ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+const bg = ctx.createLinearGradient(0, 0, 0, LH);
+bg.addColorStop(0, COL.bgTop); bg.addColorStop(1, COL.bgBot);
+ctx.fillStyle = bg; ctx.fillRect(0, 0, LW, LH);
+const n = 4, c = Math.min(30, (Math.min(LW, 360) - 40) / n), cx = LW / 2, cy = LH * 0.46;
+const gx = cx - n * c / 2, gy = cy - c / 2, ci = 4 + LOAD.cycles % 3;
+label('Weight a Minute', cx, cy - c * 2.4, 20, COL.text, COL.textStroke);
+ctx.fillStyle = COL.board; rrect(gx - 4, gy - 4, n * c + 8, c + 8, 5); ctx.fill();
+ctx.fillStyle = 'rgba(255,255,255,.05)';
+for (let i = 0; i < n; i++) ctx.fillRect(gx + i * c + 1, gy + 1, c - 2, c - 2);
+const bs = c - 2, cell = i => [gx + i * c + 1, gy + 1];
+let t = T - LD_IN;
+if (t >= 0 && t < LD_MOVE + LD_HOLD) {
+const k = Math.min(1, t / LD_MOVE), e = k < 0.5 ? 2 * k * k : 1 - 2 * (1 - k) * (1 - k);
+const a = Math.min(1, t / 0.2);
+for (let i = 0; i < n; i++) { const [x, y] = cell(i); ctx.globalAlpha = 0.35 * a; block(x, y, bs, ci); }
+ctx.globalAlpha = 1;
+neonStroke(() => rr(ctx, gx + 0.5, gy + 0.5, n * c - 1, c - 1, 2), PAL[ci], 0.85 * a);
+const py = gy + (LH * 0.78 - gy) * (1 - e), sz = bs * (0.75 + 0.25 * e);
+for (let i = 0; i < n; i++) block(cx - n * c / 2 + i * c * (0.75 + 0.25 * e) + 1, py + 1, sz, ci);
+}
+t -= LD_MOVE + LD_HOLD;
+if (t >= 0 && t < LD_POP) {
+const kk = 1 + 0.18 * Math.sin(Math.PI * t / LD_POP);
+for (let i = 0; i < n; i++) { const [x, y] = cell(i), s2 = bs * kk; block(x + (bs - s2) / 2, y + (bs - s2) / 2, s2, ci); }
+}
+t -= LD_POP;
+if (t >= 0 && t < LD_CLR) {
+const HOP = 0.05;
+for (let i = 0; i < n; i++) {
+const ft = t - i * HOP, [x, y] = cell(i);
+if (ft < 0) { block(x, y, bs, ci); continue; }
+const k = Math.min(1, ft / 0.32), s2 = bs * (1 - k);
+if (s2 > 0.5) {
+ctx.globalAlpha = 1 - k * 0.5; block(x + (bs - s2) / 2, y + (bs - s2) / 2, s2, ci);
+if (k < 0.35) { ctx.globalAlpha = (1 - k / 0.35) * 0.85; ctx.fillStyle = '#fff'; ctx.fillRect(x + (bs - s2) / 2, y + (bs - s2) / 2, s2, s2); }
+ctx.globalAlpha = 1;
+}
+for (let q = 0; q < 4; q++) {
+if (ft <= 0 || ft > 0.6) continue;
+const an = (q + 0.4) * Math.PI / 2 + i, v = c * 2.2, gx2 = x + bs / 2 + Math.cos(an) * v * ft, gy2 = y + bs / 2 + Math.sin(an) * v * ft - c * 2 * ft + c * 5 * ft * ft;
+const rot = ft * 9 + q, cs = Math.cos(rot), sn = Math.sin(rot), ss = c * 0.13;
+ctx.globalAlpha = 1 - ft / 0.6;
+ctx.setTransform(SCALE * cs, SCALE * sn, -SCALE * sn, SCALE * cs, SCALE * gx2, SCALE * gy2);
+ctx.fillStyle = PAL[ci].base; ctx.fillRect(-ss / 2, -ss / 2, ss, ss);
+}
+ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0); ctx.globalAlpha = 1;
+}
+ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+for (let j = 0; j + 1 < n; j++) {
+const age = t - j * HOP;
+if (age < 0 || age >= BOLT_LIFE) continue;
+const kk = 1 - age / BOLT_LIFE, [ax, ay] = cell(j), [bx] = cell(j + 1);
+const x0 = ax + bs / 2, x1 = bx + bs / 2, y0 = ay + bs / 2, L = x1 - x0, m = 6, amp = L * 0.22;
+const flick = Math.floor(age * 20), pts = [];
+for (let i = 0; i <= m; i++) {
+const u = i / m, w = (i === 0 || i === m) ? 0 : (boltHash(77 + j * 131 + flick * 131, i) - 0.5) * 2 * amp * Math.sin(Math.PI * u);
+pts.push(x0 + L * u, y0 + w);
+}
+for (const halo of [true, false]) {
+ctx.globalAlpha = (halo ? 0.45 : 0.95) * kk;
+ctx.strokeStyle = halo ? '#4a90ff' : '#ffffff'; ctx.lineWidth = halo ? 5 : 1.6;
+ctx.beginPath(); ctx.moveTo(pts[0], pts[1]);
+for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
+ctx.stroke();
+}
+}
+ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#6fe6ff';
+for (let i = 0; i < n; i++) for (let q = 0; q < 4; q++) {
+const ft = t - i * HOP;
+if (ft <= 0 || ft > 0.5) continue;
+const an = q * 1.57 + i * 0.7 + 0.3, d = c * 1.4 * (1 - Math.exp(-ft * 5)), [x, y] = cell(i);
+const sx = x + bs / 2 + Math.cos(an) * d, sy = y + bs / 2 + Math.sin(an) * d, r = c * 0.16 * (1 - ft / 0.5 * 0.8), w = r * 0.156;
+ctx.globalAlpha = 1 - ft / 0.5 * 0.6;
+ctx.beginPath();
+ctx.moveTo(sx, sy - r); ctx.lineTo(sx + w, sy - w); ctx.lineTo(sx + r, sy); ctx.lineTo(sx + w, sy + w);
+ctx.lineTo(sx, sy + r); ctx.lineTo(sx - w, sy + w); ctx.lineTo(sx - r, sy); ctx.lineTo(sx - w, sy - w);
+ctx.fill();
+}
+ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
+const bw = Math.min(LW * 0.56, 200), bh = 6, bx = cx - bw / 2, by = cy + c * 2;
+ctx.fillStyle = 'rgba(255,255,255,.12)'; rrect(bx, by, bw, bh, 3); ctx.fill();
+const shown = Math.min(LOAD.k, LOAD.done ? 1 : 0.95);
+if (shown > 0) {
+const g = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+g.addColorStop(0, '#ffd45e'); g.addColorStop(1, '#ff9d3c');
+ctx.fillStyle = g; rrect(bx, by, Math.max(bh, bw * shown), bh, 3); ctx.fill();
+}
+}
 function frame(time) {
 requestAnimationFrame(frame);
 if (innerWidth !== fitW || innerHeight !== fitH) fit();
 const dt = last ? Math.min(0.05, (time - last) / 1000) : 0;
 last = time;
+if (LOADING) { drawLoader(dt); return; }
 const busy = update(dt);
 if (busy || needDraw || wasBusy) {
 const t0 = performance.now(); draw(); const dtd = performance.now() - t0;
@@ -3290,7 +3390,7 @@ return out;
 if (QS.has('dbg')) {
 window.BB = { get G() { return G; }, get ui() { return ui; },
 get layout() { const g = trayGeo(); return { LW, LH, OX, BX, BY, TRAY_Y, TRAY_H, SLOT_X, CELL, LAND, TX, TW, slotCx: g.cx, slotCy: g.cy, trayCell: g.cell, o: oShown(), frameY, cellX }; },
-offOf, cellAt, fullLines, settle, K, OMAX, HALF, update, traySolutions, traySolutionsRef,
+offOf, cellAt, fullLines, settle, K, OMAX, HALF, update, traySolutions, traySolutionsRef, drawLoader, LOAD,
 get supportUrl() { return SUPPORT_URL; }, set supportUrl(v) { SUPPORT_URL = v; }, draw, fit, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings,
 get stars() { return stars; }, set stars(v) { stars = v; saveStars(); }, ECO, PORTAL, showGameOver, traySolutions, TUNE };
 window.bbCheck = bbCheck;
@@ -3309,87 +3409,32 @@ fit();
 requestAnimationFrame(frame);
 const tick = () => new Promise(r => { let done = false; const go = () => { if (!done) { done = true; r(); } };
 requestAnimationFrame(() => requestAnimationFrame(go)); setTimeout(go, 60); });
-const bootEl = document.getElementById('boot'), bootBar = document.getElementById('bootBar');
-const bootStep = k => { bootBar.style.width = Math.round(k * 100) + '%'; };
-const frameWait = () => new Promise(r => { let d = false; const go = () => { if (!d) { d = true; r(); } };
-requestAnimationFrame(go); setTimeout(go, 100); });
-const sleep = sec => new Promise(r => setTimeout(r, sec * 1000));
-function demoGame() {
-const g = newGame(0x5eed1, false);
-g.board.fill(0);
-for (let x = HALF; x < N - 1; x++) g.board[4 * N + x] = 2 + (x % 5);
-for (let x = 0; x < HALF; x++) g.board[6 * N + x] = 1 + x;
-g.board[9 * N + 8] = g.board[9 * N + 9] = 3;
-g.tray = ['o2', 'dot', 'i3_0'].map(id => SHAPES.findIndex(sh => sh.id === id));
-g.score = 0; g.combo = 0; g.msc = 0; g.moves = 0; g.over = false;
-delete g.easy;
-return g;
-}
-function demoUi() {
-ui.drag = ui.target = ui.preview = ui.back = null;
-ui.fx = []; ui.parts = []; ui.beams = []; ui.stars = []; ui.rings = []; ui.edge = ui.shake = null; ui.comboPop = -1;
-ui.floats = []; ui.banners = []; ui.pops = []; ui.sparks = []; ui.thuds = []; ui.dust = []; ui.jolt = null;
-ui.shown = G.score; ui.overT = -1; ui.hot = 0; ui.fire = false; ui.sag = 0; ui.rotMode = false;
-ui.lift = { steps: [], t: 0, o: offOf(G.board) };
-}
-async function demoMove(slot, gx, gy, dur) {
-const sh = SHAPES[G.tray[slot]], tg = trayGeo(), o = offOf(G.board);
-const x0 = tg.cx[slot], y0 = tg.cy[slot];
-const x1 = BX + (gx + sh.w / 2) * CELL, y1 = frameY(gy + sh.h / 2, o);
-ui.drag = { slot, x: x0, y: y0, lift: false, t: 0, id: -1 };
-const t0 = performance.now();
-for (;;) {
-const k = Math.min(1, (performance.now() - t0) / (dur * 1000)), e = k < 0.5 ? 2 * k * k : 1 - 2 * (1 - k) * (1 - k);
-ui.drag.x = x0 + (x1 - x0) * e; ui.drag.y = y0 + (y1 - y0) * e;
-updateTarget(); needDraw = true;
-if (k >= 1) break;
-await frameWait();
-}
-await sleep(0.25);
-ui.drag = ui.target = ui.preview = null;
-doPlace(slot, gx, gy);
-}
-let demoKeep = null;
-function demoBegin() {
-demoKeep = { G, best, tut: ui.tut, bestAt: ui.bestAtStart, rec: ui.recordShown };
-DEMO = true;
-G = demoGame(); ui.tut = 0; demoUi(); ui.trayIn = 0; needDraw = true;
-}
-async function runDemo() {
-const keep = demoKeep;
-try {
-if (ovEl.hidden) {
-ovEl.classList.add('warm');
-for (const w of [openSettings, openHistory, openCredits]) { w(); void ovCard.offsetHeight; await tick(); }
-closeOverlay();
-ovEl.classList.remove('warm');
-}
-bootStep(0.45); await sleep(0.3); bootStep(0.55);
-await demoMove(0, 8, 7, 0.7);
-await sleep(0.9); bootStep(0.75);
-await demoMove(1, 9, 6, 0.6);
-await sleep(1.4); bootStep(0.95);
-} catch (e) {}
-G = keep.G; best = keep.best; ui.tut = keep.tut; ui.bestAtStart = keep.bestAt; ui.recordShown = keep.rec;
-demoUi(); ui.trayIn = 0;
-DEMO = false;
-needDraw = true;
-}
+const bootStep = k => { LOAD.k = k; };
 async function boot() {
-try { demoBegin(); } catch (e) { DEMO = false; }
 try {
 bootStep(0.1); await tick();
 const snd = Promise.race([SFX.warm(), new Promise(r => setTimeout(r, 1500))]);
 bootStep(0.25); await tick();
 THEME_IDS.forEach(themeThumb);
 bootStep(0.4); await tick();
-if (demoKeep) await runDemo();
-bootStep(0.95);
+if (ovEl.hidden) {
+ovEl.classList.add('warm');
+const wins = [openSettings, openHistory, openCredits];
+for (let i = 0; i < wins.length; i++) {
+wins[i](); void ovCard.offsetHeight;
+await tick();
+bootStep(0.4 + 0.4 * (i + 1) / wins.length);
+}
+closeOverlay();
+ovEl.classList.remove('warm');
+}
 await snd;
+bootStep(0.95);
+while (LOAD.cycles < 1) await tick();
 } catch (e) { ovEl.classList.remove('warm'); }
-bootStep(1); await tick();
-bootEl.classList.add('gone');
-setTimeout(() => bootEl.remove(), 300);
+bootStep(1);
+LOAD.done = true;
+while (LOADING) await tick();
 if (G && G.over && ovEl.hidden) showGameOver();
 needDraw = true;
 }
