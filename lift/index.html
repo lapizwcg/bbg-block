@@ -62,7 +62,7 @@ background: var(--veil, rgba(6, 9, 26, .62)); z-index: 10;
 box-sizing: border-box; width: min(94vw, 460px); max-width: 94vw; max-height: 92vh; overflow: auto; padding: 20px 14px 18px;
 border-radius: 16px; text-align: center; color: var(--cardText, #e9ecff);
 background: linear-gradient(var(--card1, #26305e), var(--card2, #1a2147));
-box-shadow: 0 10px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.12);
+box-shadow: 0 6px 14px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12);
 }
 .card h2 { margin: 0 0 10px; font-size: 22px; letter-spacing: .5px; }
 .card .big { font-size: 44px; font-weight: 800; color: var(--gold, #ffd84a); margin: 4px 0; }
@@ -662,7 +662,82 @@ out.push(i);
 }
 return out;
 }
+const FS = { lv: [0, 1, 2, 3, 4].map(() => new Uint8Array(N * N)), mark: new Uint8Array(N * N) };
+const offD = d => Math.max(-OMAX, Math.min(OMAX, Math.trunc(d / K)));
+function fitsU(b, sh, x, y, o) {
+if (x < 0 || x + sh.w > N) return false;
+const cs = sh.cells;
+for (let q = 0; q < cs.length; q++) {
+const xx = x + cs[q][0], r = xx < HALF ? y + cs[q][1] : y + cs[q][1] + STEP * o;
+if (r < 0 || r >= N || b[r * N + xx]) return false;
+}
+return true;
+}
+function settleU(b, d, at) {
+const mark = FS.mark;
+for (let guard = 0; guard < 20; guard++) {
+const o = guard === 0 ? at : offD(d);
+let any = false;
+mark.fill(0);
+for (let r = 0; r < N; r++) {
+const rr = r + STEP * o;
+if (rr < 0 || rr >= N) continue;
+let full = true;
+for (let c = 0; c < N && full; c++) if (!b[(c < HALF ? r : rr) * N + c]) full = false;
+if (full) { any = true; for (let c = 0; c < N; c++) mark[(c < HALF ? r : rr) * N + c] = 1; }
+}
+for (let c = 0; c < N; c++) {
+let full = true;
+for (let r = 0; r < N && full; r++) if (!b[r * N + c]) full = false;
+if (full) { any = true; for (let r = 0; r < N; r++) mark[r * N + c] = 1; }
+}
+if (!any) { if (guard === 0) continue; break; }
+for (let i = 0; i < N * N; i++) if (mark[i]) { b[i] = 0; d -= (i % N) < HALF ? 1 : -1; }
+}
+return d;
+}
 function traySolutions(board, tray, cap) {
+let nodes = 0, found = 0;
+const left0 = tray.filter(i => i >= 0);
+if (!left0.length) return cap;
+const b0 = FS.lv[0];
+let d0 = 0;
+for (let i = 0; i < N * N; i++) { b0[i] = board[i] ? 1 : 0; if (board[i]) d0 += (i % N) < HALF ? 1 : -1; }
+const used = [false, false, false];
+const go = (lv, d, n) => {
+const b = FS.lv[lv], o = offD(d);
+if (n === 1) {
+let k = 0; while (used[k]) k++;
+const sh = SHAPES[left0[k]];
+for (let y = Y_LO(sh); y <= Y_HI(sh); y++) for (let x = 0; x + sh.w <= N; x++)
+if (fitsU(b, sh, x, y, o) && ++found >= cap) return true;
+return false;
+}
+for (let k = 0; k < left0.length; k++) {
+if (used[k]) continue;
+const sh = SHAPES[left0[k]], cs = sh.cells, nb = FS.lv[lv + 1];
+for (let y = Y_LO(sh); y <= Y_HI(sh); y++) for (let x = 0; x + sh.w <= N; x++) {
+if (!fitsU(b, sh, x, y, o)) continue;
+if (++nodes > SOLVE_CAP) { found = cap; return true; }
+nb.set(b);
+let nd = d;
+for (let q = 0; q < cs.length; q++) {
+const xx = x + cs[q][0], r = xx < HALF ? y + cs[q][1] : y + cs[q][1] + STEP * o;
+nb[r * N + xx] = 1; nd += xx < HALF ? 1 : -1;
+}
+nd = settleU(nb, nd, o);
+used[k] = true;
+const stop = go(lv + 1, nd, n - 1);
+used[k] = false;
+if (stop) return true;
+}
+}
+return false;
+};
+go(0, d0, left0.length);
+return Math.min(found, cap);
+}
+function traySolutionsRef(board, tray, cap) {
 let nodes = 0, found = 0;
 const go = (b, left) => {
 const o = offOf(b);
@@ -1522,6 +1597,18 @@ try {
 new PerformanceObserver(l => { for (const e of l.getEntries()) DIAG.long.push([e.startTime, e.duration]); })
 .observe({ entryTypes: ['longtask'] });
 } catch (e) {}
+DIAG.slow = [];
+const timed = (name, fn) => function () {
+const t = performance.now();
+try { return fn.apply(this, arguments); }
+finally { const d = performance.now() - t; if (d > 30) DIAG.slow.push([name, d, t]); }
+};
+saveRun = timed('saveRun', saveRun); recordGame = timed('recordGame', recordGame); refill = timed('refill', refill);
+doPlace = timed('doPlace', doPlace); updateTarget = timed('updateTarget', updateTarget); tutPlan = timed('tutPlan', tutPlan);
+openHistory = timed('openHistory', openHistory); openCredits = timed('openCredits', openCredits);
+showGameOver = timed('showGameOver', showGameOver); startGame = timed('startGame', startGame); gameOver = timed('gameOver', gameOver);
+draw = timed('draw', draw); fit = timed('fit', fit); boardSprites = timed('boardSprites', boardSprites); load = timed('load', load);
+for (const k of ['unlock', 'play', 'setMusic', 'resume', 'pause', 'warm']) SFX[k] = timed('звук.' + k, SFX[k]);
 function diagOpen(fn) {
 DIAG.a = performance.now(); fn(); DIAG.b = performance.now();
 requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -1535,6 +1622,9 @@ DIAG.last = 'ввод ' + Math.round(DIAG.inp) + ' · tap→js ' + Math.round(DI
 ' · →экран ' + Math.round(DIAG.c - DIAG.b) + ' мс · кадр ' + avg.toFixed(1) + '/' + mx.toFixed(0) + ' мс · ' + fps + ' к/с · зависаний ' +
 DIAG.long.length + ' (макс ' + Math.round(lmax) + ' мс)';
 DIAG.inp = 0;
+DIAG.slow = DIAG.slow.filter(e => now - e[2] < 60000);
+const top = DIAG.slow.slice().sort((x, y) => y[1] - x[1]).slice(0, 4);
+if (top.length) DIAG.last += ' · медленно: ' + top.map(e => e[0] + ' ' + Math.round(e[1])).join(', ');
 DIAG.tap = 0;
 const el = document.getElementById('diag'); if (el) el.textContent = DIAG.last;
 }));
@@ -2950,6 +3040,18 @@ let easyBad = 0;
 for (let k = 0; k < 40; k++) { const e = newGame(1000 + k, true); e.board[0] = 1; refill(e);
 if (!e.tray.every(i => EASY_POOL.includes(SHAPES[i].id))) easyBad++; }
 ok('обучение: 40 выдач — только лёгкий пул', !easyBad, easyBad + ' чужих');
+{
+let bad = 0, cases = 0;
+const rg = { rng: 777 };
+for (let k = 0; k < 160; k++) {
+const b = new Array(N * N).fill(0), fill = 0.15 + rnd(rg) * 0.55;
+for (let i = 0; i < N * N; i++) if (rnd(rg) < fill) b[i] = 1 + (i % 7);
+const tr = [0, 1, 2].map(() => Math.floor(rnd(rg) * SHAPES.length));
+if (k % 5 === 0) tr[Math.floor(rnd(rg) * 3)] = -1;
+for (const cap of [1, 200]) { cases++; if (traySolutions(b, tr, cap) !== traySolutionsRef(b, tr, cap)) bad++; }
+}
+ok('быстрый перебор раскладок совпадает с эталоном', !bad, bad + ' из ' + cases);
+}
 const keys = Object.keys(STRINGS.ru);
 for (const l of LANGS) {
 const miss = keys.filter(k => !(k in STRINGS[l]));
