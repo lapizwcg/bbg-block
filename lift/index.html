@@ -2633,31 +2633,71 @@ cells(g, 1.5, 1.5, N, COL.cell);
 };
 return boardSpr;
 }
+const SPRING = { key: '' };
+function springSprites() {
+const key = CELL + '|' + SCALE;
+if (SPRING.key === key) return SPRING;
+const amp = CELL * 0.3, W = 2 * amp + CELL * 0.16, capT = CELL * 0.34, capB = CELL * 0.16;
+const HB = Math.max(4, (2 * OMAX + 0.2) * CELL - capT - capB), coils = 11, t = Math.max(1.1, CELL * 0.09);
+const mk = (w, h, fn) => {
+const c2 = document.createElement('canvas');
+c2.width = Math.max(1, Math.ceil(w * SCALE)); c2.height = Math.max(1, Math.ceil(h * SCALE));
+const c = c2.getContext('2d'); c.scale(SCALE, SCALE); c.lineCap = 'round'; fn(c, w, h);
+return c2;
+};
+const body = mk(W, HB, (c, w, h) => {
+const cx = w / 2;
+c.fillStyle = '#262c48'; c.fillRect(cx - t * 0.35, 0, t * 0.7, h);
+const pitch = (h - t * 2) / coils, ry = amp * 0.42, y0 = t + ry * 0.2;
+const metal = c.createLinearGradient(cx - amp, 0, cx + amp, 0);
+metal.addColorStop(0, '#6f7899'); metal.addColorStop(0.38, '#f4f6ff'); metal.addColorStop(0.62, '#c3c9e2'); metal.addColorStop(1, '#5d6688');
+const P = th => [cx + amp * Math.cos(th), y0 + pitch * th / (2 * Math.PI) + ry * Math.sin(th)];
+const seg = (front, pass) => {
+c.beginPath();
+const n = 32;
+for (let i = 0; i < coils; i++) {
+const a = 2 * Math.PI * i + (front ? 0 : Math.PI), b = a + Math.PI;
+for (let k = 0; k <= n; k++) {
+const [x, y] = P(a + (b - a) * k / n);
+if (k) c.lineTo(x, y); else c.moveTo(x, y);
+}
+}
+if (pass === 0) { c.strokeStyle = 'rgba(8,10,26,.9)'; c.lineWidth = t + 1.1; }
+else if (pass === 1) { c.strokeStyle = front ? metal : '#7a83a8'; c.lineWidth = t; }
+else { c.strokeStyle = 'rgba(255,255,255,.5)'; c.lineWidth = t * 0.28; c.translate(0, -t * 0.22); }
+c.stroke();
+if (pass === 2) c.translate(0, t * 0.22);
+};
+seg(false, 0); seg(false, 1);
+seg(true, 0); seg(true, 1); seg(true, 2);
+});
+const top = mk(W * 1.15, capT, (c, w, h) => {
+const g = c.createLinearGradient(0, 0, w, 0);
+g.addColorStop(0, '#59628a'); g.addColorStop(0.35, '#dfe4f7'); g.addColorStop(0.65, '#a9b1cf'); g.addColorStop(1, '#4f5880');
+c.fillStyle = 'rgba(8,10,26,.9)'; rr(c, 0, 0, w, h, h * 0.22); c.fill();
+c.fillStyle = g; rr(c, 0.6, 0.4, w - 1.2, h - 1, h * 0.2); c.fill();
+c.strokeStyle = 'rgba(30,36,64,.55)'; c.lineWidth = 0.5;
+for (const k of [0.38, 0.6, 0.82]) { c.beginPath(); c.moveTo(1.2, h * k); c.lineTo(w - 1.2, h * k); c.stroke(); }
+});
+const bot = mk(W * 0.85, capB, (c, w, h) => {
+const g = c.createLinearGradient(0, 0, 0, h);
+g.addColorStop(0, '#d5dbf0'); g.addColorStop(1, '#6a7396');
+c.fillStyle = 'rgba(8,10,26,.9)'; rr(c, 0, 0, w, h, h * 0.4); c.fill();
+c.fillStyle = g; rr(c, 0.5, 0.3, w - 1, h - 0.8, h * 0.35); c.fill();
+});
+return Object.assign(SPRING, { key, body, top, bot, W, capT, capB });
+}
 function drawSprings(o) {
-const top = BY - 1, amp = CELL * 0.27, coils = 6;
-ctx.lineCap = 'round';
+const S = springSprites(), top = BY - 1;
 for (const x0 of [0, HALF]) {
 const hx = cellX(x0), bot = halfTop(x0, o) - 1.5, len = bot - top;
 if (len < 1) continue;
 for (const fx of [0.27, 0.73]) {
-const cx = hx + HALF * CELL * fx, lead = Math.min(1.8, len * 0.1), body = len - 2 * lead;
-const y = k => top + lead + body * k / (coils * 2);
-for (const front of [false, true]) {
-ctx.beginPath();
-for (let c = 0; c < coils; c++) {
-const k = c * 2;
-if (front) { ctx.moveTo(cx + amp, y(k + 1)); ctx.lineTo(cx - amp, y(k + 2)); }
-else { ctx.moveTo(cx - amp, y(k)); ctx.lineTo(cx + amp, y(k + 1)); }
-}
-ctx.strokeStyle = 'rgba(8,10,26,.85)'; ctx.lineWidth = 2.1; ctx.stroke();
-ctx.strokeStyle = front ? '#dfe4f7' : '#7f88b0'; ctx.lineWidth = 1.1; ctx.stroke();
-}
-ctx.beginPath(); ctx.moveTo(cx - amp, top); ctx.lineTo(cx - amp, y(0)); ctx.moveTo(cx - amp, y(coils * 2)); ctx.lineTo(cx, bot);
-ctx.strokeStyle = 'rgba(8,10,26,.85)'; ctx.lineWidth = 2.1; ctx.stroke();
-ctx.strokeStyle = '#b8c0de'; ctx.lineWidth = 1.1; ctx.stroke();
-ctx.fillStyle = 'rgba(8,10,26,.85)';
-ctx.fillRect(cx - amp - 1.2, top - 0.3, 2 * amp + 2.4, 1.6);
-ctx.fillRect(cx - 1.3, bot - 1.4, 2.6, 1.6);
+const cx = hx + HALF * CELL * fx;
+const bh = len - S.capT - S.capB;
+if (bh > 0.5) ctx.drawImage(S.body, cx - S.W / 2, top + S.capT, S.W, bh);
+ctx.drawImage(S.bot, cx - S.W * 0.425, bot - S.capB, S.W * 0.85, S.capB);
+ctx.drawImage(S.top, cx - S.W * 0.575, top, S.W * 1.15, S.capT);
 }
 }
 }
