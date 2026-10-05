@@ -1,6 +1,6 @@
 {
-  "name": "BBG Lift",
-  "short_name": "BBG Lift",
+  "name": "Weight a Minute",
+  "short_name": "Weight a Minute",
   "description": "Block puzzle: the board splits and shifts under weight.",
   "lang": "ru",
   "start_url": "./",

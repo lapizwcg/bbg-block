@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>BBG Lift</title>
+<title>Weight a Minute</title>
 <script>
 (function () {
 var NL = String.fromCharCode(10);
@@ -45,7 +45,7 @@ body { display: flex; align-items: center; justify-content: center; }
 #boot { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center;
 justify-content: center; gap: 18px; background: linear-gradient(#1d2766, #0e1330); transition: opacity .25s; }
 #boot.gone { opacity: 0; pointer-events: none; }
-#boot .bt { font-size: 34px; font-weight: 800; color: #fff; letter-spacing: 1px;
+#boot .bt { font-size: min(34px, 8vw); font-weight: 800; text-align: center; color: #fff; letter-spacing: 1px;
 text-shadow: 0 3px 0 rgba(0,0,0,.35); }
 #boot .bar { width: min(60vw, 260px); height: 10px; border-radius: 5px; background: rgba(255,255,255,.12); overflow: hidden; }
 #boot .bar i { display: block; height: 100%; width: 0; border-radius: 5px; background: linear-gradient(90deg, #ffd45e, #ff9d3c);
@@ -160,11 +160,11 @@ box-shadow: inset 0 -3px 0 rgba(0,0,0,.28) !important; border: 2px solid transpa
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#141b45">
-<meta name="description" content="BBG Lift — головоломка: доска разъезжается под весом, собирай линии.">
+<meta name="description" content="Weight a Minute — головоломка: доска разъезжается под весом, собирай линии.">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="BBG Lift">
+<meta name="apple-mobile-web-app-title" content="Weight a Minute">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 </head>
@@ -173,7 +173,7 @@ box-shadow: inset 0 -3px 0 rgba(0,0,0,.28) !important; border: 2px solid transpa
 <div id="safe" style="position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;
 padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)"></div>
 <div id="ov" hidden><div class="card" id="ovCard"></div></div>
-<div id="boot"><div class="bt">BBG Lift</div><div class="bar"><i id="bootBar"></i></div></div>
+<div id="boot"><div class="bt">Weight a Minute</div><div class="bar"><i id="bootBar"></i></div></div>
 <script>
 'use strict';
 (function () {
@@ -1823,7 +1823,7 @@ const inner = '<span class="ci" style="--c1:' + c.pal[0] + ';--c2:' + c.pal[1] +
 return PORTAL ? '<div class="crow">' + inner + '</div>'
 : '<button class="crow" data-act="cr_' + i + '">' + inner + '<span class="go">↗</span></button>';
 }).join('');
-openOverlay('<h2>' + t('credits') + '</h2><div class="credits-game">BBG Lift</div><div class="credits">' + rows + '</div>' +
+openOverlay('<h2>' + t('credits') + '</h2><div class="credits-game">Weight a Minute</div><div class="credits">' + rows + '</div>' +
 '<div class="btns"><button data-act="back">' + t('back') + '</button></div>', acts);
 }
 function askRestart() {
