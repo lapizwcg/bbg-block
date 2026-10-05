@@ -976,6 +976,7 @@ let stars = 0;
 if (ECO_ON()) { const v = stGet('blf_stars'); stars = v == null ? ECO.start : Math.max(0, parseInt(v, 10) || 0); }
 const saveStars = () => stSet('blf_stars', String(stars));
 const reviveCost = g => ECO.revive * ((g.revives || 0) + 1);
+const ADS_ON = false;
 const Ads = (function () {
 const none = { ok: () => false, rewarded() {}, start() {}, stop() {} };
 if (PORTAL === 'test') return {
@@ -987,9 +988,9 @@ if (PORTAL !== 'crazygames' || !window.CrazyGames || !window.CrazyGames.SDK) ret
 let sdk = null, playing = false, off = false;
 window.CrazyGames.SDK.init().then(() => { sdk = window.CrazyGames.SDK; needDraw = true; if (playing) sdk.game.gameplayStart(); }).catch(() => {});
 return {
-ok: () => !!sdk && !off,
+ok: () => ADS_ON && !!sdk && !off,
 rewarded(done) {
-if (!sdk || off) return;
+if (!ADS_ON || !sdk || off) return;
 sdk.ad.requestAd('rewarded', {
 adStarted: () => SFX.pause(),
 adFinished: () => { SFX.resume(); done(); },
