@@ -1067,6 +1067,8 @@ preview: null,
 back: null,
 fx: [],
 parts: [],
+beams: [],
+rings: [],
 floats: [],
 banners: [],
 pops: [],
@@ -1109,7 +1111,7 @@ G = newGame(seed, !settings.tutDone, settings.diff);
 if (ECO_ON()) G.eco = true;
 best = loadBest(G.mode);
 ui.drag = ui.target = ui.preview = ui.back = null;
-ui.fx = []; ui.parts = []; ui.floats = []; ui.banners = []; ui.pops = [];
+ui.fx = []; ui.parts = []; ui.beams = []; ui.rings = []; ui.floats = []; ui.banners = []; ui.pops = [];
 ui.shown = 0; ui.overT = -1; ui.bestAtStart = best; ui.recordShown = false; ui.hot = 0; ui.fire = false; ui.sparks = [];
 ui.tut = settings.tutDone ? 0 : 1; ui.tutT = 0;
 ui.rotMode = false; ui.rotTap = null;
@@ -1336,17 +1338,28 @@ fxAt.push(at); at += WAVE_GAP;
 if (res.waves.o !== from) steps.push({ from, to: res.waves.o, at });
 ui.lift = { steps, t: 0, o: res.o0 };
 if (steps.length) SFX.play('lift', steps[0].to - steps[0].from);
+const pc = s.color;
 res.waves.forEach((w, k) => {
 const cx0 = gx + s.w / 2, cy0 = gy + s.h / 2;
+for (const r of w.rows) ui.beams.push({ row: r, o: w.o, t: -fxAt[k], lift: k > 0, c: pc });
+for (const c of w.cols) ui.beams.push({ col: c, t: -fxAt[k], lift: k > 0, c: pc });
 for (const c of w.cells) {
 const delay = fxAt[k] + Math.hypot(c.x + 0.5 - cx0, c.y + 0.5 - cy0) * 0.02;
 ui.fx.push({ i: c.i, x: c.x, y: c.y, c: c.c, t: -delay });
-for (let q = 0; q < 3; q++) {
-const a = Math.random() * Math.PI * 2, v = 30 + Math.random() * 60;
-ui.parts.push({ cx: c.x, cy: c.y, dx: 0, dy: 0, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40,
-c: c.c, s: 2 + Math.random() * 3, t: -delay, life: 0.6 + Math.random() * 0.3 });
+for (let q = 0; q < 4; q++) {
+const a = (q + Math.random() * 0.8) * Math.PI / 2, v = 45 + Math.random() * 55;
+ui.parts.push({ cx: c.x, cy: c.y, dx: (q % 2 - 0.5) * 3, dy: (q < 2 ? -1 : 1) * 1.5, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 55,
+c: c.c, s: 2.6 + Math.random() * 2, t: -delay, life: 0.55 + Math.random() * 0.3,
+rot: Math.random() * 6, spin: (Math.random() - 0.5) * 18 });
+}
+if (Math.random() < 0.6) {
+const a = Math.random() * Math.PI * 2, v = 70 + Math.random() * 60;
+ui.parts.push({ cx: c.x, cy: c.y, dx: 0, dy: 0, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 30,
+c: -1, s: 1.1, t: -delay, life: 0.3 + Math.random() * 0.2 });
 }
 }
+if (w.rows.length + w.cols.length >= 2 || k > 0)
+ui.rings.push({ x: BX + cx0 * CELL, y0: cy0, t: -fxAt[k], lift: k > 0, n: w.rows.length + w.cols.length });
 });
 const o0 = res.o0;
 ui.floats.push({
@@ -1675,6 +1688,7 @@ openOverlay(
 '<button class="alt" data-act="no">' + t('no') + '</button></div>',
 { yes: () => startGame(randomSeed()), no: () => { closeOverlay(); needDraw = true; } });
 }
+const BEAM_LIFE = 0.42, RING_LIFE = 0.55;
 const FX_LIFE = 0.32, POP_LIFE = 0.18, FLOAT_LIFE = 0.9, BANNER_LIFE = 1.3, OVER_DELAY = 0.9, BACK_LIFE = 0.14;
 function update(dt) {
 let busy = false;
@@ -1709,9 +1723,14 @@ for (const f of ui.fx) f.t += dt;
 ui.fx = ui.fx.filter(f => f.t < FX_LIFE);
 for (const p of ui.parts) {
 p.t += dt;
-if (p.t > 0) { p.dx += p.vx * dt; p.dy += p.vy * dt; p.vy += 260 * dt; }
+if (p.t > 0) { p.dx += p.vx * dt; p.dy += p.vy * dt; p.vy += 260 * dt; if (p.spin) p.rot += p.spin * dt; }
 }
 ui.parts = ui.parts.filter(p => p.t < p.life);
+for (const b of ui.beams) b.t += dt;
+ui.beams = ui.beams.filter(b => b.t < BEAM_LIFE);
+for (const r of ui.rings) r.t += dt;
+ui.rings = ui.rings.filter(r => r.t < RING_LIFE);
+if (ui.beams.length || ui.rings.length) busy = true;
 for (const p of ui.pops) p.t += dt;
 ui.pops = ui.pops.filter(p => p.t < POP_LIFE);
 for (const f of ui.floats) f.t += dt;
@@ -2244,20 +2263,59 @@ for (const [x, y] of cells) ctx.fillRect(cellX(x) + BGAP / 2, frameY(y, o) + BGA
 ctx.globalAlpha = 1;
 neonOutline(cells, P, pulse);
 }
+if (ui.beams.length) {
+ctx.globalCompositeOperation = 'lighter';
+for (const b of ui.beams) {
+if (b.t < 0) continue;
+const k = b.t / BEAM_LIFE, a = k < 0.15 ? k / 0.15 : (1 - k) * (1 - k) / 0.72;
+const glow = b.lift ? '#3fb8ff' : PAL[b.c].base, th = CELL * (0.55 + 0.6 * easeOut(Math.min(1, k * 2)));
+const seg = (x, y, w, h) => {
+ctx.globalAlpha = a * 0.55; ctx.fillStyle = glow;
+ctx.fillRect(x, y, w, h);
+ctx.globalAlpha = a * 0.9; ctx.fillStyle = '#ffffff';
+const hc = (b.col !== undefined ? w : h) * 0.22;
+if (b.col !== undefined) ctx.fillRect(x + w / 2 - hc / 2, y, hc, h);
+else ctx.fillRect(x, y + h / 2 - hc / 2, w, hc);
+};
+if (b.col !== undefined) {
+const x = cellX(b.col) + CELL / 2, top = halfTop(b.col, o);
+seg(x - th / 2, top, th, N * CELL);
+} else for (const x0 of [0, HALF]) {
+const r = x0 ? b.row + STEP * b.o : b.row, y = cellY(x0, r, o) + CELL / 2;
+seg(cellX(x0), y - th / 2, HALF * CELL, th);
+}
+}
+ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
 for (const f of ui.fx) {
 if (f.t < 0) continue;
 const k = f.t / FX_LIFE;
-const sz = (CELL - BGAP) * (1 - easeOut(k));
+const sz = (CELL - BGAP) * (1 - easeOut(k)) * (k < 0.18 ? 1 + k * 0.6 : 1.1);
+const x = cellX(f.x) + CELL / 2 - sz / 2, y = cellY(f.x, f.y, o) + CELL / 2 - sz / 2;
 ctx.globalAlpha = 1 - k * 0.5;
-block(cellX(f.x) + CELL / 2 - sz / 2, cellY(f.x, f.y, o) + CELL / 2 - sz / 2, sz, f.c);
+block(x, y, sz, f.c);
+if (k < 0.35) { ctx.globalAlpha = (1 - k / 0.35) * 0.85; ctx.fillStyle = '#fff'; ctx.fillRect(x, y, sz, sz); }
 ctx.globalAlpha = 1;
 }
 for (const p of ui.parts) {
 if (p.t < 0) continue;
-ctx.globalAlpha = 1 - p.t / p.life;
-ctx.fillStyle = PAL[p.c].light;
 const px = cellX(p.cx) + CELL / 2 + p.dx, py = cellY(p.cx, p.cy, o) + CELL / 2 + p.dy;
-ctx.fillRect(px - p.s / 2, py - p.s / 2, p.s, p.s);
+ctx.globalAlpha = 1 - p.t / p.life;
+if (p.c < 0) { ctx.fillStyle = '#fff6d0'; ctx.fillRect(px - p.s / 2, py - p.s / 2, p.s, p.s); continue; }
+const cs = Math.cos(p.rot || 0), sn = Math.sin(p.rot || 0);
+ctx.setTransform(SCALE * cs, SCALE * sn, -SCALE * sn, SCALE * cs, SCALE * px, SCALE * py);
+ctx.fillStyle = PAL[p.c].base; ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s);
+ctx.fillStyle = PAL[p.c].light; ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.35);
+}
+ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+ctx.globalAlpha = 1;
+for (const r of ui.rings) {
+if (r.t < 0) continue;
+const k = r.t / RING_LIFE, R0 = CELL * (3 + r.n) * easeOut(k);
+ctx.globalAlpha = (1 - k) * 0.8;
+ctx.strokeStyle = r.lift ? '#7fe3ff' : '#fff2c0';
+ctx.lineWidth = (2.6 + r.n * 0.6) * (1 - k) + 0.3;
+ctx.beginPath(); ctx.arc(r.x, frameY(r.y0, o), R0, 0, Math.PI * 2); ctx.stroke();
 }
 ctx.globalAlpha = 1;
 ctx.fillStyle = COL.panel; rrect(TX, TRAY_Y, TW, TRAY_H, 4); ctx.fill();
