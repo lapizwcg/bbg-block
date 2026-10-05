@@ -180,7 +180,7 @@ padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)"
 const PORTAL = window.BB_PORTAL ||
 (/[?&]dbg\b/.test(location.search) && /[?&]portal\b/.test(location.search) ? 'test' : '');
 const ADS_ON = false;
-const ECO_ON = () => ECO_UNLOCKED || PORTAL === 'test' || (!!PORTAL && ADS_ON);
+const ECO_ON = () => PORTAL ? (PORTAL === 'test' || ADS_ON) : ECO_UNLOCKED;
 const DW = 180, DH = 320;
 const N = 10, HALF = 5, K = 5, OMAX = 2, SEAM = 3;
 const STEP = 2;
@@ -188,7 +188,7 @@ let CELL = 16;
 let BWID = N * CELL + SEAM;
 let SHAFT_H = (N + 2 * OMAX) * CELL;
 let PX = 7, PW = N * CELL + 6;
-const ECO_UNLOCKED = false;
+const ECO_UNLOCKED = true;
 const ECO_PH = ECO_ON() ? 16 : 0;
 const ECO_G = ECO_ON() ? 4 : 0;
 let ECO_Y = 230;
