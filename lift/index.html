@@ -923,7 +923,7 @@ stSet(bestKey(G && G.mode), String(best));
 }
 function randomSeed() { return (Math.random() * 4294967296) >>> 0; }
 const MUSIC_TRACKS = ['blossom', 'journey', 'start', 'regrowth', 'shop', 'town'];
-const MUSIC_GAIN = 0.5, MUSIC_GAP = 4;
+const MUSIC_GAIN = 0.25, MUSIC_GAP = 4;
 const SFX = (function () {
 let ac = null, master = null, send = null, mGain = null;
 let mEl = null, mWait = 0, mOrder = [], mLast = '', mFail = 0;
@@ -946,7 +946,8 @@ conv.buffer = ir; wet.gain.value = 0.22;
 send = a.createGain(); send.gain.value = 1;
 send.connect(conv); conv.connect(wet); wet.connect(lp);
 }
-function ctxOn() {
+let mArmed = false;
+function ctxMake() {
 if (settings.volume <= 0 && settings.music <= 0) return null;
 if (!ac) {
 const AC = window.AudioContext || window.webkitAudioContext;
@@ -956,8 +957,12 @@ build(ac);
 mGain = ac.createGain(); mGain.gain.value = settings.music * MUSIC_GAIN;
 mGain.connect(ac.destination);
 }
-if (ac.state === 'suspended') ac.resume();
 return ac;
+}
+function ctxOn() {
+const a = ctxMake();
+if (a && a.state === 'suspended' && mArmed) a.resume();
+return a;
 }
 function mVol() {
 const v = settings.music * MUSIC_GAIN;
@@ -972,15 +977,15 @@ for (let i = mOrder.length - 1; i > 0; i--) { const j = Math.floor(Math.random()
 }
 mLast = mOrder.shift();
 mEl.src = 'music/' + mLast + '.mp3';
-if (settings.music > 0 && !document.hidden) mEl.play().catch(() => {});
+if (mArmed && settings.music > 0 && !document.hidden) mEl.play().catch(() => {});
 }
 function music() {
 if (settings.music <= 0) { if (mEl && !mEl.paused) mEl.pause(); return; }
-if (mEl) { if (mEl.paused && !mWait && mEl.src && !document.hidden) mEl.play().catch(() => {}); return; }
+if (mEl) { if (mArmed && mEl.paused && !mWait && mEl.src && !document.hidden) mEl.play().catch(() => {}); return; }
 mEl = new Audio();
 mEl.preload = 'auto';
 if (/^https?:$/.test(location.protocol)) {
-const a = ctxOn();
+const a = ctxMake();
 if (a) try { a.createMediaElementSource(mEl).connect(mGain); mEl._wa = true; } catch (e) {}
 }
 mVol();
@@ -1041,7 +1046,8 @@ over() { [72, 67, 64, 60].forEach((m, i) => voice(hz(m), 0.5, { vol: 0.13, glide
 probe() { voice(660, 0.12, { vol: 0.12, glide: 1.3, gt: 0.05 }); }
 };
 return {
-unlock() { ctxOn(); music(); },
+unlock() { mArmed = true; ctxOn(); music(); },
+warm() { if (ctxMake()) music(); },
 setMusic(v) { mVol(); if (v > 0) ctxOn(); music(); },
 get el() { return mEl; },
 get track() { return mEl ? { name: mLast, paused: mEl.paused, t: mEl.currentTime, dur: mEl.duration, wa: !!mEl._wa, wait: !!mWait } : null; },
@@ -3052,6 +3058,7 @@ ui.tut = settings.tutDone ? 0 : (G.moves === 0 ? 1 : 3);
 tutPlan();
 fit();
 requestAnimationFrame(frame);
+(window.requestIdleCallback || (f => setTimeout(f, 400)))(() => SFX.warm(), { timeout: 1500 });
 })();
 </script>
 <script>
