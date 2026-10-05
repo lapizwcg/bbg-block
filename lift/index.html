@@ -963,6 +963,8 @@ voice(300, 0.17, { vol: 0.28, glide: 1.6, gt: 0.05 });
 voice(150, 0.15, { vol: 0.16, glide: 1.2, gt: 0.05 });
 },
 back() { voice(520, 0.18, { vol: 0.11, glide: 0.72, gt: 0.13 }); },
+nope() { voice(150, 0.14, { vol: 0.17, glide: 0.7, gt: 0.08 }); voice(105, 0.12, { vol: 0.1, glide: 0.8, gt: 0.08 }); },
+thud(n) { voice(95, 0.2, { vol: 0.12 + 0.04 * Math.min(2, n || 1), glide: 0.65, gt: 0.1 }); },
 clear(lines, combo, at) {
 const base = 55 + Math.min(Math.max(0, combo - 1), 5);
 const steps = [0, 3, 5, 7, 10, 12, 7];
@@ -1066,6 +1068,11 @@ banners: [],
 pops: [],
 shown: 0,
 overT: -1,
+trayIn: -1,
+sag: 0,
+jolt: null,
+thuds: [],
+dust: [],
 bestAtStart: 0,
 recordShown: false,
 hud: null,
@@ -1088,15 +1095,15 @@ o = st.from + (st.to - st.from) * easeInOut(Math.min(1, (L.t - st.at) / LIFT_DUR
 const last = L.steps[L.steps.length - 1];
 if (last) {
 const u = L.t - last.at - LIFT_DUR;
-if (u > 0 && u < WOBBLE) o += (last.to - last.from) * 0.11 * Math.sin(u * 2 * Math.PI / 0.3) * Math.exp(-u * 8);
+if (u > 0 && u < WOBBLE) o += (last.to - last.from) * 0.16 * Math.sin(u * 2 * Math.PI / 0.3) * Math.exp(-u * 8);
 }
 return o;
 }
 const liftBusy = () => ui.lift.steps.length && ui.lift.t < ui.lift.steps[ui.lift.steps.length - 1].at + LIFT_DUR + WOBBLE;
 const cellX = x => BX + x * CELL + (x >= HALF ? SEAM : 0);
-const halfTop = (x, o) => BY + (OMAX + (x < HALF ? o : -o)) * CELL;
+const halfTop = (x, o) => BY + (OMAX + (x < HALF ? o : -o)) * CELL + ui.sag;
 const cellY = (x, r, o) => halfTop(x, o) + r * CELL;
-const frameY = (y, o) => BY + (OMAX + o + y) * CELL;
+const frameY = (y, o) => BY + (OMAX + o + y) * CELL + ui.sag;
 function startGame(seed) {
 if (G && !G.over) recordGame(G);
 G = newGame(seed, !settings.tutDone, settings.diff);
@@ -1104,6 +1111,7 @@ if (ECO_ON()) G.eco = true;
 best = loadBest(G.mode);
 ui.drag = ui.target = ui.preview = ui.back = null;
 ui.fx = []; ui.parts = []; ui.beams = []; ui.stars = []; ui.rings = []; ui.edge = ui.shake = null; ui.comboPop = -1; ui.floats = []; ui.banners = []; ui.pops = [];
+ui.trayIn = 0; ui.jolt = null; ui.thuds = []; ui.dust = []; ui.sag = 0;
 ui.shown = 0; ui.overT = -1; ui.bestAtStart = best; ui.recordShown = false; ui.hot = 0; ui.fire = false; ui.sparks = [];
 ui.tut = settings.tutDone ? 0 : 1; ui.tutT = 0;
 ui.rotMode = false; ui.rotTap = null;
@@ -1243,6 +1251,7 @@ ui.back = null;
 SFX.play('pick');
 try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
 updateTarget();
+setCursor(null);
 needDraw = true;
 }
 });
@@ -1253,6 +1262,22 @@ ui.drag.x = p.x; ui.drag.y = p.y;
 updateTarget();
 needDraw = true;
 });
+let lastMouse = null, cursorNow = '';
+function setCursor(p) {
+let c = 'default';
+if (ui.drag) c = 'grabbing';
+else if (p && G && ovEl.hidden) {
+if (hudHit(p)) c = 'pointer';
+else if (!G.over && inTray(p, 0) && G.tray[slotAt(p)] >= 0) c = 'grab';
+}
+if (c !== cursorNow) { cursorNow = c; cv.style.cursor = c; }
+}
+cv.addEventListener('pointermove', ev => {
+if (ev.pointerType !== 'mouse') return;
+lastMouse = toLogic(ev);
+setCursor(lastMouse);
+});
+cv.addEventListener('pointerleave', () => { lastMouse = null; setCursor(null); });
 function endDrag(ok) {
 const d = ui.drag;
 if (!d) return;
@@ -1260,10 +1285,11 @@ if (!(ok && ui.target && doPlace(d.slot, ui.target.x, ui.target.y))) {
 const c = dragCenter(d);
 const ts = trayGeo().cell;
 const size = ts + (CELL - ts) * easeOut(Math.min(1, d.t / 0.08));
-ui.back = { slot: d.slot, x: c.x, y: c.y, size, t: 0 };
+ui.back = { slot: d.slot, x: c.x, y: c.y, size, t: 0, miss: ok && !inTray({ x: d.x, y: d.y }, 0) };
 SFX.play('back');
 }
 ui.drag = ui.target = ui.preview = null;
+setCursor(lastMouse);
 needDraw = true;
 }
 cv.addEventListener('pointerup', ev => { if (ui.drag && ev.pointerId === ui.drag.id) endDrag(true); });
@@ -1401,7 +1427,7 @@ SFX.play('place');
 res.waves.forEach((w, k) => SFX.play('clear', w.rows.length + w.cols.length, res.combo + k, fxAt[k]));
 if (res.clean) SFX.play('clean');
 if (rec) SFX.play('record');
-if (!G.over && G.tray.every(i => i >= 0)) SFX.play('tray');
+if (!G.over && G.tray.every(i => i >= 0)) { SFX.play('tray'); ui.trayIn = 0; }
 if (G.score > best) { best = G.score; saveBest(); }
 saveRun();
 if (G.over) { gameOver(); SFX.play('over'); }
@@ -1427,6 +1453,18 @@ b.onclick = () => actions[b.dataset.act]();
 ovEl.hidden = false;
 }
 function closeOverlay() { ovEl.hidden = true; ovCard.innerHTML = ''; }
+function countUp(el, to) {
+if (!el || to <= 0) return;
+const t0 = performance.now(), dur = Math.min(900, 300 + to * 2);
+const step = now => {
+if (!el.isConnected) return;
+const k = Math.min(1, (now - t0) / dur);
+el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3)));
+if (k < 1) requestAnimationFrame(step);
+};
+el.textContent = '0';
+requestAnimationFrame(step);
+}
 function showGameOver() {
 const rec = G.score > ui.bestAtStart && G.score > 0;
 openOverlay(
@@ -1452,6 +1490,7 @@ SFX.play('tray');
 },
 ad: () => Ads.rewarded(() => { stars += ECO.ad; saveStars(); if (G.over) showGameOver(); })
 });
+countUp(ovCard.querySelector('.big'), G.score);
 }
 function ecoOffers() {
 if (!ECO_ON()) return '';
@@ -1464,7 +1503,7 @@ return '<div class="stars">★ ' + stars + '</div><div class="offers">' +
 }
 function resumeGame() {
 clearTimeout(overTimer);
-ui.overT = -1;
+ui.overT = -1; ui.sag = 0;
 closeOverlay();
 note(t('revived'));
 Ads.start();
@@ -1720,7 +1759,25 @@ openOverlay(
 }
 const RING_LIFE = 0.55, CHAIN_HOP = 0.035, BOLT_LIFE = 0.25;
 const STARS_MAX = 180;
-const FX_LIFE = 0.32, POP_LIFE = 0.18, FLOAT_LIFE = 0.9, BANNER_LIFE = 1.3, OVER_DELAY = 0.9, BACK_LIFE = 0.14;
+function thud(o, n) {
+ui.thuds.push({ t: 0, n });
+const x = BX + HALF * CELL + SEAM / 2;
+for (const x0 of [0, HALF]) for (const y of [halfTop(x0, o), halfTop(x0, o) + N * CELL]) {
+for (let q = 0; q < 4; q++) {
+const dir = x0 ? 1 : -1, v = 10 + Math.random() * 16;
+ui.dust.push({ x: x + dir * 1.5, y, vx: dir * v, vy: -4 - Math.random() * 8, t: 0,
+life: DUST_LIFE * (0.6 + Math.random() * 0.4), s: 1.4 + Math.random() * 1.4 });
+}
+}
+if (!ui.shake) ui.shake = { t: 0, amp: 0.6 + 0.3 * n };
+SFX.play('thud', n);
+}
+const FX_LIFE = 0.32, POP_LIFE = 0.18, FLOAT_LIFE = 0.9, BANNER_LIFE = 1.3, OVER_DELAY = 1.2, BACK_LIFE = 0.14;
+const TRAY_IN = 0.34, TRAY_STAG = 0.07;
+const JOLT_LIFE = 0.28;
+const THUD_LIFE = 0.35, DUST_LIFE = 0.5;
+const OVER_FILL = 0.63;
+const easeOutBack = k => 1 + 2.2 * Math.pow(k - 1, 3) + 1.2 * Math.pow(k - 1, 2);
 function update(dt) {
 let busy = false;
 softBusy = false;
@@ -1730,8 +1787,23 @@ if (ui.drag && ui.drag.t < 1) {
 ui.drag.t += dt; busy = true;
 if (ui.drag.t < 0.2) updateTarget();
 }
-if (ui.back) { ui.back.t += dt; busy = true; if (ui.back.t >= BACK_LIFE) ui.back = null; }
-if (liftBusy()) { ui.lift.t += dt; busy = true; if (ui.drag) updateTarget(); }
+if (ui.back) {
+ui.back.t += dt; busy = true;
+if (ui.back.t >= BACK_LIFE) {
+if (ui.back.miss) { ui.jolt = { slot: ui.back.slot, t: 0 }; SFX.play('nope'); }
+ui.back = null;
+}
+}
+if (ui.jolt) { ui.jolt.t += dt; busy = true; if (ui.jolt.t >= JOLT_LIFE) ui.jolt = null; }
+if (ui.trayIn >= 0) { ui.trayIn += dt; busy = true; if (ui.trayIn >= TRAY_IN + 2 * TRAY_STAG) ui.trayIn = -1; }
+if (liftBusy()) {
+const t0 = ui.lift.t;
+ui.lift.t += dt; busy = true; if (ui.drag) updateTarget();
+for (const st of ui.lift.steps) {
+const arr = st.at + LIFT_DUR;
+if (t0 < arr && ui.lift.t >= arr) thud(st.to, Math.abs(st.to - st.from));
+}
+}
 else if (ui.hot > 0 && ovEl.hidden && G && !G.over) {
 ui.hot = Math.max(0, ui.hot - dt); busy = true;
 if (ui.hot === 0) ui.fire = false;
@@ -1785,7 +1857,19 @@ ui.shown += (G.score - ui.shown) * Math.min(1, dt * 10);
 if (Math.abs(G.score - ui.shown) < 0.5) ui.shown = G.score;
 busy = true;
 }
-if (ui.overT >= 0 && ui.overT < OVER_DELAY) { ui.overT += dt; busy = true; }
+if (ui.overT >= 0 && ui.overT < OVER_DELAY) {
+const t0 = ui.overT;
+ui.overT += dt; busy = true;
+const u = ui.overT - OVER_FILL;
+if (t0 < OVER_FILL && u >= 0) thud(offOf(G.board), 1);
+ui.sag = u > 0 ? CELL * 0.55 * Math.exp(-u * 7) * Math.sin(u * 2 * Math.PI / 0.34) : 0;
+if (ui.overT >= OVER_DELAY) ui.sag = 0;
+}
+for (const h of ui.thuds) h.t += dt;
+ui.thuds = ui.thuds.filter(h => h.t < THUD_LIFE);
+for (const d of ui.dust) { d.t += dt; d.x += d.vx * dt; d.y += d.vy * dt; d.vx *= 1 - 4 * dt; d.vy += 18 * dt; }
+ui.dust = ui.dust.filter(d => d.t < d.life);
+if (ui.thuds.length || ui.dust.length) busy = true;
 return busy;
 }
 function rr(c, x, y, w, h, r) {
@@ -2093,7 +2177,8 @@ const pv = ui.target && ui.preview && ui.preview.n ? ui.preview : null;
 const n = pv ? pv.n : now, off = pv ? pv.off : offOf(G.board), at = Math.abs(off) >= OMAX;
 const pulse = 0.75 + 0.25 * Math.sin((ui.clock || 0) * 6);
 const st = tiltOf(n, off);
-if (!LAND) { drawLintels(n, now, off, at, pv, pulse, st); return; }
+const soon = pv && pv.off !== offOf(G.board) ? 0.5 + 0.5 * Math.sin((ui.clock || 0) * 14) : 0;
+if (!LAND) { drawLintels(n, now, off, at, pv, pulse, st, soon); return; }
 const y0 = SP_Y, h = SP_H, r = 4;
 for (const side of [0, 1]) {
 const x0 = side ? BX + BWID + 1 : PX, x1 = side ? PX + PW : BX - 1, w = x1 - x0;
@@ -2156,13 +2241,14 @@ ctx.beginPath(); ctx.moveTo(x0, fy); ctx.lineTo(x1, fy); ctx.stroke();
 ctx.setLineDash([]); ctx.globalAlpha = 1;
 }
 ctx.restore();
+if (soon) { ctx.globalAlpha = 0.25 + 0.75 * soon; ctx.strokeStyle = '#fff6c8'; ctx.lineWidth = 1.2; rrect(x0 + 0.6, y0 + 0.6, w - 1.2, h - 1.2, 3); ctx.stroke(); ctx.globalAlpha = 1; }
 ctx.fillStyle = heavy ? P.base : 'rgba(255,255,255,.16)';
 ctx.globalAlpha = heavy ? 0.7 : 1;
 ctx.fillRect(side ? x0 - 0.3 : x1 - 0.3, y0, 0.6, h);
 ctx.globalAlpha = 1;
 }
 }
-function drawLintels(n, now, off, at, pv, pulse, st) {
+function drawLintels(n, now, off, at, pv, pulse, st, soon) {
 const y0 = SP_Y, h = LINTEL, r = 4, mid = BX + HALF * CELL + SEAM / 2, pw = 34;
 const lim = OMAX * K;
 const d0 = Math.max(-lim, Math.min(lim, now[0] - now[1])), d1 = Math.max(-lim, Math.min(lim, n[0] - n[1]));
@@ -2223,6 +2309,7 @@ ctx.beginPath(); ctx.moveTo(xx, y0); ctx.lineTo(xx, y0 + h); ctx.stroke();
 ctx.setLineDash([]); ctx.globalAlpha = 1;
 }
 ctx.restore();
+if (soon) { ctx.globalAlpha = 0.25 + 0.75 * soon; ctx.strokeStyle = '#fff6c8'; ctx.lineWidth = 1.2; rrect(x0 + 0.6, y0 + 0.6, w - 1.2, h - 1.2, 3); ctx.stroke(); ctx.globalAlpha = 1; }
 ctx.fillStyle = heavy ? P.base : 'rgba(255,255,255,.16)';
 ctx.globalAlpha = heavy ? 0.7 : 1;
 ctx.fillRect(x0, y0 + h - 0.3, w, 0.6);
@@ -2337,7 +2424,7 @@ ctx.fillStyle = COL.dim;
 for (const x0 of [0, HALF]) ctx.fillRect(x0 ? railX + 0.3 : railX - 1.8, halfTop(x0, o) + N * CELL / 2 - 0.5, 1.5, 1);
 drawWeights();
 const drag = ui.drag, dragS = drag ? SHAPES[G.tray[drag.slot]] : null;
-const overRows = ui.overT >= 0 ? Math.floor(ui.overT / (OVER_DELAY * 0.7) * N) : -1;
+const overRows = ui.overT >= 0 ? Math.floor(ui.overT / OVER_FILL * N) : -1;
 const hold = new Map();
 for (const f of ui.fx) if (f.t < 0) hold.set(f.i, f.c);
 for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
@@ -2352,6 +2439,25 @@ const pop = ui.pops.find(p => p.i === i);
 if (pop) { const k = 1 + 0.18 * Math.sin(Math.PI * pop.t / POP_LIFE); oo = 0.5 - (sz * k - sz) / 2; sz *= k; }
 block(px + oo, py + oo, sz, ci);
 if (G.stars && G.stars.includes(i)) drawStar(px + CELL / 2, py + CELL / 2, CELL * 0.3);
+}
+if (ui.thuds.length || ui.dust.length) {
+ctx.globalCompositeOperation = 'lighter';
+const top = Math.min(halfTop(0, o), halfTop(HALF, o)), bot = Math.max(halfTop(0, o), halfTop(HALF, o)) + N * CELL;
+for (const h of ui.thuds) {
+const k = h.t / THUD_LIFE, w = 1.5 + 4 * (1 - k) * (0.7 + 0.3 * h.n);
+ctx.globalAlpha = (1 - k) * (1 - k) * 0.8;
+const g = ctx.createLinearGradient(railX - w, 0, railX + w, 0);
+g.addColorStop(0, 'rgba(160,220,255,0)'); g.addColorStop(0.5, '#cfeeff'); g.addColorStop(1, 'rgba(160,220,255,0)');
+ctx.fillStyle = g; ctx.fillRect(railX - w, top, 2 * w, bot - top);
+}
+ctx.globalCompositeOperation = 'source-over';
+ctx.fillStyle = '#d7ddf5';
+for (const d of ui.dust) {
+ctx.globalAlpha = 0.55 * (1 - d.t / d.life);
+const r = d.s * (1 + d.t / d.life);
+ctx.fillRect(d.x - r / 2, d.y - r / 2, r, r);
+}
+ctx.globalAlpha = 1;
 }
 if (ui.target && dragS) {
 const P = PAL[dragS.color], pulse = 0.85 + 0.15 * Math.sin(ui.clock * 6);
@@ -2458,14 +2564,26 @@ side(0, 0, w, LH, 0, 0, w, 0); side(LW - w, 0, w, LH, LW, 0, LW - w, 0);
 }
 ctx.fillStyle = COL.panel; rrect(TX, TRAY_Y, TW, TRAY_H, 4); ctx.fill();
 const tg = trayGeo();
+if (ui.trayIn >= 0) { ctx.save(); rrect(TX, TRAY_Y, TW, TRAY_H, 4); ctx.clip(); }
 for (let k = 0; k < 3; k++) {
 const si = G.tray[k];
 if (si < 0 || (drag && drag.slot === k) || (ui.back && ui.back.slot === k)) continue;
 const s = SHAPES[si];
 const ci = fitsAnywhere(G.board, s) ? s.color : GREY;
-drawShape(s, tg.cx[k], tg.cy[k], tg.cell, ci);
+let dx = 0, dy = 0, al = 1;
+if (ui.trayIn >= 0) {
+const kk = Math.max(0, Math.min(1, (ui.trayIn - k * TRAY_STAG) / TRAY_IN)), e = 1 - easeOutBack(kk);
+if (TRAY_V) dx = e * TW * 0.9; else dy = e * TRAY_H * 0.9;
+al = Math.min(1, kk * 2.5);
+}
+if (ui.jolt && ui.jolt.slot === k) {
+const q = ui.jolt.t / JOLT_LIFE;
+dx += Math.sin(ui.jolt.t * 55) * 2.4 * (1 - q) * (1 - q);
+}
+drawShape(s, tg.cx[k] + dx, tg.cy[k] + dy, tg.cell, ci, al);
 if (ui.rotMode && s.rot !== si) text('↻', TRAY_V ? TX + 8 : tg.cx[k], TRAY_V ? tg.cy[k] : TRAY_Y + 7, 8, COL.gold, 'center');
 }
+if (ui.trayIn >= 0) ctx.restore();
 drawEco();
 for (const f of ui.floats) {
 const k = f.t / FLOAT_LIFE;
@@ -2858,7 +2976,7 @@ return out;
 if (QS.has('dbg')) {
 window.BB = { get G() { return G; }, get ui() { return ui; },
 get layout() { const g = trayGeo(); return { LW, LH, OX, BX, BY, TRAY_Y, TRAY_H, SLOT_X, CELL, LAND, TX, TW, slotCx: g.cx, slotCy: g.cy, trayCell: g.cell, o: oShown(), frameY, cellX }; },
-offOf, cellAt, fullLines, settle, K, OMAX, HALF,
+offOf, cellAt, fullLines, settle, K, OMAX, HALF, update,
 get supportUrl() { return SUPPORT_URL; }, set supportUrl(v) { SUPPORT_URL = v; }, draw, fit, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings,
 get stars() { return stars; }, set stars(v) { stars = v; saveStars(); }, ECO, PORTAL, showGameOver, traySolutions, TUNE };
 window.bbCheck = bbCheck;
