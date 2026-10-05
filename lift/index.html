@@ -42,12 +42,13 @@ background: #0e1330;
 font-family: "Segoe UI", Roboto, system-ui, sans-serif;
 }
 body { display: flex; align-items: center; justify-content: center; }
-#boot { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center;
-justify-content: center; gap: 18px; background: linear-gradient(#1d2766, #0e1330); transition: opacity .25s; }
-#boot.gone { opacity: 0; pointer-events: none; }
-#boot .bt { font-size: min(34px, 8vw); font-weight: 800; text-align: center; color: #fff; letter-spacing: 1px;
-text-shadow: 0 3px 0 rgba(0,0,0,.35); }
-#boot .bar { width: min(60vw, 260px); height: 10px; border-radius: 5px; background: rgba(255,255,255,.12); overflow: hidden; }
+#boot { position: fixed; top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 50;
+display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 20px 12px; border-radius: 16px;
+background: rgba(10, 14, 40, .88); box-shadow: 0 4px 14px rgba(0,0,0,.4); transition: opacity .3s; pointer-events: none; }
+#boot.gone { opacity: 0; }
+#boot .bt { font-size: min(24px, 6.5vw); font-weight: 800; text-align: center; color: #fff; letter-spacing: 1px; white-space: nowrap;
+text-shadow: 0 2px 0 rgba(0,0,0,.35); }
+#boot .bar { width: min(56vw, 220px); height: 8px; border-radius: 5px; background: rgba(255,255,255,.12); overflow: hidden; }
 #boot .bar i { display: block; height: 100%; width: 0; border-radius: 5px; background: linear-gradient(90deg, #ffd45e, #ff9d3c);
 transition: width .15s; }
 #ov.warm { opacity: .01 !important; pointer-events: none !important; }
@@ -292,6 +293,7 @@ cv.style.width = w + 'px';
 cv.style.height = h + 'px';
 needDraw = true;
 }
+let DEMO = false;
 const NATIVE = (window.BBStore && typeof window.BBStore.get === 'function') ? window.BBStore : null;
 function stGet(k) {
 if (NATIVE) {
@@ -300,6 +302,7 @@ try { const v = NATIVE.get(k); if (v != null && v !== '') return String(v); } ca
 try { return localStorage.getItem(k); } catch (e) { return null; }
 }
 function stSet(k, v) {
+if (DEMO) return;
 if (NATIVE) { try { NATIVE.set(k, v); } catch (e) {} }
 try { localStorage.setItem(k, v); } catch (e) {}
 }
@@ -1168,7 +1171,7 @@ setMusic(v) { mVol(); if (v > 0) ctxOn(); music(); },
 get el() { return mEl; },
 get track() { return mEl ? { name: mLast, paused: mEl.paused, t: mEl.currentTime, dur: mEl.duration, wa: !!mEl._wa, wait: !!mWait } : null; },
 resume() { if (ac && ac.state === 'suspended' && (settings.music > 0 || settings.volume > 0)) ac.resume(); music(); },
-play(name, a, b, c) { try { S[name](a, b, c); } catch (e) {} },
+play(name, a, b, c) { if (DEMO) return; try { S[name](a, b, c); } catch (e) {} },
 setVolume(v) { if (master) master.gain.value = v * GAIN; if (v > 0) ctxOn(); },
 pause() { if (ac && ac.state === 'running') ac.suspend(); if (mEl && !mEl.paused) mEl.pause(); }
 };
@@ -1396,7 +1399,7 @@ for (const c of w.cols) segs.push({ col: c });
 ui.preview = { hl, segs, res, n: halfCounts(cp.board), off: offOf(cp.board) };
 }
 cv.addEventListener('pointerdown', ev => {
-if (!G || !ovEl.hidden) return;
+if (DEMO || !G || !ovEl.hidden) return;
 SFX.unlock();
 const p = toLogic(ev);
 const hb = hudHit(p);
@@ -3308,45 +3311,79 @@ const tick = () => new Promise(r => { let done = false; const go = () => { if (!
 requestAnimationFrame(() => requestAnimationFrame(go)); setTimeout(go, 60); });
 const bootEl = document.getElementById('boot'), bootBar = document.getElementById('bootBar');
 const bootStep = k => { bootBar.style.width = Math.round(k * 100) + '%'; };
+const frameWait = () => new Promise(r => { let d = false; const go = () => { if (!d) { d = true; r(); } };
+requestAnimationFrame(go); setTimeout(go, 100); });
+const sleep = sec => new Promise(r => setTimeout(r, sec * 1000));
+function demoGame() {
+const g = newGame(0x5eed1, false);
+g.board.fill(0);
+for (let x = HALF; x < N - 1; x++) g.board[4 * N + x] = 2 + (x % 5);
+for (let x = 0; x < HALF; x++) g.board[6 * N + x] = 1 + x;
+g.board[9 * N + 8] = g.board[9 * N + 9] = 3;
+g.tray = ['o2', 'dot', 'i3_0'].map(id => SHAPES.findIndex(sh => sh.id === id));
+g.score = 0; g.combo = 0; g.msc = 0; g.moves = 0; g.over = false;
+delete g.easy;
+return g;
+}
+function demoUi() {
+ui.drag = ui.target = ui.preview = ui.back = null;
+ui.fx = []; ui.parts = []; ui.beams = []; ui.stars = []; ui.rings = []; ui.edge = ui.shake = null; ui.comboPop = -1;
+ui.floats = []; ui.banners = []; ui.pops = []; ui.sparks = []; ui.thuds = []; ui.dust = []; ui.jolt = null;
+ui.shown = G.score; ui.overT = -1; ui.hot = 0; ui.fire = false; ui.sag = 0; ui.rotMode = false;
+ui.lift = { steps: [], t: 0, o: offOf(G.board) };
+}
+async function demoMove(slot, gx, gy, dur) {
+const sh = SHAPES[G.tray[slot]], tg = trayGeo(), o = offOf(G.board);
+const x0 = tg.cx[slot], y0 = tg.cy[slot];
+const x1 = BX + (gx + sh.w / 2) * CELL, y1 = frameY(gy + sh.h / 2, o);
+ui.drag = { slot, x: x0, y: y0, lift: false, t: 0, id: -1 };
+const t0 = performance.now();
+for (;;) {
+const k = Math.min(1, (performance.now() - t0) / (dur * 1000)), e = k < 0.5 ? 2 * k * k : 1 - 2 * (1 - k) * (1 - k);
+ui.drag.x = x0 + (x1 - x0) * e; ui.drag.y = y0 + (y1 - y0) * e;
+updateTarget(); needDraw = true;
+if (k >= 1) break;
+await frameWait();
+}
+await sleep(0.25);
+ui.drag = ui.target = ui.preview = null;
+doPlace(slot, gx, gy);
+}
+let demoKeep = null;
+function demoBegin() {
+demoKeep = { G, best, tut: ui.tut, bestAt: ui.bestAtStart, rec: ui.recordShown };
+DEMO = true;
+G = demoGame(); ui.tut = 0; demoUi(); ui.trayIn = 0; needDraw = true;
+}
+async function runDemo() {
+const keep = demoKeep;
+try {
+if (ovEl.hidden) {
+ovEl.classList.add('warm');
+for (const w of [openSettings, openHistory, openCredits]) { w(); void ovCard.offsetHeight; await tick(); }
+closeOverlay();
+ovEl.classList.remove('warm');
+}
+bootStep(0.45); await sleep(0.3); bootStep(0.55);
+await demoMove(0, 8, 7, 0.7);
+await sleep(0.9); bootStep(0.75);
+await demoMove(1, 9, 6, 0.6);
+await sleep(1.4); bootStep(0.95);
+} catch (e) {}
+G = keep.G; best = keep.best; ui.tut = keep.tut; ui.bestAtStart = keep.bestAt; ui.recordShown = keep.rec;
+demoUi(); ui.trayIn = 0;
+DEMO = false;
+needDraw = true;
+}
 async function boot() {
+try { demoBegin(); } catch (e) { DEMO = false; }
 try {
 bootStep(0.1); await tick();
 const snd = Promise.race([SFX.warm(), new Promise(r => setTimeout(r, 1500))]);
 bootStep(0.25); await tick();
 THEME_IDS.forEach(themeThumb);
 bootStep(0.4); await tick();
-const wasOpen = !ovEl.hidden;
-if (!wasOpen) {
-ovEl.classList.add('warm');
-const wins = [openSettings, openHistory, openCredits];
-for (let i = 0; i < wins.length; i++) {
-wins[i](); void ovCard.offsetHeight;
-await tick();
-bootStep(0.4 + 0.4 * (i + 1) / wins.length);
-}
-closeOverlay();
-ovEl.classList.remove('warm');
-}
-try {
-const slot = G && !G.over ? G.tray.findIndex(i => i >= 0) : -1;
-if (slot >= 0) {
-const sh = SHAPES[G.tray[slot]], o = offOf(G.board);
-let at = null;
-for (let y = Y_LO(sh); y <= Y_HI(sh) && !at; y++) for (let x = 0; x + sh.w <= N && !at; x++) if (fits(G.board, sh, x, y, o)) at = [x, y];
-if (at) {
-ui.drag = { slot, x: BX + (at[0] + sh.w / 2) * CELL, y: frameY(at[1] + sh.h / 2, o), lift: false, t: 1, id: -1 };
-updateTarget(); draw(); await tick();
-}
-}
-ui.drag = ui.target = ui.preview = null;
-ui.beams.push({ pts: [[0, 0], [1, 0], [2, 0]], t: 0.05, lift: true, pow: 3, seed: 1 });
-ui.stars.push({ cx: 0, cy: 0, dx: 0, dy: 0, vx: 0, vy: 0, t: 0.05, life: 1, s: 3 });
-ui.rings.push({ x: BX + CELL, y0: 1, t: 0.05, lift: true, n: 2 });
-ui.thuds.push({ t: 0.05, n: 1 });
-draw(); await tick();
-} catch (e) {}
-ui.drag = ui.target = ui.preview = null;
-ui.beams = []; ui.stars = []; ui.rings = []; ui.thuds = []; ui.dust = [];
+if (demoKeep) await runDemo();
 bootStep(0.95);
 await snd;
 } catch (e) { ovEl.classList.remove('warm'); }
