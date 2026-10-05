@@ -3024,6 +3024,7 @@ const dt = last ? Math.min(0.05, (time - last) / 1000) : 0;
 last = time;
 if (LOADING) { drawLoader(dt); return; }
 const busy = update(dt);
+if (!ovEl.hidden && !ovEl.classList.contains('warm')) { wasBusy = busy; needDraw = true; return; }
 if (busy || needDraw || wasBusy) {
 const t0 = performance.now(); draw(); const dtd = performance.now() - t0;
 DIAG.frames.push(dtd); if (DIAG.frames.length > 120) DIAG.frames.shift();
