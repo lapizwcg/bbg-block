@@ -3463,7 +3463,7 @@ if (!settings.tutDone && best > 0) { settings.tutDone = true; saveSettings(); }
 ui.tut = settings.tutDone ? 0 : (G.moves === 0 ? 1 : 3);
 tutPlan();
 fit();
-requestAnimationFrame(frame);
+if (!(QS.has('dbg') && QS.has('noloop'))) requestAnimationFrame(frame);
 const tick = () => new Promise(r => { let done = false; const go = () => { if (!done) { done = true; r(); } };
 requestAnimationFrame(() => requestAnimationFrame(go)); setTimeout(go, 60); });
 const bootStep = k => { LOAD.k = k; };
