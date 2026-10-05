@@ -1068,6 +1068,7 @@ back: null,
 fx: [],
 parts: [],
 beams: [],
+stars: [],
 rings: [],
 comboPop: -1,
 edge: null,
@@ -1114,7 +1115,7 @@ G = newGame(seed, !settings.tutDone, settings.diff);
 if (ECO_ON()) G.eco = true;
 best = loadBest(G.mode);
 ui.drag = ui.target = ui.preview = ui.back = null;
-ui.fx = []; ui.parts = []; ui.beams = []; ui.rings = []; ui.edge = ui.shake = null; ui.comboPop = -1; ui.floats = []; ui.banners = []; ui.pops = [];
+ui.fx = []; ui.parts = []; ui.beams = []; ui.stars = []; ui.rings = []; ui.edge = ui.shake = null; ui.comboPop = -1; ui.floats = []; ui.banners = []; ui.pops = [];
 ui.shown = 0; ui.overT = -1; ui.bestAtStart = best; ui.recordShown = false; ui.hot = 0; ui.fire = false; ui.sparks = [];
 ui.tut = settings.tutDone ? 0 : 1; ui.tutT = 0;
 ui.rotMode = false; ui.rotTap = null;
@@ -1341,25 +1342,37 @@ fxAt.push(at); at += WAVE_GAP;
 if (res.waves.o !== from) steps.push({ from, to: res.waves.o, at });
 ui.lift = { steps, t: 0, o: res.o0 };
 if (steps.length) SFX.play('lift', steps[0].to - steps[0].from);
-const pc = s.color;
 res.waves.forEach((w, k) => {
 const cx0 = gx + s.w / 2, cy0 = gy + s.h / 2;
 const pow = Math.min(6, res.combo + k);
-for (const r of w.rows) ui.beams.push({ row: r, o: w.o, t: -fxAt[k], lift: k > 0, c: pc, pow, segs: null, flick: 0 });
-for (const c of w.cols) ui.beams.push({ col: c, t: -fxAt[k], lift: k > 0, c: pc, pow, segs: null, flick: 0 });
+const hitAt = new Map();
+const chain = pts => {
+pts.forEach((q, j) => { const i = q[1] * N + q[0]; if (!hitAt.has(i) || hitAt.get(i) > j * CHAIN_HOP) hitAt.set(i, j * CHAIN_HOP); });
+ui.beams.push({ pts, t: -fxAt[k], lift: k > 0, pow, seed: (Math.random() * 4294967296) >>> 0 });
+};
+for (const r of w.rows) {
+const pts = [];
+for (let x = 0; x < N; x++) pts.push([x, x < HALF ? r : r + STEP * w.o]);
+chain(cx0 < N / 2 ? pts : pts.reverse());
+}
+for (const c of w.cols) {
+const pts = [];
+for (let y = 0; y < N; y++) pts.push([c, y]);
+chain(cy0 < N / 2 ? pts : pts.reverse());
+}
 for (const c of w.cells) {
-const delay = fxAt[k] + Math.hypot(c.x + 0.5 - cx0, c.y + 0.5 - cy0) * 0.02;
+const delay = fxAt[k] + (hitAt.has(c.i) ? hitAt.get(c.i) : 0);
+for (let q = 2 + Math.min(2, pow >> 1); q > 0 && ui.stars.length < STARS_MAX; q--) {
+const a = Math.random() * Math.PI * 2, v = CELL * (1.6 + Math.random() * 1.8);
+ui.stars.push({ cx: c.x, cy: c.y, dx: 0, dy: 0, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+t: -delay, life: 0.27 + Math.random() * 0.3, s: CELL * (0.12 + Math.random() * 0.06) });
+}
 ui.fx.push({ i: c.i, x: c.x, y: c.y, c: c.c, t: -delay });
 for (let q = 0; q < 4; q++) {
 const a = (q + Math.random() * 0.8) * Math.PI / 2, v = 45 + Math.random() * 55;
 ui.parts.push({ cx: c.x, cy: c.y, dx: (q % 2 - 0.5) * 3, dy: (q < 2 ? -1 : 1) * 1.5, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 55,
 c: c.c, s: 2.6 + Math.random() * 2, t: -delay, life: 0.55 + Math.random() * 0.3,
 rot: Math.random() * 6, spin: (Math.random() - 0.5) * 18 });
-}
-if (Math.random() < 0.6) {
-const a = Math.random() * Math.PI * 2, v = 70 + Math.random() * 60;
-ui.parts.push({ cx: c.x, cy: c.y, dx: 0, dy: 0, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 30,
-c: -1, s: 1.1, t: -delay, life: 0.3 + Math.random() * 0.2 });
 }
 }
 if (w.rows.length + w.cols.length >= 2 || k > 0)
@@ -1697,7 +1710,8 @@ openOverlay(
 '<button class="alt" data-act="no">' + t('no') + '</button></div>',
 { yes: () => startGame(randomSeed()), no: () => { closeOverlay(); needDraw = true; } });
 }
-const BEAM_LIFE = 0.42, RING_LIFE = 0.55, BOLT_FLICK = 0.07;
+const RING_LIFE = 0.55, CHAIN_HOP = 0.035, BOLT_LIFE = 0.25;
+const STARS_MAX = 180;
 const FX_LIFE = 0.32, POP_LIFE = 0.18, FLOAT_LIFE = 0.9, BANNER_LIFE = 1.3, OVER_DELAY = 0.9, BACK_LIFE = 0.14;
 function update(dt) {
 let busy = false;
@@ -1736,10 +1750,15 @@ if (p.t > 0) { p.dx += p.vx * dt; p.dy += p.vy * dt; p.vy += 260 * dt; if (p.spi
 }
 ui.parts = ui.parts.filter(p => p.t < p.life);
 for (const b of ui.beams) b.t += dt;
-ui.beams = ui.beams.filter(b => b.t < BEAM_LIFE);
+ui.beams = ui.beams.filter(b => b.t < (b.pts.length - 2) * CHAIN_HOP + BOLT_LIFE);
+for (const p of ui.stars) {
+p.t += dt;
+if (p.t > 0) { p.dx += p.vx * dt; p.dy += p.vy * dt; const d = 1 - 5 * dt; p.vx *= d; p.vy *= d; }
+}
+ui.stars = ui.stars.filter(p => p.t < p.life);
 for (const r of ui.rings) r.t += dt;
 ui.rings = ui.rings.filter(r => r.t < RING_LIFE);
-if (ui.beams.length || ui.rings.length) busy = true;
+if (ui.beams.length || ui.stars.length || ui.rings.length) busy = true;
 if (ui.comboPop >= 0) { ui.comboPop += dt; busy = true; if (ui.comboPop > 0.4) ui.comboPop = -1; }
 if (ui.edge) { ui.edge.t += dt; busy = true; if (ui.edge.t > 0.7) ui.edge = null; }
 if (ui.shake) { ui.shake.t += dt; busy = true; if (ui.shake.t > 0.28) ui.shake = null; }
@@ -2211,32 +2230,11 @@ ctx.fillRect(cx - 1.3, bot - 1.4, 2.6, 1.6);
 }
 }
 }
-function boltSegs(x0, y0, x1, y1, pow) {
-const out = [], segLen = CELL * 0.55, jitBase = CELL * (0.22 + pow * 0.035);
-const branchPct = 0.18 + pow * 0.05;
-(function bolt(ax, ay, bx, by, t0, t1, depth, tipFree) {
-const dx = bx - ax, dy = by - ay, d = Math.hypot(dx, dy) || 1, nx = dx / d, ny = dy / d;
-const n = Math.max(1, Math.round(d / segLen)), jit = jitBase * (depth ? 0.7 : 1);
-let want = Math.round(n * branchPct * (depth ? 0.6 : 1));
-if (!want && n >= 2 && depth < 2) want = 1;
-const gap = want ? n / (want + 1) : 0;
-let next = want ? gap : 1e9, left = want, px = ax, py = ay;
-for (let i = 1; i <= n; i++) {
-const f = i / n, env = tipFree ? 0.35 + f : 1 - Math.abs(f * 2 - 1);
-const off = (i === n && !tipFree) ? 0 : (Math.random() * 2 - 1) * jit * env;
-const qx = ax + dx * f - ny * off, qy = ay + dy * f + nx * off, t = t0 + (t1 - t0) * f;
-out.push({ x0: px, y0: py, x1: qx, y1: qy, t, d: depth });
-if (depth < 2 && i < n && left > 0 && i >= next && out.length < 160) {
-left--; next = i + gap * (0.7 + Math.random() * 0.6);
-const bl = d * (0.18 + Math.random() * 0.17) * (1 - f * 0.6);
-const a = (0.3 + Math.random() * (depth ? 0.4 : 0.7)) * (Math.random() < 0.5 ? -1 : 1);
-bolt(qx, qy, qx + (nx * Math.cos(a) - ny * Math.sin(a)) * bl, qy + (nx * Math.sin(a) + ny * Math.cos(a)) * bl,
-t, Math.min(1, t + 0.15), depth + 1, true);
-}
-px = qx; py = qy;
-}
-})(x0, y0, x1, y1, 0, 1, 0, false);
-return out;
+function boltHash(seed, i) {
+let h = (seed ^ Math.imul(i + 1, 0x9E3779B1)) >>> 0;
+h = Math.imul(h ^ (h >>> 15), 0x85EBCA6B) >>> 0;
+h = Math.imul(h ^ (h >>> 13), 0xC2B2AE35) >>> 0;
+return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 function draw() {
 SHX = SHY = 0;
@@ -2308,31 +2306,6 @@ for (const [x, y] of cells) ctx.fillRect(cellX(x) + BGAP / 2, frameY(y, o) + BGA
 ctx.globalAlpha = 1;
 neonOutline(cells, P, pulse);
 }
-if (ui.beams.length) {
-ctx.globalCompositeOperation = 'lighter';
-ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-for (const b of ui.beams) {
-if (b.t < 0) continue;
-const k = b.t / BEAM_LIFE;
-let x0, y0, x1, y1;
-if (b.col !== undefined) { x0 = x1 = cellX(b.col) + CELL / 2; y0 = halfTop(b.col, o); y1 = y0 + N * CELL; }
-else { x0 = cellX(0); x1 = cellX(N - 1) + CELL; y0 = y1 = cellY(0, b.row, o) + CELL / 2; }
-if (!b.segs || b.t >= b.flick) { b.segs = boltSegs(x0, y0, x1, y1, b.pow); b.flick = b.t + BOLT_FLICK; b.at = [x0, y0]; }
-const sx = x0 - b.at[0], sy = y0 - b.at[1];
-const grow = Math.min(1, k / 0.3), fade = k < 0.45 ? 1 : (1 - k) / 0.55;
-const glow = b.lift ? '#3fb8ff' : PAL[b.c].base, w0 = 0.7 + b.pow * 0.22;
-for (const halo of [true, false]) {
-ctx.strokeStyle = halo ? glow : '#f4f8ff';
-for (const sg of b.segs) {
-if (sg.t > grow) continue;
-ctx.globalAlpha = fade * (halo ? 0.5 : 1) * (sg.d === 0 ? 1 : sg.d === 1 ? 0.7 : 0.45);
-ctx.lineWidth = (halo ? w0 * 3.2 : w0) * (sg.d === 0 ? 1 : 0.6);
-ctx.beginPath(); ctx.moveTo(sg.x0 + sx, sg.y0 + sy); ctx.lineTo(sg.x1 + sx, sg.y1 + sy); ctx.stroke();
-}
-}
-}
-ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-}
 for (const f of ui.fx) {
 if (f.t < 0) continue;
 const k = f.t / FX_LIFE;
@@ -2355,6 +2328,56 @@ ctx.fillStyle = PAL[p.c].light; ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.35
 }
 ctx.setTransform(SCALE, 0, 0, SCALE, SHX * SCALE, SHY * SCALE);
 ctx.globalAlpha = 1;
+if (ui.beams.length) {
+ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+const pt = [], cp = q => [cellX(q[0]) + CELL / 2, cellY(q[0], q[1], o) + CELL / 2];
+for (const b of ui.beams) {
+if (b.t < 0) continue;
+const glow = b.lift ? '#7fe3ff' : '#4a90ff', gw = 4.6 * (1 + b.pow * 0.12), cw = 1.5 * (1 + b.pow * 0.1);
+for (let j = 0; j + 1 < b.pts.length; j++) {
+const age = b.t - j * CHAIN_HOP;
+if (age < 0) break;
+if (age >= BOLT_LIFE) continue;
+const k = 1 - age / BOLT_LIFE;
+const [x0, y0] = cp(b.pts[j]), [x1, y1] = cp(b.pts[j + 1]);
+const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy);
+if (L < 1) continue;
+const nx = -dy / L, ny = dx / L;
+const n = Math.max(3, Math.min(14, Math.round(L / 6)));
+const flick = Math.floor(age * 20), amp = L * 0.2 * (1 + b.pow * 0.08);
+pt.length = 0;
+for (let i = 0; i <= n; i++) {
+const u = i / n;
+const wv = (i === 0 || i === n) ? 0
+: (boltHash(b.seed + j * 131 + flick * 131, i) - 0.5) * 2 * amp * Math.sin(Math.PI * u);
+pt.push(x0 + dx * u + nx * wv, y0 + dy * u + ny * wv);
+}
+for (const halo of [true, false]) {
+ctx.globalAlpha = (halo ? 0.45 : 0.95) * k;
+ctx.strokeStyle = halo ? glow : '#ffffff'; ctx.lineWidth = halo ? gw : cw;
+ctx.beginPath(); ctx.moveTo(pt[0], pt[1]);
+for (let i = 2; i < pt.length; i += 2) ctx.lineTo(pt[i], pt[i + 1]);
+ctx.stroke();
+}
+}
+}
+ctx.globalAlpha = 1;
+}
+if (ui.stars.length) {
+ctx.globalCompositeOperation = 'lighter';
+ctx.fillStyle = '#6fe6ff';
+for (const p of ui.stars) {
+if (p.t < 0) continue;
+const k = p.t / p.life, r = p.s * (1 - 0.8 * k), w = r * 0.156;
+const x = cellX(p.cx) + CELL / 2 + p.dx, y = cellY(p.cx, p.cy, o) + CELL / 2 + p.dy;
+ctx.globalAlpha = 1 - k * 0.6;
+ctx.beginPath();
+ctx.moveTo(x, y - r); ctx.lineTo(x + w, y - w); ctx.lineTo(x + r, y); ctx.lineTo(x + w, y + w);
+ctx.lineTo(x, y + r); ctx.lineTo(x - w, y + w); ctx.lineTo(x - r, y); ctx.lineTo(x - w, y - w);
+ctx.fill();
+}
+ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
 for (const r of ui.rings) {
 if (r.t < 0) continue;
 const k = r.t / RING_LIFE, R0 = CELL * (3 + r.n) * easeOut(k);
