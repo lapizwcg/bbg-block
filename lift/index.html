@@ -179,7 +179,8 @@ padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)"
 (function () {
 const PORTAL = window.BB_PORTAL ||
 (/[?&]dbg\b/.test(location.search) && /[?&]portal\b/.test(location.search) ? 'test' : '');
-const ECO_ON = () => !!PORTAL || ECO_UNLOCKED;
+const ADS_ON = false;
+const ECO_ON = () => ECO_UNLOCKED || PORTAL === 'test' || (!!PORTAL && ADS_ON);
 const DW = 180, DH = 320;
 const N = 10, HALF = 5, K = 5, OMAX = 2, SEAM = 3;
 const STEP = 2;
@@ -976,7 +977,6 @@ let stars = 0;
 if (ECO_ON()) { const v = stGet('blf_stars'); stars = v == null ? ECO.start : Math.max(0, parseInt(v, 10) || 0); }
 const saveStars = () => stSet('blf_stars', String(stars));
 const reviveCost = g => ECO.revive * ((g.revives || 0) + 1);
-const ADS_ON = false;
 const Ads = (function () {
 const none = { ok: () => false, rewarded() {}, start() {}, stop() {} };
 if (PORTAL === 'test') return {
