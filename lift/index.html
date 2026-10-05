@@ -617,7 +617,7 @@ if (i < 0 || board[i]) return false;
 }
 return true;
 }
-function fitsAnywhere(board, s) {
+function fitsAnywhereRef(board, s) {
 const o = offOf(board);
 for (let y = Y_LO(s); y <= Y_HI(s); y++)
 for (let x = 0; x + s.w <= N; x++)
@@ -662,37 +662,59 @@ out.push(i);
 }
 return out;
 }
-const FS = { lv: [0, 1, 2, 3, 4].map(() => new Uint8Array(N * N)), mark: new Uint8Array(N * N) };
+const POP5 = new Uint8Array(32).map((_, i) => (i & 1) + (i >> 1 & 1) + (i >> 2 & 1) + (i >> 3 & 1) + (i >> 4 & 1));
+const BS = { lv: [0, 1, 2, 3, 4].map(() => new Int32Array(2 * N)), clr: new Int32Array(2 * N) };
 const offD = d => Math.max(-OMAX, Math.min(OMAX, Math.trunc(d / K)));
-function fitsU(b, sh, x, y, o) {
-if (x < 0 || x + sh.w > N) return false;
-const cs = sh.cells;
-for (let q = 0; q < cs.length; q++) {
-const xx = x + cs[q][0], r = xx < HALF ? y + cs[q][1] : y + cs[q][1] + STEP * o;
-if (r < 0 || r >= N || b[r * N + xx]) return false;
+function shapeBits(sh) {
+if (sh._bits) return sh._bits;
+const out = [];
+for (let x = 0; x + sh.w <= N; x++) {
+const m = new Int32Array(2 * sh.h);
+for (const [cx, cy] of sh.cells) {
+const xx = x + cx;
+if (xx < HALF) m[2 * cy] |= 1 << xx; else m[2 * cy + 1] |= 1 << (xx - HALF);
+}
+out.push(m);
+}
+return (sh._bits = out);
+}
+function fitsB(B, m, h, y, o) {
+for (let dy = 0; dy < h; dy++) {
+const ml = m[2 * dy], mr = m[2 * dy + 1];
+if (ml) { const r = y + dy; if (r < 0 || r >= N || (B[r] & ml)) return false; }
+if (mr) { const r = y + dy + STEP * o; if (r < 0 || r >= N || (B[N + r] & mr)) return false; }
 }
 return true;
 }
-function settleU(b, d, at) {
-const mark = FS.mark;
+function settleB(B, d, at) {
+const C = BS.clr;
 for (let guard = 0; guard < 20; guard++) {
 const o = guard === 0 ? at : offD(d);
-let any = false;
-mark.fill(0);
+let colL = 31, colR = 31;
+for (let r = 0; r < N; r++) { colL &= B[r]; colR &= B[N + r]; }
+let any = colL !== 0 || colR !== 0;
+for (let r = 0; r < N; r++) { C[r] = colL; C[N + r] = colR; }
 for (let r = 0; r < N; r++) {
 const rr = r + STEP * o;
 if (rr < 0 || rr >= N) continue;
-let full = true;
-for (let c = 0; c < N && full; c++) if (!b[(c < HALF ? r : rr) * N + c]) full = false;
-if (full) { any = true; for (let c = 0; c < N; c++) mark[(c < HALF ? r : rr) * N + c] = 1; }
+if (B[r] === 31 && B[N + rr] === 31) { C[r] = 31; C[N + rr] = 31; any = true; }
 }
-for (let c = 0; c < N; c++) {
-let full = true;
-for (let r = 0; r < N && full; r++) if (!b[r * N + c]) full = false;
-if (full) { any = true; for (let r = 0; r < N; r++) mark[r * N + c] = 1; }
+if (!any) { if (guard === 0 && offD(d) !== at) continue; break; }
+for (let r = 0; r < N; r++) {
+const kl = B[r] & C[r], kr = B[N + r] & C[N + r];
+d -= POP5[kl]; d += POP5[kr];
+B[r] ^= kl; B[N + r] ^= kr;
 }
-if (!any) { if (guard === 0) continue; break; }
-for (let i = 0; i < N * N; i++) if (mark[i]) { b[i] = 0; d -= (i % N) < HALF ? 1 : -1; }
+}
+return d;
+}
+function boardBits(board, B) {
+let d = 0;
+for (let r = 0; r < N; r++) {
+let l = 0, rt = 0;
+for (let c = 0; c < HALF; c++) if (board[r * N + c]) { l |= 1 << c; d++; }
+for (let c = HALF; c < N; c++) if (board[r * N + c]) { rt |= 1 << (c - HALF); d--; }
+B[r] = l; B[N + r] = rt;
 }
 return d;
 }
@@ -700,32 +722,32 @@ function traySolutions(board, tray, cap) {
 let nodes = 0, found = 0;
 const left0 = tray.filter(i => i >= 0);
 if (!left0.length) return cap;
-const b0 = FS.lv[0];
-let d0 = 0;
-for (let i = 0; i < N * N; i++) { b0[i] = board[i] ? 1 : 0; if (board[i]) d0 += (i % N) < HALF ? 1 : -1; }
+const d0 = boardBits(board, BS.lv[0]);
 const used = [false, false, false];
 const go = (lv, d, n) => {
-const b = FS.lv[lv], o = offD(d);
+const B = BS.lv[lv], o = offD(d);
 if (n === 1) {
 let k = 0; while (used[k]) k++;
-const sh = SHAPES[left0[k]];
-for (let y = Y_LO(sh); y <= Y_HI(sh); y++) for (let x = 0; x + sh.w <= N; x++)
-if (fitsU(b, sh, x, y, o) && ++found >= cap) return true;
+const sh = SHAPES[left0[k]], bits = shapeBits(sh), h = sh.h, y0 = Y_LO(sh), y1 = Y_HI(sh);
+for (let y = y0; y <= y1; y++) for (let x = 0; x < bits.length; x++)
+if (fitsB(B, bits[x], h, y, o) && ++found >= cap) return true;
 return false;
 }
 for (let k = 0; k < left0.length; k++) {
 if (used[k]) continue;
-const sh = SHAPES[left0[k]], cs = sh.cells, nb = FS.lv[lv + 1];
-for (let y = Y_LO(sh); y <= Y_HI(sh); y++) for (let x = 0; x + sh.w <= N; x++) {
-if (!fitsU(b, sh, x, y, o)) continue;
+const sh = SHAPES[left0[k]], bits = shapeBits(sh), h = sh.h, y0 = Y_LO(sh), y1 = Y_HI(sh), NB = BS.lv[lv + 1];
+for (let y = y0; y <= y1; y++) for (let x = 0; x < bits.length; x++) {
+const m = bits[x];
+if (!fitsB(B, m, h, y, o)) continue;
 if (++nodes > SOLVE_CAP) { found = cap; return true; }
-nb.set(b);
+NB.set(B);
 let nd = d;
-for (let q = 0; q < cs.length; q++) {
-const xx = x + cs[q][0], r = xx < HALF ? y + cs[q][1] : y + cs[q][1] + STEP * o;
-nb[r * N + xx] = 1; nd += xx < HALF ? 1 : -1;
+for (let dy = 0; dy < h; dy++) {
+const ml = m[2 * dy], mr = m[2 * dy + 1];
+if (ml) { NB[y + dy] |= ml; nd += POP5[ml]; }
+if (mr) { NB[N + y + dy + STEP * o] |= mr; nd -= POP5[mr]; }
 }
-nd = settleU(nb, nd, o);
+nd = settleB(NB, nd, o);
 used[k] = true;
 const stop = go(lv + 1, nd, n - 1);
 used[k] = false;
@@ -736,6 +758,11 @@ return false;
 };
 go(0, d0, left0.length);
 return Math.min(found, cap);
+}
+function fitsAnywhere(board, s) {
+const B = BS.lv[4], o = offD(boardBits(board, B)), bits = shapeBits(s), y1 = Y_HI(s);
+for (let y = Y_LO(s); y <= y1; y++) for (let x = 0; x < bits.length; x++) if (fitsB(B, bits[x], s.h, y, o)) return true;
+return false;
 }
 function traySolutionsRef(board, tray, cap) {
 let nodes = 0, found = 0;
@@ -2098,7 +2125,21 @@ c.stroke();
 c.globalAlpha = ga;
 }
 };
-function block(x, y, s, ci) { BLOCK_STYLES[TH.style](ctx, x, y, s, PAL[ci]); }
+const SPR = { key: '', blocks: [] };
+function block(x, y, s, ci) {
+const px = Math.max(4, Math.round((CELL - BGAP) * SCALE));
+const key = TH.style + '|' + px;
+if (SPR.key !== key || SPR.pal !== PAL) { SPR.key = key; SPR.pal = PAL; SPR.blocks = []; }
+let im = SPR.blocks[ci];
+if (!im) {
+im = document.createElement('canvas'); im.width = im.height = px;
+const c = im.getContext('2d'), u = px / SCALE;
+c.scale(SCALE, SCALE);
+BLOCK_STYLES[TH.style](c, 0, 0, u, PAL[ci]);
+SPR.blocks[ci] = im;
+}
+ctx.drawImage(im, x, y, s, s);
+}
 function neonStroke(pathFn, P, a) {
 ctx.save();
 ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = ctx.lineJoin = 'round';
@@ -2144,7 +2185,40 @@ function labelWidth(str, size) {
 ctx.font = '800 ' + size + 'px "Segoe UI", Roboto, system-ui, sans-serif';
 return ctx.measureText(str).width + size * LABEL_LW * (1 + LABEL_GAP * ([...str].length - 1));
 }
+const TXT = { scale: 0, map: new Map() };
+function txtCache() {
+if (TXT.scale !== SCALE || TXT.map.size > 300) { TXT.scale = SCALE; TXT.map.clear(); }
+return TXT.map;
+}
 function label(text, x, y, size, fill, stroke, alpha) {
+if (typeof fill !== 'string' || (stroke && typeof stroke !== 'string')) return labelNow(text, x, y, size, fill, stroke, alpha);
+const map = txtCache(), key = 'L' + size + '|' + fill + '|' + (stroke || '') + '|' + text;
+let e = map.get(key);
+if (!e) {
+ctx.font = '800 ' + size + 'px "Segoe UI", Roboto, system-ui, sans-serif';
+const lw = stroke ? size * LABEL_LW : 0, gap = lw * LABEL_GAP;
+const chars = [...text], ws = chars.map(c => ctx.measureText(c).width);
+const total = stroke ? ws.reduce((a, b) => a + b, 0) + gap * (chars.length - 1) : ctx.measureText(text).width;
+const pad = lw + 1, H = size * 1.6 + 2 * pad;
+const cv2 = document.createElement('canvas');
+cv2.width = Math.max(1, Math.ceil((total + 2 * pad) * SCALE)); cv2.height = Math.max(1, Math.ceil(H * SCALE));
+const c = cv2.getContext('2d');
+c.scale(SCALE, SCALE);
+c.font = ctx.font; c.textBaseline = 'middle'; c.textAlign = 'left';
+if (stroke) {
+c.lineJoin = 'round'; c.lineWidth = lw; c.strokeStyle = stroke;
+let cx = pad; chars.forEach((ch, i) => { c.strokeText(ch, cx, H / 2); cx += ws[i] + gap; });
+c.fillStyle = fill; cx = pad; chars.forEach((ch, i) => { c.fillText(ch, cx, H / 2); cx += ws[i] + gap; });
+} else { c.fillStyle = fill; c.fillText(text, pad, H / 2); }
+e = { im: cv2, total, pad, H };
+map.set(key, e);
+}
+const mw = DW - 10, k = e.total > mw ? mw / e.total : 1;
+ctx.globalAlpha = alpha ?? 1;
+ctx.drawImage(e.im, x - (e.total / 2 + e.pad) * k, y - e.H / 2, (e.total + 2 * e.pad) * k, e.H);
+ctx.globalAlpha = 1;
+}
+function labelNow(text, x, y, size, fill, stroke, alpha) {
 ctx.globalAlpha = alpha ?? 1;
 ctx.font = '800 ' + size + 'px "Segoe UI", Roboto, system-ui, sans-serif';
 ctx.textBaseline = 'middle';
@@ -2171,9 +2245,28 @@ ctx.restore();
 ctx.globalAlpha = 1;
 }
 function text(str, x, y, size, fill, align) {
+if (typeof fill !== 'string') {
 ctx.font = '800 ' + size + 'px "Segoe UI", Roboto, system-ui, sans-serif';
 ctx.textAlign = align || 'left'; ctx.textBaseline = 'middle';
 ctx.fillStyle = fill; ctx.fillText(str, x, y);
+return;
+}
+const map = txtCache(), key = 'T' + size + '|' + fill + '|' + str;
+let e = map.get(key);
+if (!e) {
+const font = '800 ' + size + 'px "Segoe UI", Roboto, system-ui, sans-serif';
+ctx.font = font;
+const w = ctx.measureText(str).width, pad = 1, H = size * 1.6;
+const cv2 = document.createElement('canvas');
+cv2.width = Math.max(1, Math.ceil((w + 2 * pad) * SCALE)); cv2.height = Math.max(1, Math.ceil(H * SCALE));
+const c = cv2.getContext('2d');
+c.scale(SCALE, SCALE); c.font = font; c.textBaseline = 'middle'; c.textAlign = 'left';
+c.fillStyle = fill; c.fillText(str, pad, H / 2);
+e = { im: cv2, w, pad, H };
+map.set(key, e);
+}
+const x0 = align === 'center' ? x - e.w / 2 : align === 'right' ? x - e.w : x;
+ctx.drawImage(e.im, x0 - e.pad, y - e.H / 2, e.w + 2 * e.pad, e.H);
 }
 const easeOut = k => 1 - (1 - k) * (1 - k);
 const ICON_GEAR = new Path2D('M12.7848 0.449982C13.8239 0.449982 14.7167 1.16546 14.9122 2.15495L14.9991 2.59495C15.3408 4.32442 17.1859 5.35722 18.9016 4.7794L19.3383 4.63233C20.3199 4.30175 21.4054 4.69358 21.9249 5.56605L22.7097 6.88386C23.2293 7.75636 23.0365 8.86366 22.2504 9.52253L21.9008 9.81555C20.5267 10.9672 20.5267 13.0328 21.9008 14.1844L22.2504 14.4774C23.0365 15.1363 23.2293 16.2436 22.7097 17.1161L21.925 18.4339C21.4054 19.3064 20.3199 19.6982 19.3382 19.3676L18.9017 19.2205C17.1859 18.6426 15.3408 19.6754 14.9991 21.405L14.9122 21.845C14.7167 22.8345 13.8239 23.55 12.7848 23.55H11.2152C10.1761 23.55 9.28331 22.8345 9.08781 21.8451L9.00082 21.4048C8.65909 19.6754 6.81395 18.6426 5.09822 19.2205L4.66179 19.3675C3.68016 19.6982 2.59465 19.3063 2.07505 18.4338L1.2903 17.1161C0.770719 16.2436 0.963446 15.1363 1.74956 14.4774L2.09922 14.1844C3.47324 13.0327 3.47324 10.9672 2.09922 9.8156L1.74956 9.52254C0.963446 8.86366 0.77072 7.75638 1.2903 6.8839L2.07508 5.56608C2.59466 4.69359 3.68014 4.30176 4.66176 4.63236L5.09831 4.77939C6.81401 5.35722 8.65909 4.32449 9.00082 2.59506L9.0878 2.15487C9.28331 1.16542 10.176 0.449982 11.2152 0.449982H12.7848ZM12 15.3C13.8225 15.3 15.3 13.8225 15.3 12C15.3 10.1774 13.8225 8.69998 12 8.69998C10.1774 8.69998 8.69997 10.1774 8.69997 12C8.69997 13.8225 10.1774 15.3 12 15.3Z');
@@ -3050,7 +3143,15 @@ const tr = [0, 1, 2].map(() => Math.floor(rnd(rg) * SHAPES.length));
 if (k % 5 === 0) tr[Math.floor(rnd(rg) * 3)] = -1;
 for (const cap of [1, 200]) { cases++; if (traySolutions(b, tr, cap) !== traySolutionsRef(b, tr, cap)) bad++; }
 }
-ok('быстрый перебор раскладок совпадает с эталоном', !bad, bad + ' из ' + cases);
+ok('перебор раскладок на битах совпадает с эталоном', !bad, bad + ' из ' + cases);
+let fb = 0;
+for (let k = 0; k < 200; k++) {
+const b = new Array(N * N).fill(0), fill = rnd(rg) * 0.8;
+for (let i = 0; i < N * N; i++) if (rnd(rg) < fill) b[i] = 1;
+const sh = SHAPES[Math.floor(rnd(rg) * SHAPES.length)];
+if (fitsAnywhere(b, sh) !== fitsAnywhereRef(b, sh)) fb++;
+}
+ok('«есть место» на битах совпадает с эталоном', !fb, fb + ' из 200');
 }
 const keys = Object.keys(STRINGS.ru);
 for (const l of LANGS) {
@@ -3186,7 +3287,7 @@ return out;
 if (QS.has('dbg')) {
 window.BB = { get G() { return G; }, get ui() { return ui; },
 get layout() { const g = trayGeo(); return { LW, LH, OX, BX, BY, TRAY_Y, TRAY_H, SLOT_X, CELL, LAND, TX, TW, slotCx: g.cx, slotCy: g.cy, trayCell: g.cell, o: oShown(), frameY, cellX }; },
-offOf, cellAt, fullLines, settle, K, OMAX, HALF, update,
+offOf, cellAt, fullLines, settle, K, OMAX, HALF, update, traySolutions, traySolutionsRef,
 get supportUrl() { return SUPPORT_URL; }, set supportUrl(v) { SUPPORT_URL = v; }, draw, fit, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings,
 get stars() { return stars; }, set stars(v) { stars = v; saveStars(); }, ECO, PORTAL, showGameOver, traySolutions, TUNE };
 window.bbCheck = bbCheck;
