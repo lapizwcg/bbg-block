@@ -1303,7 +1303,7 @@ ui.hud = { btn: hb, id: ev.pointerId, inside: true };
 SFX.play('pick');
 try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
 needDraw = true;
-if (hb === 'gear') requestAnimationFrame(() => { ui.hud = null; openSettings(); });
+if (hb === 'gear') { DIAG.tap = performance.now(); requestAnimationFrame(() => { ui.hud = null; openSettings(); }); }
 if (hb === 'cup') requestAnimationFrame(() => { ui.hud = null; openHistory(); });
 return;
 }
@@ -1517,6 +1517,18 @@ const g = G;
 overTimer = setTimeout(() => { if (G === g && ovEl.hidden) showGameOver(); }, OVER_DELAY * 1000);
 }
 const ovEl = document.getElementById('ov'), ovCard = document.getElementById('ovCard');
+const DIAG = { tap: 0, a: 0, b: 0, c: 0, last: '', frames: [] };
+function diagOpen(fn) {
+DIAG.a = performance.now(); fn(); DIAG.b = performance.now();
+requestAnimationFrame(() => requestAnimationFrame(() => {
+DIAG.c = performance.now();
+const f = DIAG.frames, avg = f.length ? f.reduce((x, y) => x + y, 0) / f.length : 0, mx = f.length ? Math.max(...f) : 0;
+DIAG.last = 'tap→js ' + Math.round(DIAG.tap ? DIAG.a - DIAG.tap : 0) + ' · js ' + Math.round(DIAG.b - DIAG.a) +
+' · →экран ' + Math.round(DIAG.c - DIAG.b) + ' мс · кадр ' + avg.toFixed(1) + '/' + mx.toFixed(0) + ' мс';
+DIAG.tap = 0;
+const el = document.getElementById('diag'); if (el) el.textContent = DIAG.last;
+}));
+}
 function openOverlay(html, actions, cls) {
 ovCard.className = 'card' + (cls ? ' ' + cls : '');
 ovCard.innerHTML = html;
@@ -1711,7 +1723,8 @@ ctx.restore();
 let installEvt = null;
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
 addEventListener('appinstalled', () => { installEvt = null; });
-function openSettings() {
+function openSettings() { diagOpen(openSettingsNow); }
+function openSettingsNow() {
 const v = Math.round(settings.volume * 100), mv = Math.round(settings.music * 100);
 const langBtns = LANGS.map(l =>
 '<button class="flag' + (l === lang ? ' on' : '') + '" data-act="lang_' + l + '" title="' + LANG_NAMES[l] + '" aria-label="' + LANG_NAMES[l] + '">' + FLAGS[l] + '</button>').join('');
@@ -1773,7 +1786,8 @@ openOverlay(
 '<div class="btns col"><button class="alt" data-act="restart">' + t('restart') + '</button>' +
 (SUPPORT_URL ? '<button class="sup" data-act="support">' + t('support') + '</button>' : '') +
 '<button data-act="close">' + t('close') + '</button></div>' +
-(window.BB_VER ? '<div class="ver">v ' + window.BB_VER + '</div>' : ''),
+(window.BB_VER ? '<div class="ver">v ' + window.BB_VER + '</div>' : '') +
+'<div class="ver" id="diag">' + DIAG.last + '</div>',
 actions, 'set');
 let lastProbe = 0;
 for (const r of ovCard.querySelectorAll('.vol')) {
@@ -2714,7 +2728,11 @@ if (innerWidth !== fitW || innerHeight !== fitH) fit();
 const dt = last ? Math.min(0.05, (time - last) / 1000) : 0;
 last = time;
 const busy = update(dt);
-if (busy || needDraw || wasBusy) { draw(); needDraw = false; lastSoft = time; }
+if (busy || needDraw || wasBusy) {
+const t0 = performance.now(); draw(); const dtd = performance.now() - t0;
+DIAG.frames.push(dtd); if (DIAG.frames.length > 120) DIAG.frames.shift();
+needDraw = false; lastSoft = time;
+}
 else if (softBusy && time - lastSoft > 66) { draw(); lastSoft = time; }
 wasBusy = busy;
 }
