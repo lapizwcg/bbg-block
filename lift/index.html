@@ -214,7 +214,7 @@ const SIDE_MIN = 120, SIDE_MAX = 200, BPAD = 5;
 const GW_MIN = 12;
 const LINTEL = 20;
 const LAND_HEAD = 60;
-const landCellOf = (top, bot) => Math.min((LH - bot - 6 - (top + 2 + LAND_HEAD) - 6) / (N + 2 * OMAX),
+const landCellOf = (top, bot) => Math.min((LH - bot - 6 - (top + 6)) / (N + 2 * OMAX),
 (LW - SIDE_MIN - 18 - 2 * (BPAD + GW_MIN) - SEAM) / N);
 function layoutLand(top, bot) {
 const M = 6;
@@ -222,7 +222,7 @@ TRAY_V = true;
 VX0 = 0; VX1 = LW;
 HY = top + 2;
 COMBO_Y = HY + 51;
-SP_Y = HY + LAND_HEAD; SP_H = LH - bot - M - SP_Y;
+SP_Y = top + M; SP_H = LH - bot - M - SP_Y;
 CELL = landCellOf(top, bot);
 BWID = N * CELL + SEAM; SHAFT_H = (N + 2 * OMAX) * CELL;
 const spare = Math.max(0, LW - (BWID + 2 * (BPAD + GW_MIN)) - 3 * M - SIDE_MIN);
@@ -233,11 +233,11 @@ PX = (LW - (PW + M + side)) / 2;
 BX = PX + pad;
 BY = SP_Y + (SP_H - SHAFT_H) / 2;
 const sx = PX + PW + M, gr = sx + side;
-HX = (PX + gr) / 2;
-HEART.x = PX + 13; GEAR.x = gr - 13; HEART.y = GEAR.y = HY + 20;
-CBX = PX; CBW = gr - PX;
+HX = sx + side / 2;
+HEART.x = sx + 13; GEAR.x = gr - 13; HEART.y = GEAR.y = HY + 20;
+CBX = sx; CBW = side;
 EX = TX = SLOT_X = sx; EW = TW = side;
-ECO_Y = SP_Y;
+ECO_Y = COMBO_Y + 6 + M;
 TRAY_Y = ECO_Y + ECO_PH + ECO_G;
 TRAY_H = SP_Y + SP_H - TRAY_Y;
 }
