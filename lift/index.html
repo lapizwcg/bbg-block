@@ -1405,7 +1405,7 @@ ui.hud = { btn: hb, id: ev.pointerId, inside: true };
 SFX.play('pick');
 try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
 needDraw = true;
-if (hb === 'gear') { DIAG.tap = performance.now(); DIAG.inp = DIAG.tap - ev.timeStamp; requestAnimationFrame(() => { ui.hud = null; openSettings(); }); }
+if (hb === 'gear') requestAnimationFrame(() => { ui.hud = null; openSettings(); });
 if (hb === 'cup') requestAnimationFrame(() => { ui.hud = null; openHistory(); });
 return;
 }
@@ -1619,43 +1619,6 @@ const g = G;
 overTimer = setTimeout(() => { if (G === g && ovEl.hidden) showGameOver(); }, OVER_DELAY * 1000);
 }
 const ovEl = document.getElementById('ov'), ovCard = document.getElementById('ovCard');
-const DIAG = { tap: 0, inp: 0, a: 0, b: 0, c: 0, last: '', frames: [], draws: [], long: [] };
-try {
-new PerformanceObserver(l => { for (const e of l.getEntries()) DIAG.long.push([e.startTime, e.duration]); })
-.observe({ entryTypes: ['longtask'] });
-} catch (e) {}
-DIAG.slow = [];
-const timed = (name, fn) => function () {
-const t = performance.now();
-try { return fn.apply(this, arguments); }
-finally { const d = performance.now() - t; if (d > 30) DIAG.slow.push([name, d, t]); }
-};
-saveRun = timed('saveRun', saveRun); recordGame = timed('recordGame', recordGame); refill = timed('refill', refill);
-doPlace = timed('doPlace', doPlace); updateTarget = timed('updateTarget', updateTarget); tutPlan = timed('tutPlan', tutPlan);
-openHistory = timed('openHistory', openHistory); openCredits = timed('openCredits', openCredits);
-showGameOver = timed('showGameOver', showGameOver); startGame = timed('startGame', startGame); gameOver = timed('gameOver', gameOver);
-draw = timed('draw', draw); fit = timed('fit', fit); boardSprites = timed('boardSprites', boardSprites); load = timed('load', load);
-for (const k of ['unlock', 'play', 'setMusic', 'resume', 'pause', 'warm']) SFX[k] = timed('звук.' + k, SFX[k]);
-function diagOpen(fn) {
-DIAG.a = performance.now(); fn(); DIAG.b = performance.now();
-requestAnimationFrame(() => requestAnimationFrame(() => {
-DIAG.c = performance.now();
-const f = DIAG.frames, avg = f.length ? f.reduce((x, y) => x + y, 0) / f.length : 0, mx = f.length ? Math.max(...f) : 0;
-const now = performance.now();
-DIAG.long = DIAG.long.filter(e => now - e[0] < 30000);
-const lmax = DIAG.long.reduce((m, e) => Math.max(m, e[1]), 0);
-const fps = DIAG.draws.filter(t => now - t < 2000).length / 2;
-DIAG.last = 'ввод ' + Math.round(DIAG.inp) + ' · tap→js ' + Math.round(DIAG.tap ? DIAG.a - DIAG.tap : 0) + ' · js ' + Math.round(DIAG.b - DIAG.a) +
-' · →экран ' + Math.round(DIAG.c - DIAG.b) + ' мс · кадр ' + avg.toFixed(1) + '/' + mx.toFixed(0) + ' мс · ' + fps + ' к/с · зависаний ' +
-DIAG.long.length + ' (макс ' + Math.round(lmax) + ' мс)';
-DIAG.inp = 0;
-DIAG.slow = DIAG.slow.filter(e => now - e[2] < 60000);
-const top = DIAG.slow.slice().sort((x, y) => y[1] - x[1]).slice(0, 4);
-if (top.length) DIAG.last += ' · медленно: ' + top.map(e => e[0] + ' ' + Math.round(e[1])).join(', ');
-DIAG.tap = 0;
-const el = document.getElementById('diag'); if (el) el.textContent = DIAG.last;
-}));
-}
 function openOverlay(html, actions, cls) {
 ovCard.className = 'card' + (cls ? ' ' + cls : '');
 ovCard.innerHTML = html;
@@ -1850,8 +1813,7 @@ ctx.restore();
 let installEvt = null;
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
 addEventListener('appinstalled', () => { installEvt = null; });
-function openSettings() { diagOpen(openSettingsNow); }
-function openSettingsNow() {
+function openSettings() {
 const v = Math.round(settings.volume * 100), mv = Math.round(settings.music * 100);
 const langBtns = LANGS.map(l =>
 '<button class="flag' + (l === lang ? ' on' : '') + '" data-act="lang_' + l + '" title="' + LANG_NAMES[l] + '" aria-label="' + LANG_NAMES[l] + '">' + FLAGS[l] + '</button>').join('');
@@ -1913,8 +1875,7 @@ openOverlay(
 '<div class="btns col"><button class="alt" data-act="restart">' + t('restart') + '</button>' +
 (SUPPORT_URL ? '<button class="sup" data-act="support">' + t('support') + '</button>' : '') +
 '<button data-act="close">' + t('close') + '</button></div>' +
-(window.BB_VER ? '<div class="ver">v ' + window.BB_VER + '</div>' : '') +
-'<div class="ver" id="diag">' + DIAG.last + '</div>',
+(window.BB_VER ? '<div class="ver">v ' + window.BB_VER + '</div>' : ''),
 actions, 'set');
 let lastProbe = 0;
 for (const r of ovCard.querySelectorAll('.vol')) {
@@ -3059,7 +3020,7 @@ ctx.globalAlpha = 1;
 const ek = t / 0.7, ea = (ek < 0.15 ? ek / 0.15 : (1 - ek) / 0.85) * 0.55;
 if (ea > 0) { ctx.globalAlpha = ea; ctx.drawImage(edgeGlow(['255,170,60', '255,110,50', '255,70,120'][LOAD.cycles % 3]), 0, 0, LW, LH); ctx.globalAlpha = 1; }
 const bsc = t < 0.18 ? 0.6 + 0.4 * easeOut(t / 0.18) : 1;
-label((STRINGS[lang].combo || STRINGS.en.combo) + (3 + LOAD.cycles % 3), cx, cy - c * 1.25, 15, '#ff7a3c', 'rgba(20,10,0,.75)', Math.min(1, (LD_CLR - t) / 0.2), bsc);
+label('Loading', cx, cy - c * 1.25, 15, '#ff7a3c', 'rgba(20,10,0,.75)', Math.min(1, (LD_CLR - t) / 0.2), bsc);
 }
 const bw = Math.min(LW * 0.56, 200), bh = 6, bx = cx - bw / 2, by = cy + c * 2;
 ctx.fillStyle = 'rgba(255,255,255,.12)'; rrect(bx, by, bw, bh, 3); ctx.fill();
@@ -3078,12 +3039,7 @@ last = time;
 if (LOADING) { drawLoader(dt); return; }
 const busy = update(dt);
 if (!ovEl.hidden && !ovEl.classList.contains('warm')) { wasBusy = busy; needDraw = true; return; }
-if (busy || needDraw || wasBusy) {
-const t0 = performance.now(); draw(); const dtd = performance.now() - t0;
-DIAG.frames.push(dtd); if (DIAG.frames.length > 120) DIAG.frames.shift();
-DIAG.draws.push(t0); if (DIAG.draws.length > 240) DIAG.draws.shift();
-needDraw = false; lastSoft = time;
-}
+if (busy || needDraw || wasBusy) { draw(); needDraw = false; lastSoft = time; }
 else if (softBusy && time - lastSoft > 66) { draw(); lastSoft = time; }
 wasBusy = busy;
 }
