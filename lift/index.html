@@ -306,7 +306,8 @@ combo: 'Комбо ', clean: 'Поле чисто!', lift: 'Лифт!',
 p2: 'Хорошо!', p3: 'Отлично!', p4: 'Великолепно!', p5: 'Невероятно!',
 comboBar: 'КОМБО', comboNext: 'след. ×', comboNone: 'собери линию',
 settings: 'Настройки', sound: 'Звуки', music: 'Музыка', restart: 'Начать заново', close: 'Закрыть',
-tut1: 'Перетащи фигуру на поле', tut2: 'Ряд уберётся, когда половины сойдутся',
+tut1: 'Положи фигуру на левую половину', tut2: 'Тяжёлая половина опускается',
+tut3: 'Ряды сошлись — закрой линию', tut4: 'Нагрузи одну половину — доска поедет',
 tutDone: 'Отлично! Так и играй', app: 'Приложение', install: 'Установить',
 support: 'Поддержать ♥', supportAsk: 'Нравится игра? Поддержи автора ♥', author: 'Автор',
 lang: 'Язык', theme: 'Тема',
@@ -328,7 +329,8 @@ combo: 'Combo ', clean: 'Board clear!', lift: 'Lift!',
 p2: 'Good!', p3: 'Great!', p4: 'Excellent!', p5: 'Amazing!',
 comboBar: 'COMBO', comboNext: 'next ×', comboNone: 'clear a line',
 settings: 'Settings', sound: 'Sounds', music: 'Music', restart: 'Start over', close: 'Close',
-tut1: 'Drag a piece onto the board', tut2: 'A row clears when both halves line up',
+tut1: 'Put a piece on the left half', tut2: 'The heavier half sinks',
+tut3: 'Rows lined up — finish the line', tut4: 'Load one half — the board will move',
 tutDone: 'Great! Keep going', app: 'App', install: 'Install',
 support: 'Support ♥', supportAsk: 'Enjoying the game? Support the author ♥', author: 'Author',
 lang: 'Language', theme: 'Theme',
@@ -350,7 +352,8 @@ combo: 'Combo ', clean: '¡Tablero limpio!', lift: '¡Ascensor!',
 p2: '¡Bien!', p3: '¡Genial!', p4: '¡Excelente!', p5: '¡Increíble!',
 comboBar: 'COMBO', comboNext: 'sig. ×', comboNone: 'haz una línea',
 settings: 'Ajustes', sound: 'Sonidos', music: 'Música', restart: 'Empezar de nuevo', close: 'Cerrar',
-tut1: 'Arrastra una pieza al tablero', tut2: 'La fila se borra si las mitades coinciden',
+tut1: 'Pon una pieza en la mitad izquierda', tut2: 'La mitad más pesada baja',
+tut3: 'Las filas coinciden: completa la línea', tut4: 'Carga una mitad: el tablero se moverá',
 tutDone: '¡Genial! Sigue así', app: 'App', install: 'Instalar',
 support: 'Apoyar ♥', supportAsk: '¿Te gusta el juego? Apoya al autor ♥', author: 'Autor',
 lang: 'Idioma', theme: 'Tema',
@@ -505,8 +508,9 @@ const COMBO_GRACE = 3;
 const CLEAN_BONUS = 1000;
 const HOT_WINDOW = 5, HOT_BONUS = 0.5;
 const linePts = L => 100 * L * (L + 1) / 2;
-const EASY_ROW = 4, EASY_PREFILL = 2, EASY_COLOR = 5;
-const EASY_FIRST = ['i4_0', 'i3_0', 'dot'];
+const EASY_ROW = 4, EASY_PREFILL = 4, EASY_COLOR = 5;
+const EASY_FIRST = ['o2', 'dot', 'i3_0'];
+const TUT_SQ = [0, 7];
 const EASY_POOL = ['dot', 'i2_0', 'i3_0'];
 function newGame(seed, easy, mode) {
 const g = {
@@ -520,6 +524,8 @@ if (mode === 'hard') g.mode = 'hard';
 if (easy) {
 g.easy = true;
 for (let x = 0; x < EASY_PREFILL; x++) g.board[EASY_ROW * N + x] = EASY_COLOR + 1;
+for (let x = HALF; x < N; x++) g.board[(EASY_ROW + STEP) * N + x] = 3;
+g.board[(N - 1) * N] = g.board[(N - 1) * N + 1] = 2;
 g.tray = EASY_FIRST.map(id => SHAPES.findIndex(s => s.id === id));
 } else refill(g);
 g.over = !anyFits(g);
@@ -1120,6 +1126,7 @@ ui.shown = 0; ui.overT = -1; ui.bestAtStart = best; ui.recordShown = false; ui.h
 ui.tut = settings.tutDone ? 0 : 1; ui.tutT = 0;
 ui.rotMode = false; ui.rotTap = null;
 ui.lift = { steps: [], t: 0, o: offOf(G.board) };
+tutPlan();
 closeOverlay();
 Ads.start();
 saveRun();
@@ -1399,11 +1406,13 @@ if (!ui.recordShown && ui.bestAtStart > 0 && G.score > ui.bestAtStart) {
 ui.recordShown = rec = true;
 lines.push({ text: t('record'), color: '#7dffa4', size: 12 });
 }
-if (ui.tut === 1) ui.tut = 2;
-if (ui.tut === 2 && res.lines) {
+if (ui.tut && res.lines) {
 ui.tut = 0;
 settings.tutDone = true; saveSettings();
 lines.push({ text: t('tutDone'), color: COL.gold, size: 12 });
+} else if (ui.tut) {
+ui.tut = offOf(G.board) !== res.o0 ? 2 : 3; ui.tutT = 0;
+tutPlan();
 }
 if (lines.length) ui.banners = [{ lines, t: res.lines ? -Math.min(0.5, fxAt[0] || 0) : 0 }];
 SFX.play('place');
@@ -1741,7 +1750,10 @@ ui.wShown[k] += (n[k] - ui.wShown[k]) * Math.min(1, dt * 7); busy = true;
 } else ui.wShown[k] = n[k];
 if (tiltOf(n, offOf(G.board)).left === 1) softBusy = true;
 }
-if (ui.tut === 1 && !ui.drag && ovEl.hidden) { ui.tutT += dt; busy = true; }
+if (ui.tut && !ui.drag && ovEl.hidden) {
+ui.tutT += dt; busy = true;
+if (ui.tut === 2 && ui.tutT > TUT_SINK) { ui.tut = 3; ui.tutT = 0; tutPlan(); }
+}
 for (const f of ui.fx) f.t += dt;
 ui.fx = ui.fx.filter(f => f.t < FX_LIFE);
 for (const p of ui.parts) {
@@ -1917,26 +1929,51 @@ drawIcon(icon, x, y + dip, HUD_ICON, '#fff', rule);
 const hudPressed = btn => ui.hud && ui.hud.btn === btn && ui.hud.inside;
 function drawHeart(x, y) { drawHudBtn(x, y, HEART_PAL, hudPressed('heart'), ICON_HEART); }
 function drawGear(x, y) { drawHudBtn(x, y, TH.alt, hudPressed('gear'), ICON_GEAR, 'evenodd'); }
-const TUT_CYCLE = 2.4;
-function drawTutorHand() {
-if (ui.tut !== 1 || ui.drag || !ovEl.hidden) return;
-const slot = G.tray.findIndex(i => i >= 0);
-if (slot < 0) return;
-const s = SHAPES[G.tray[slot]];
-let gx = Math.floor((N - s.w) / 2), gy = Math.floor((N - s.h) / 2);
+const TUT_CYCLE = 2.4, TUT_SINK = 2.6;
+function tutPlan() {
+ui.tutMove = null;
+if (!ui.tut || ui.tut === 2 || !G || G.over) return;
 const o = offOf(G.board);
-if (G.easy) {
-gy = EASY_ROW;
-gx = 0;
-while (gx + s.w <= N && !fits(G.board, s, gx, gy)) gx++;
+const tryAll = (want) => {
+let best = null;
+for (let slot = 0; slot < 3; slot++) {
+if (G.tray[slot] < 0) continue;
+const sh = SHAPES[G.tray[slot]];
+for (let y = Y_LO(sh); y <= Y_HI(sh); y++)
+for (let x = 0; x + sh.w <= N; x++) {
+if (!fits(G.board, sh, x, y, o)) continue;
+const r = want(slot, sh, x, y);
+if (r > 0 && (!best || r > best.r)) best = { slot, x, y, r };
 }
-if (!fits(G.board, s, gx, gy)) {
-let found = false;
-for (let y = Y_LO(s); y <= Y_HI(s) && !found; y++)
-for (let x = 0; x + s.w <= N && !found; x++)
-if (fits(G.board, s, x, y, o)) { gx = x; gy = y; found = true; }
-if (!found) return;
 }
+return best;
+};
+const dry = (slot, x, y) => place({ ...G, board: G.board.slice(), tray: G.tray.slice() }, slot, x, y, true);
+if (ui.tut === 1) {
+const sq = G.tray.findIndex(i => i >= 0 && SHAPES[i].id === 'o2');
+if (sq >= 0 && fits(G.board, SHAPES[G.tray[sq]], TUT_SQ[0], TUT_SQ[1], o)) { ui.tutMove = { slot: sq, x: TUT_SQ[0], y: TUT_SQ[1] }; return; }
+ui.tutMove = tryAll((slot, sh, x) => x + sh.w <= HALF ? sh.cells.length : 0);
+} else {
+ui.tut = 3;
+ui.tutMove = tryAll((slot, sh, x, y) => {
+const r = dry(slot, x, y);
+return r && r.lines ? 100 * r.lines - sh.cells.length : 0;
+});
+if (!ui.tutMove) {
+ui.tut = 4;
+ui.tutMove = tryAll((slot, sh, x, y) => {
+const g2 = { ...G, board: G.board.slice(), tray: G.tray.slice() }, r = place(g2, slot, x, y, true);
+return r && offOf(g2.board) !== o ? sh.cells.length : 0;
+});
+}
+}
+}
+function drawTutorHand() {
+if (!ui.tut || ui.drag || !ovEl.hidden) return;
+if (ui.tut === 2) { drawTutArrows(); return; }
+const m = ui.tutMove;
+if (!m || G.tray[m.slot] < 0) return;
+const s = SHAPES[G.tray[m.slot]], slot = m.slot, gx = m.x, gy = m.y;
 const p = (ui.tutT % TUT_CYCLE) / TUT_CYCLE;
 const ease = k => k < 0.5 ? 2 * k * k : 1 - 2 * (1 - k) * (1 - k);
 const mv = p < 0.15 ? 0 : p < 0.65 ? ease((p - 0.15) / 0.5) : 1;
@@ -1955,6 +1992,29 @@ ctx.beginPath(); ctx.arc(fx, fy, 4, 0, Math.PI * 2); ctx.fill();
 ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
 ctx.globalAlpha = 0.5 * alpha;
 ctx.beginPath(); ctx.arc(fx, fy, 4 + 5 * (1 - press), 0, Math.PI * 2); ctx.stroke();
+ctx.globalAlpha = 1;
+}
+function drawTutArrows() {
+const o = oShown();
+if (Math.abs(o) < 0.01) return;
+const k = Math.min(1, ui.tutT / 0.3) * Math.min(1, (TUT_SINK - ui.tutT) / 0.3);
+const w = CELL * 1.1, h = CELL * 0.5;
+ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+const lw = Math.max(3, CELL * 0.2);
+for (const left of [true, false]) {
+const dir = (left ? o : -o) > 0 ? 1 : -1;
+const x = BX + (left ? HALF / 2 : HALF * 1.5) * CELL;
+const y = halfTop(left ? 0 : HALF, o) + N * CELL / 2;
+for (let i = 0; i < 3; i++) {
+const ph = (ui.tutT * 1.4 + i / 3) % 1;
+const yy = y + dir * (ph - 0.5) * CELL * 2.4;
+ctx.globalAlpha = k * Math.sin(Math.PI * ph);
+ctx.beginPath();
+ctx.moveTo(x - w / 2, yy - dir * h / 2); ctx.lineTo(x, yy + dir * h / 2); ctx.lineTo(x + w / 2, yy - dir * h / 2);
+ctx.strokeStyle = 'rgba(20,12,0,0.55)'; ctx.lineWidth = lw + 3; ctx.stroke();
+ctx.strokeStyle = COL.gold; ctx.lineWidth = lw; ctx.stroke();
+}
+}
 ctx.globalAlpha = 1;
 }
 function drawCombo() {
@@ -2645,13 +2705,18 @@ const repl = unpackRun(JSON.stringify(gone));
 ok('пропавшая фигура заменяется, партия цела', repl && repl.g.tray[0] >= 0 && repl.g.score === g.score);
 ok('битое сохранение → null', unpackRun('{oops') === null && unpackRun('{"v":2,"g":{}}') === null);
 g = newGame(21, true);
-ok('обучение: ряд начат, первая тройка 4+3+1',
-g.tray.map(i => SHAPES[i].id).join() === EASY_FIRST.join() &&
-g.board.slice(EASY_ROW * N, EASY_ROW * N + N).filter(v => v).length === EASY_PREFILL);
+ok('обучение: доска ровно, ряд слева начат, справа ниже — полный, тройка квадрат+точка+палка',
+g.tray.map(i => SHAPES[i].id).join() === EASY_FIRST.join() && offOf(g.board) === 0 &&
+g.board.slice(EASY_ROW * N, EASY_ROW * N + N).filter(v => v).length === EASY_PREFILL &&
+g.board.slice((EASY_ROW + STEP) * N + HALF, (EASY_ROW + STEP + 1) * N).every(v => v) && !fullLines(g.board).rows.length);
 ok('обучение детерминировано', hashG(newGame(21, true)) === hashG(g) && hashG(g) !== hashG(newGame(21)));
-place(g, 0, 2, EASY_ROW); place(g, 1, 6, EASY_ROW);
-r = place(g, 2, 9, EASY_ROW);
-ok('обучение: линия третьим ходом, режим выключен', r && r.lines === 1 && !g.easy && g.board.every(v => !v));
+r = place(g, 0, TUT_SQ[0], TUT_SQ[1]);
+ok('обучение: квадрат слева — левая опускается', r && !r.lines && offOf(g.board) === 1);
+r = place(g, 1, EASY_PREFILL, EASY_ROW);
+ok('обучение: точка в дыру — линия сдвигом, режим выключен', r && r.lines === 1 && !g.easy);
+g = newGame(21, true);
+place(g, 1, EASY_PREFILL, EASY_ROW); r = place(g, 0, TUT_SQ[0], TUT_SQ[1]);
+ok('обучение: точка, потом квадрат — линия после сдвига', r && r.lines === 1 && r.waves[0].o === 1);
 g = newGame(22, true);
 place(g, 0, 0, 0); place(g, 1, 0, 2); place(g, 2, 0, 6);
 ok('обучение: без линии — дальше только палки и точка',
@@ -2807,7 +2872,8 @@ addEventListener('pagehide', () => { if (G) saveRun(); });
 applyTheme(settings.theme);
 load();
 if (!settings.tutDone && best > 0) { settings.tutDone = true; saveSettings(); }
-ui.tut = settings.tutDone ? 0 : (G.moves === 0 ? 1 : 2);
+ui.tut = settings.tutDone ? 0 : (G.moves === 0 ? 1 : 3);
+tutPlan();
 fit();
 requestAnimationFrame(frame);
 })();
