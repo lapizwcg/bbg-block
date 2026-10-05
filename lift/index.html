@@ -1069,6 +1069,9 @@ fx: [],
 parts: [],
 beams: [],
 rings: [],
+comboPop: -1,
+edge: null,
+shake: null,
 floats: [],
 banners: [],
 pops: [],
@@ -1111,7 +1114,7 @@ G = newGame(seed, !settings.tutDone, settings.diff);
 if (ECO_ON()) G.eco = true;
 best = loadBest(G.mode);
 ui.drag = ui.target = ui.preview = ui.back = null;
-ui.fx = []; ui.parts = []; ui.beams = []; ui.rings = []; ui.floats = []; ui.banners = []; ui.pops = [];
+ui.fx = []; ui.parts = []; ui.beams = []; ui.rings = []; ui.edge = ui.shake = null; ui.comboPop = -1; ui.floats = []; ui.banners = []; ui.pops = [];
 ui.shown = 0; ui.overT = -1; ui.bestAtStart = best; ui.recordShown = false; ui.hot = 0; ui.fire = false; ui.sparks = [];
 ui.tut = settings.tutDone ? 0 : 1; ui.tutT = 0;
 ui.rotMode = false; ui.rotTap = null;
@@ -1341,8 +1344,9 @@ if (steps.length) SFX.play('lift', steps[0].to - steps[0].from);
 const pc = s.color;
 res.waves.forEach((w, k) => {
 const cx0 = gx + s.w / 2, cy0 = gy + s.h / 2;
-for (const r of w.rows) ui.beams.push({ row: r, o: w.o, t: -fxAt[k], lift: k > 0, c: pc });
-for (const c of w.cols) ui.beams.push({ col: c, t: -fxAt[k], lift: k > 0, c: pc });
+const pow = Math.min(6, res.combo + k);
+for (const r of w.rows) ui.beams.push({ row: r, o: w.o, t: -fxAt[k], lift: k > 0, c: pc, pow, segs: null, flick: 0 });
+for (const c of w.cols) ui.beams.push({ col: c, t: -fxAt[k], lift: k > 0, c: pc, pow, segs: null, flick: 0 });
 for (const c of w.cells) {
 const delay = fxAt[k] + Math.hypot(c.x + 0.5 - cx0, c.y + 0.5 - cy0) * 0.02;
 ui.fx.push({ i: c.i, x: c.x, y: c.y, c: c.c, t: -delay });
@@ -1368,7 +1372,12 @@ text: '+' + res.gained, t: 0, big: res.lines > 0
 });
 if (res.hot) { ui.fire = true; SFX.play('star'); }
 const lines = [];
-if (res.combo >= 2 && res.combo !== comboBefore) lines.push({ text: t('combo') + res.combo, color: '#ff9d3c', size: 15 });
+if (res.combo >= 2 && res.combo !== comboBefore) {
+lines.push({ text: t('combo') + res.combo, color: res.combo >= 5 ? '#ff5a7a' : res.combo >= 3 ? '#ff7a3c' : '#ff9d3c', size: 15 + Math.min(4, res.combo - 2) });
+ui.comboPop = 0;
+if (res.combo >= 3) ui.edge = { t: -(fxAt[0] || 0), col: res.combo >= 5 ? '255,70,120' : res.combo >= 4 ? '255,110,50' : '255,170,60' };
+if (res.combo >= 5) ui.shake = { t: -(fxAt[0] || 0), amp: Math.min(3, 1.2 + (res.combo - 5) * 0.4) };
+}
 if (res.waves.length >= 2) lines.push({ text: t('lift'), color: '#7fe3ff', size: 13 });
 else if (res.lines >= 2) lines.push({ text: t(res.lines >= 5 ? 'p5' : 'p' + res.lines), color: '#7dffa4', size: 13 });
 if (res.clean) lines.push({ text: t('clean') + ' +' + CLEAN_BONUS, color: COL.gold, size: 13 });
@@ -1688,7 +1697,7 @@ openOverlay(
 '<button class="alt" data-act="no">' + t('no') + '</button></div>',
 { yes: () => startGame(randomSeed()), no: () => { closeOverlay(); needDraw = true; } });
 }
-const BEAM_LIFE = 0.42, RING_LIFE = 0.55;
+const BEAM_LIFE = 0.42, RING_LIFE = 0.55, BOLT_FLICK = 0.07;
 const FX_LIFE = 0.32, POP_LIFE = 0.18, FLOAT_LIFE = 0.9, BANNER_LIFE = 1.3, OVER_DELAY = 0.9, BACK_LIFE = 0.14;
 function update(dt) {
 let busy = false;
@@ -1731,6 +1740,9 @@ ui.beams = ui.beams.filter(b => b.t < BEAM_LIFE);
 for (const r of ui.rings) r.t += dt;
 ui.rings = ui.rings.filter(r => r.t < RING_LIFE);
 if (ui.beams.length || ui.rings.length) busy = true;
+if (ui.comboPop >= 0) { ui.comboPop += dt; busy = true; if (ui.comboPop > 0.4) ui.comboPop = -1; }
+if (ui.edge) { ui.edge.t += dt; busy = true; if (ui.edge.t > 0.7) ui.edge = null; }
+if (ui.shake) { ui.shake.t += dt; busy = true; if (ui.shake.t > 0.28) ui.shake = null; }
 for (const p of ui.pops) p.t += dt;
 ui.pops = ui.pops.filter(p => p.t < POP_LIFE);
 for (const f of ui.floats) f.t += dt;
@@ -1942,7 +1954,8 @@ ctx.fillStyle = COL.panel; rrect(CBX, y - 6, CBW, 12, 4); ctx.fill();
 text(t('comboBar'), CBX + 5, y + 0.3, 6.5, on ? COL.dim : COL.faint);
 if (on) {
 ctx.font = '800 6.5px "Segoe UI", Roboto, system-ui, sans-serif';
-text(String(G.combo), CBX + 8 + ctx.measureText(t('comboBar')).width, y + 0.3, 9, '#ff9d3c');
+const pop = ui.comboPop >= 0 ? 1 + 0.6 * Math.sin(Math.PI * Math.min(1, ui.comboPop / 0.4)) : 1;
+text(String(G.combo), CBX + 8 + ctx.measureText(t('comboBar')).width, y + 0.3, 9 * pop, G.combo >= 5 ? '#ff5a7a' : G.combo >= 3 ? '#ff7a3c' : '#ff9d3c');
 }
 for (let k = 0; k < (on ? COMBO_GRACE : 0); k++) {
 const lit = k < left;
@@ -2145,7 +2158,7 @@ const gp = BGAP * size / CELL;
 for (const [x, y] of s.cells) block(x0 + x * size + gp / 2, y0 + y * size + gp / 2, size - gp, ci);
 ctx.globalAlpha = 1;
 }
-let boardSpr = null;
+let boardSpr = null, SHX = 0, SHY = 0;
 function boardSprites() {
 const key = [SCALE, CELL, SHAFT_H, COL.under, COL.underSeam, COL.cell, COL.seam].join();
 if (boardSpr && boardSpr.key === key) return boardSpr;
@@ -2198,11 +2211,43 @@ ctx.fillRect(cx - 1.3, bot - 1.4, 2.6, 1.6);
 }
 }
 }
+function boltSegs(x0, y0, x1, y1, pow) {
+const out = [], segLen = CELL * 0.55, jitBase = CELL * (0.22 + pow * 0.035);
+const branchPct = 0.18 + pow * 0.05;
+(function bolt(ax, ay, bx, by, t0, t1, depth, tipFree) {
+const dx = bx - ax, dy = by - ay, d = Math.hypot(dx, dy) || 1, nx = dx / d, ny = dy / d;
+const n = Math.max(1, Math.round(d / segLen)), jit = jitBase * (depth ? 0.7 : 1);
+let want = Math.round(n * branchPct * (depth ? 0.6 : 1));
+if (!want && n >= 2 && depth < 2) want = 1;
+const gap = want ? n / (want + 1) : 0;
+let next = want ? gap : 1e9, left = want, px = ax, py = ay;
+for (let i = 1; i <= n; i++) {
+const f = i / n, env = tipFree ? 0.35 + f : 1 - Math.abs(f * 2 - 1);
+const off = (i === n && !tipFree) ? 0 : (Math.random() * 2 - 1) * jit * env;
+const qx = ax + dx * f - ny * off, qy = ay + dy * f + nx * off, t = t0 + (t1 - t0) * f;
+out.push({ x0: px, y0: py, x1: qx, y1: qy, t, d: depth });
+if (depth < 2 && i < n && left > 0 && i >= next && out.length < 160) {
+left--; next = i + gap * (0.7 + Math.random() * 0.6);
+const bl = d * (0.18 + Math.random() * 0.17) * (1 - f * 0.6);
+const a = (0.3 + Math.random() * (depth ? 0.4 : 0.7)) * (Math.random() < 0.5 ? -1 : 1);
+bolt(qx, qy, qx + (nx * Math.cos(a) - ny * Math.sin(a)) * bl, qy + (nx * Math.sin(a) + ny * Math.cos(a)) * bl,
+t, Math.min(1, t + 0.15), depth + 1, true);
+}
+px = qx; py = qy;
+}
+})(x0, y0, x1, y1, 0, 1, 0, false);
+return out;
+}
 function draw() {
-ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+SHX = SHY = 0;
+if (ui.shake && ui.shake.t > 0) {
+const a = ui.shake.amp * (1 - ui.shake.t / 0.28);
+SHX = (Math.random() * 2 - 1) * a; SHY = (Math.random() * 2 - 1) * a;
+}
+ctx.setTransform(SCALE, 0, 0, SCALE, SHX * SCALE, SHY * SCALE);
 const bg = ctx.createLinearGradient(0, 0, 0, LH);
 bg.addColorStop(0, COL.bgTop); bg.addColorStop(1, COL.bgBot);
-ctx.fillStyle = bg; ctx.fillRect(0, 0, LW, LH);
+ctx.fillStyle = bg; ctx.fillRect(-4, -4, LW + 8, LH + 8);
 const scoreStr = String(Math.round(ui.shown));
 if (ui.fire) {
 const sz = 22 * (1 + 0.045 * Math.sin(ui.clock * 7));
@@ -2265,24 +2310,25 @@ neonOutline(cells, P, pulse);
 }
 if (ui.beams.length) {
 ctx.globalCompositeOperation = 'lighter';
+ctx.lineCap = 'round'; ctx.lineJoin = 'round';
 for (const b of ui.beams) {
 if (b.t < 0) continue;
-const k = b.t / BEAM_LIFE, a = k < 0.15 ? k / 0.15 : (1 - k) * (1 - k) / 0.72;
-const glow = b.lift ? '#3fb8ff' : PAL[b.c].base, th = CELL * (0.55 + 0.6 * easeOut(Math.min(1, k * 2)));
-const seg = (x, y, w, h) => {
-ctx.globalAlpha = a * 0.55; ctx.fillStyle = glow;
-ctx.fillRect(x, y, w, h);
-ctx.globalAlpha = a * 0.9; ctx.fillStyle = '#ffffff';
-const hc = (b.col !== undefined ? w : h) * 0.22;
-if (b.col !== undefined) ctx.fillRect(x + w / 2 - hc / 2, y, hc, h);
-else ctx.fillRect(x, y + h / 2 - hc / 2, w, hc);
-};
-if (b.col !== undefined) {
-const x = cellX(b.col) + CELL / 2, top = halfTop(b.col, o);
-seg(x - th / 2, top, th, N * CELL);
-} else for (const x0 of [0, HALF]) {
-const r = x0 ? b.row + STEP * b.o : b.row, y = cellY(x0, r, o) + CELL / 2;
-seg(cellX(x0), y - th / 2, HALF * CELL, th);
+const k = b.t / BEAM_LIFE;
+let x0, y0, x1, y1;
+if (b.col !== undefined) { x0 = x1 = cellX(b.col) + CELL / 2; y0 = halfTop(b.col, o); y1 = y0 + N * CELL; }
+else { x0 = cellX(0); x1 = cellX(N - 1) + CELL; y0 = y1 = cellY(0, b.row, o) + CELL / 2; }
+if (!b.segs || b.t >= b.flick) { b.segs = boltSegs(x0, y0, x1, y1, b.pow); b.flick = b.t + BOLT_FLICK; b.at = [x0, y0]; }
+const sx = x0 - b.at[0], sy = y0 - b.at[1];
+const grow = Math.min(1, k / 0.3), fade = k < 0.45 ? 1 : (1 - k) / 0.55;
+const glow = b.lift ? '#3fb8ff' : PAL[b.c].base, w0 = 0.7 + b.pow * 0.22;
+for (const halo of [true, false]) {
+ctx.strokeStyle = halo ? glow : '#f4f8ff';
+for (const sg of b.segs) {
+if (sg.t > grow) continue;
+ctx.globalAlpha = fade * (halo ? 0.5 : 1) * (sg.d === 0 ? 1 : sg.d === 1 ? 0.7 : 0.45);
+ctx.lineWidth = (halo ? w0 * 3.2 : w0) * (sg.d === 0 ? 1 : 0.6);
+ctx.beginPath(); ctx.moveTo(sg.x0 + sx, sg.y0 + sy); ctx.lineTo(sg.x1 + sx, sg.y1 + sy); ctx.stroke();
+}
 }
 }
 ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
@@ -2303,11 +2349,11 @@ const px = cellX(p.cx) + CELL / 2 + p.dx, py = cellY(p.cx, p.cy, o) + CELL / 2 +
 ctx.globalAlpha = 1 - p.t / p.life;
 if (p.c < 0) { ctx.fillStyle = '#fff6d0'; ctx.fillRect(px - p.s / 2, py - p.s / 2, p.s, p.s); continue; }
 const cs = Math.cos(p.rot || 0), sn = Math.sin(p.rot || 0);
-ctx.setTransform(SCALE * cs, SCALE * sn, -SCALE * sn, SCALE * cs, SCALE * px, SCALE * py);
+ctx.setTransform(SCALE * cs, SCALE * sn, -SCALE * sn, SCALE * cs, SCALE * (px + SHX), SCALE * (py + SHY));
 ctx.fillStyle = PAL[p.c].base; ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s);
 ctx.fillStyle = PAL[p.c].light; ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.35);
 }
-ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+ctx.setTransform(SCALE, 0, 0, SCALE, SHX * SCALE, SHY * SCALE);
 ctx.globalAlpha = 1;
 for (const r of ui.rings) {
 if (r.t < 0) continue;
@@ -2318,6 +2364,16 @@ ctx.lineWidth = (2.6 + r.n * 0.6) * (1 - k) + 0.3;
 ctx.beginPath(); ctx.arc(r.x, frameY(r.y0, o), R0, 0, Math.PI * 2); ctx.stroke();
 }
 ctx.globalAlpha = 1;
+if (ui.edge && ui.edge.t > 0) {
+const k = ui.edge.t / 0.7, a = (k < 0.15 ? k / 0.15 : (1 - k) / 0.85) * 0.55, w = 26;
+const side = (x, y, ww, hh, gx0, gy0, gx1, gy1) => {
+const g = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
+g.addColorStop(0, 'rgba(' + ui.edge.col + ',' + a + ')'); g.addColorStop(1, 'rgba(' + ui.edge.col + ',0)');
+ctx.fillStyle = g; ctx.fillRect(x, y, ww, hh);
+};
+side(0, 0, LW, w, 0, 0, 0, w); side(0, LH - w, LW, w, 0, LH, 0, LH - w);
+side(0, 0, w, LH, 0, 0, w, 0); side(LW - w, 0, w, LH, LW, 0, LW - w, 0);
+}
 ctx.fillStyle = COL.panel; rrect(TX, TRAY_Y, TW, TRAY_H, 4); ctx.fill();
 const tg = trayGeo();
 for (let k = 0; k < 3; k++) {
