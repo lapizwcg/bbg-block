@@ -2648,7 +2648,7 @@ return c2;
 const body = mk(W, HB, (c, w, h) => {
 const cx = w / 2;
 c.fillStyle = '#262c48'; c.fillRect(cx - t * 0.35, 0, t * 0.7, h);
-const pitch = (h - t * 2) / coils, ry = amp * 0.42, y0 = t + ry * 0.2;
+const lead = Math.max(t * 2.5, h * 0.05), pitch = (h - 2 * lead) / coils, ry = amp * 0.42, y0 = lead;
 const metal = c.createLinearGradient(cx - amp, 0, cx + amp, 0);
 metal.addColorStop(0, '#6f7899'); metal.addColorStop(0.38, '#f4f6ff'); metal.addColorStop(0.62, '#c3c9e2'); metal.addColorStop(1, '#5d6688');
 const P = th => [cx + amp * Math.cos(th), y0 + pitch * th / (2 * Math.PI) + ry * Math.sin(th)];
@@ -2669,6 +2669,13 @@ c.stroke();
 if (pass === 2) c.translate(0, t * 0.22);
 };
 seg(false, 0); seg(false, 1);
+const yEnd = y0 + pitch * coils, lx = cx + amp * 0.45;
+for (const pass of [0, 1]) {
+c.beginPath();
+c.moveTo(lx, 0); c.lineTo(cx + amp, y0);
+c.moveTo(cx + amp, yEnd); c.lineTo(lx, h);
+c.strokeStyle = pass ? metal : 'rgba(8,10,26,.9)'; c.lineWidth = pass ? t : t + 1.1; c.stroke();
+}
 seg(true, 0); seg(true, 1); seg(true, 2);
 });
 const top = mk(W * 1.15, capT, (c, w, h) => {
@@ -2694,8 +2701,8 @@ const hx = cellX(x0), bot = halfTop(x0, o) - 1.5, len = bot - top;
 if (len < 1) continue;
 for (const fx of [0.27, 0.73]) {
 const cx = hx + HALF * CELL * fx;
-const bh = len - S.capT - S.capB;
-if (bh > 0.5) ctx.drawImage(S.body, cx - S.W / 2, top + S.capT, S.W, bh);
+const y1 = top + S.capT * 0.55, y2 = bot - S.capB * 0.35, bh = y2 - y1;
+if (bh > 0.5) ctx.drawImage(S.body, cx - S.W / 2, y1, S.W, bh);
 ctx.drawImage(S.bot, cx - S.W * 0.425, bot - S.capB, S.W * 0.85, S.capB);
 ctx.drawImage(S.top, cx - S.W * 0.575, top, S.W * 1.15, S.capT);
 }
