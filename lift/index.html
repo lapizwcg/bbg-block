@@ -116,7 +116,16 @@ box-shadow: 0 3px 0 var(--alt3) !important; border: 2px solid transparent !impor
 .hstats { display: flex; gap: 8px; justify-content: center; margin: 8px 0 10px; }
 .hstats div { flex: 1; background: rgba(0,0,0,.18); border-radius: 10px; padding: 6px 4px; font-size: 12px; opacity: .9; }
 .hstats b { display: block; font-size: 20px; color: var(--gold); }
-.hlist { max-height: 46vh; overflow-y: auto; text-align: left; font-size: 14px; }
+.hlist { max-height: 46vh; overflow-y: auto; text-align: left; font-size: 14px; padding-right: 6px; }
+.card::-webkit-scrollbar, .hlist::-webkit-scrollbar { width: 6px; height: 6px; }
+.card::-webkit-scrollbar-track, .hlist::-webkit-scrollbar-track { background: transparent; margin: 10px 0; }
+.card::-webkit-scrollbar-thumb, .hlist::-webkit-scrollbar-thumb { background: rgba(255,255,255,.22); border-radius: 3px; }
+.card::-webkit-scrollbar-thumb:hover, .hlist::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.38); }
+.card::-webkit-scrollbar-thumb:active, .hlist::-webkit-scrollbar-thumb:active { background: var(--gold, #ffd84a); }
+.card::-webkit-scrollbar-corner, .hlist::-webkit-scrollbar-corner { background: transparent; }
+@supports not selector(::-webkit-scrollbar) {
+.card, .hlist { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.25) transparent; }
+}
 .hrow { display: grid; grid-template-columns: 1fr auto 70px; gap: 8px; padding: 5px 8px; border-radius: 7px; }
 .hrow:nth-child(odd) { background: rgba(0,0,0,.14); }
 .hrow b { color: var(--cardText); } .hrow i { font-style: normal; opacity: .65; text-align: right; }
