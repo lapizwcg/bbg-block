@@ -50,7 +50,7 @@ text-shadow: 0 3px 0 rgba(0,0,0,.35); }
 #boot .bar { width: min(60vw, 260px); height: 10px; border-radius: 5px; background: rgba(255,255,255,.12); overflow: hidden; }
 #boot .bar i { display: block; height: 100%; width: 0; border-radius: 5px; background: linear-gradient(90deg, #ffd45e, #ff9d3c);
 transition: width .15s; }
-#ov.warm { opacity: 0 !important; pointer-events: none !important; }
+#ov.warm { opacity: .01 !important; pointer-events: none !important; }
 #cv { display: block; touch-action: none; }
 #ov {
 position: fixed; inset: 0; display: flex;
@@ -3327,6 +3327,27 @@ bootStep(0.4 + 0.4 * (i + 1) / wins.length);
 closeOverlay();
 ovEl.classList.remove('warm');
 }
+try {
+const slot = G && !G.over ? G.tray.findIndex(i => i >= 0) : -1;
+if (slot >= 0) {
+const sh = SHAPES[G.tray[slot]], o = offOf(G.board);
+let at = null;
+for (let y = Y_LO(sh); y <= Y_HI(sh) && !at; y++) for (let x = 0; x + sh.w <= N && !at; x++) if (fits(G.board, sh, x, y, o)) at = [x, y];
+if (at) {
+ui.drag = { slot, x: BX + (at[0] + sh.w / 2) * CELL, y: frameY(at[1] + sh.h / 2, o), lift: false, t: 1, id: -1 };
+updateTarget(); draw(); await tick();
+}
+}
+ui.drag = ui.target = ui.preview = null;
+ui.beams.push({ pts: [[0, 0], [1, 0], [2, 0]], t: 0.05, lift: true, pow: 3, seed: 1 });
+ui.stars.push({ cx: 0, cy: 0, dx: 0, dy: 0, vx: 0, vy: 0, t: 0.05, life: 1, s: 3 });
+ui.rings.push({ x: BX + CELL, y0: 1, t: 0.05, lift: true, n: 2 });
+ui.thuds.push({ t: 0.05, n: 1 });
+draw(); await tick();
+} catch (e) {}
+ui.drag = ui.target = ui.preview = null;
+ui.beams = []; ui.stars = []; ui.rings = []; ui.thuds = []; ui.dust = [];
+bootStep(0.95);
 await snd;
 } catch (e) { ovEl.classList.remove('warm'); }
 bootStep(1); await tick();
