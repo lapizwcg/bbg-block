@@ -2190,8 +2190,9 @@ function txtCache() {
 if (TXT.scale !== SCALE || TXT.map.size > 300) { TXT.scale = SCALE; TXT.map.clear(); }
 return TXT.map;
 }
-function label(text, x, y, size, fill, stroke, alpha) {
-if (typeof fill !== 'string' || (stroke && typeof stroke !== 'string')) return labelNow(text, x, y, size, fill, stroke, alpha);
+function label(text, x, y, size, fill, stroke, alpha, sc) {
+sc = sc || 1;
+if (typeof fill !== 'string' || (stroke && typeof stroke !== 'string')) return labelNow(text, x, y, size * sc, fill, stroke, alpha);
 const map = txtCache(), key = 'L' + size + '|' + fill + '|' + (stroke || '') + '|' + text;
 let e = map.get(key);
 if (!e) {
@@ -2213,10 +2214,46 @@ c.fillStyle = fill; cx = pad; chars.forEach((ch, i) => { c.fillText(ch, cx, H / 
 e = { im: cv2, total, pad, H };
 map.set(key, e);
 }
-const mw = DW - 10, k = e.total > mw ? mw / e.total : 1;
+const mw = DW - 10, k = (e.total * sc > mw ? mw / e.total : sc);
 ctx.globalAlpha = alpha ?? 1;
-ctx.drawImage(e.im, x - (e.total / 2 + e.pad) * k, y - e.H / 2, (e.total + 2 * e.pad) * k, e.H);
+ctx.drawImage(e.im, x - (e.total / 2 + e.pad) * k, y - e.H * sc / 2, (e.total + 2 * e.pad) * k, e.H * sc);
 ctx.globalAlpha = 1;
+}
+const EDGE = {};
+function edgeGlow(col) {
+const key = col + '|' + Math.round(LW) + 'x' + Math.round(LH);
+if (EDGE[key]) return EDGE[key];
+const W = Math.ceil(LW), H = Math.ceil(LH), w = 26, c2 = document.createElement('canvas');
+c2.width = W; c2.height = H;
+const c = c2.getContext('2d');
+const side = (x, y, ww, hh, gx0, gy0, gx1, gy1) => {
+const g = c.createLinearGradient(gx0, gy0, gx1, gy1);
+g.addColorStop(0, 'rgba(' + col + ',1)'); g.addColorStop(1, 'rgba(' + col + ',0)');
+c.fillStyle = g; c.fillRect(x, y, ww, hh);
+};
+side(0, 0, W, w, 0, 0, 0, w); side(0, H - w, W, w, 0, H, 0, H - w);
+side(0, 0, w, H, 0, 0, w, 0); side(W - w, 0, w, H, W, 0, W - w, 0);
+return (EDGE[key] = c2);
+}
+function fireLabel(str, size) {
+const map = txtCache(), key = 'F' + size + '|' + str;
+let e = map.get(key);
+if (e) return e;
+ctx.font = '800 ' + size + 'px "Segoe UI", Roboto, system-ui, sans-serif';
+const lw = size * LABEL_LW, gap = lw * LABEL_GAP, chars = [...str], ws = chars.map(c => ctx.measureText(c).width);
+const total = ws.reduce((a, b) => a + b, 0) + gap * (chars.length - 1), pad = lw + 1, H = size * 1.6 + 2 * pad, w = total + 2 * pad;
+const cv2 = document.createElement('canvas');
+cv2.width = Math.max(1, Math.ceil(w * SCALE)); cv2.height = Math.max(1, Math.ceil(H * SCALE));
+const c = cv2.getContext('2d');
+c.scale(SCALE, SCALE); c.font = ctx.font; c.textBaseline = 'middle'; c.textAlign = 'left';
+const gr = c.createLinearGradient(0, H / 2 - size * 0.42, 0, H / 2 + size * 0.42);
+gr.addColorStop(0, '#fff8c8'); gr.addColorStop(0.5, '#ffc93a'); gr.addColorStop(1, '#ff5a1a');
+c.lineJoin = 'round'; c.lineWidth = lw; c.strokeStyle = 'rgba(70,12,0,.9)';
+let cx = pad; chars.forEach((ch, i) => { c.strokeText(ch, cx, H / 2); cx += ws[i] + gap; });
+c.fillStyle = gr; cx = pad; chars.forEach((ch, i) => { c.fillText(ch, cx, H / 2); cx += ws[i] + gap; });
+e = { im: cv2, w, h: H };
+map.set(key, e);
+return e;
 }
 function labelNow(text, x, y, size, fill, stroke, alpha) {
 ctx.globalAlpha = alpha ?? 1;
@@ -2244,7 +2281,8 @@ chars.forEach((c, i) => { ctx.fillText(c, cx, 0); cx += ws[i] + gap; });
 ctx.restore();
 ctx.globalAlpha = 1;
 }
-function text(str, x, y, size, fill, align) {
+function text(str, x, y, size, fill, align, sc) {
+sc = sc || 1;
 if (typeof fill !== 'string') {
 ctx.font = '800 ' + size + 'px "Segoe UI", Roboto, system-ui, sans-serif';
 ctx.textAlign = align || 'left'; ctx.textBaseline = 'middle';
@@ -2265,8 +2303,8 @@ c.fillStyle = fill; c.fillText(str, pad, H / 2);
 e = { im: cv2, w, pad, H };
 map.set(key, e);
 }
-const x0 = align === 'center' ? x - e.w / 2 : align === 'right' ? x - e.w : x;
-ctx.drawImage(e.im, x0 - e.pad, y - e.H / 2, e.w + 2 * e.pad, e.H);
+const W = e.w * sc, x0 = align === 'center' ? x - W / 2 : align === 'right' ? x - W : x;
+ctx.drawImage(e.im, x0 - e.pad * sc, y - e.H * sc / 2, W + 2 * e.pad * sc, e.H * sc);
 }
 const easeOut = k => 1 - (1 - k) * (1 - k);
 const ICON_GEAR = new Path2D('M12.7848 0.449982C13.8239 0.449982 14.7167 1.16546 14.9122 2.15495L14.9991 2.59495C15.3408 4.32442 17.1859 5.35722 18.9016 4.7794L19.3383 4.63233C20.3199 4.30175 21.4054 4.69358 21.9249 5.56605L22.7097 6.88386C23.2293 7.75636 23.0365 8.86366 22.2504 9.52253L21.9008 9.81555C20.5267 10.9672 20.5267 13.0328 21.9008 14.1844L22.2504 14.4774C23.0365 15.1363 23.2293 16.2436 22.7097 17.1161L21.925 18.4339C21.4054 19.3064 20.3199 19.6982 19.3382 19.3676L18.9017 19.2205C17.1859 18.6426 15.3408 19.6754 14.9991 21.405L14.9122 21.845C14.7167 22.8345 13.8239 23.55 12.7848 23.55H11.2152C10.1761 23.55 9.28331 22.8345 9.08781 21.8451L9.00082 21.4048C8.65909 19.6754 6.81395 18.6426 5.09822 19.2205L4.66179 19.3675C3.68016 19.6982 2.59465 19.3063 2.07505 18.4338L1.2903 17.1161C0.770719 16.2436 0.963446 15.1363 1.74956 14.4774L2.09922 14.1844C3.47324 13.0327 3.47324 10.9672 2.09922 9.8156L1.74956 9.52254C0.963446 8.86366 0.77072 7.75638 1.2903 6.8839L2.07508 5.56608C2.59466 4.69359 3.68014 4.30176 4.66176 4.63236L5.09831 4.77939C6.81401 5.35722 8.65909 4.32449 9.00082 2.59506L9.0878 2.15487C9.28331 1.16542 10.176 0.449982 11.2152 0.449982H12.7848ZM12 15.3C13.8225 15.3 15.3 13.8225 15.3 12C15.3 10.1774 13.8225 8.69998 12 8.69998C10.1774 8.69998 8.69997 10.1774 8.69997 12C8.69997 13.8225 10.1774 15.3 12 15.3Z');
@@ -2403,7 +2441,7 @@ text(t('comboBar'), CBX + 5, y + 0.3, 6.5, on ? COL.dim : COL.faint);
 if (on) {
 ctx.font = '800 6.5px "Segoe UI", Roboto, system-ui, sans-serif';
 const pop = ui.comboPop >= 0 ? 1 + 0.6 * Math.sin(Math.PI * Math.min(1, ui.comboPop / 0.4)) : 1;
-text(String(G.combo), CBX + 8 + ctx.measureText(t('comboBar')).width, y + 0.3, 9 * pop, G.combo >= 5 ? '#ff5a7a' : G.combo >= 3 ? '#ff7a3c' : '#ff9d3c');
+text(String(G.combo), CBX + 8 + ctx.measureText(t('comboBar')).width, y + 0.3, 9, G.combo >= 5 ? '#ff5a7a' : G.combo >= 3 ? '#ff7a3c' : '#ff9d3c', 'left', pop);
 }
 for (let k = 0; k < (on ? COMBO_GRACE : 0); k++) {
 const lit = k < left;
@@ -2668,6 +2706,7 @@ h = Math.imul(h ^ (h >>> 15), 0x85EBCA6B) >>> 0;
 h = Math.imul(h ^ (h >>> 13), 0xC2B2AE35) >>> 0;
 return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
+const BGG = { g: null, lh: 0, col: null };
 function draw() {
 SHX = SHY = 0;
 if (ui.shake && ui.shake.t > 0) {
@@ -2675,15 +2714,17 @@ const a = ui.shake.amp * (1 - ui.shake.t / 0.28);
 SHX = (Math.random() * 2 - 1) * a; SHY = (Math.random() * 2 - 1) * a;
 }
 ctx.setTransform(SCALE, 0, 0, SCALE, SHX * SCALE, SHY * SCALE);
-const bg = ctx.createLinearGradient(0, 0, 0, LH);
-bg.addColorStop(0, COL.bgTop); bg.addColorStop(1, COL.bgBot);
-ctx.fillStyle = bg; ctx.fillRect(-4, -4, LW + 8, LH + 8);
+if (!BGG.g || BGG.lh !== LH || BGG.col !== COL) {
+BGG.g = ctx.createLinearGradient(0, 0, 0, LH);
+BGG.g.addColorStop(0, COL.bgTop); BGG.g.addColorStop(1, COL.bgBot);
+BGG.lh = LH; BGG.col = COL;
+}
+ctx.fillStyle = BGG.g; ctx.fillRect(-4, -4, LW + 8, LH + 8);
 const scoreStr = String(Math.round(ui.shown));
 if (ui.fire) {
-const sz = 22 * (1 + 0.045 * Math.sin(ui.clock * 7));
-const gr = ctx.createLinearGradient(0, -sz * 0.42, 0, sz * 0.42);
-gr.addColorStop(0, '#fff8c8'); gr.addColorStop(0.5, '#ffc93a'); gr.addColorStop(1, '#ff5a1a');
-label(scoreStr, HX, HY + 20, sz, gr, 'rgba(70,12,0,.9)');
+const k = 1 + 0.045 * Math.sin(ui.clock * 7);
+const e = fireLabel(scoreStr, 22 * 1.05);
+ctx.drawImage(e.im, HX - (e.w / 2) * k / 1.05, HY + 20 - (e.h / 2) * k / 1.05, e.w * k / 1.05, e.h * k / 1.05);
 } else label(scoreStr, HX, HY + 20, 22, COL.text, COL.textStroke);
 label(t('best') + '  ' + best + (G.mode === 'hard' ? '  ·  ' + t('hardTag') : ''), HX, HY + 37, 8, COL.gold);
 drawGear(GEAR.x, GEAR.y);
@@ -2839,14 +2880,10 @@ ctx.beginPath(); ctx.arc(r.x, frameY(r.y0, o), R0, 0, Math.PI * 2); ctx.stroke()
 }
 ctx.globalAlpha = 1;
 if (ui.edge && ui.edge.t > 0) {
-const k = ui.edge.t / 0.7, a = (k < 0.15 ? k / 0.15 : (1 - k) / 0.85) * 0.55, w = 26;
-const side = (x, y, ww, hh, gx0, gy0, gx1, gy1) => {
-const g = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
-g.addColorStop(0, 'rgba(' + ui.edge.col + ',' + a + ')'); g.addColorStop(1, 'rgba(' + ui.edge.col + ',0)');
-ctx.fillStyle = g; ctx.fillRect(x, y, ww, hh);
-};
-side(0, 0, LW, w, 0, 0, 0, w); side(0, LH - w, LW, w, 0, LH, 0, LH - w);
-side(0, 0, w, LH, 0, 0, w, 0); side(LW - w, 0, w, LH, LW, 0, LW - w, 0);
+const k = ui.edge.t / 0.7, a = (k < 0.15 ? k / 0.15 : (1 - k) / 0.85) * 0.55;
+ctx.globalAlpha = a;
+ctx.drawImage(edgeGlow(ui.edge.col), 0, 0, LW, LH);
+ctx.globalAlpha = 1;
 }
 ctx.fillStyle = COL.panel; rrect(TX, TRAY_Y, TW, TRAY_H, 4); ctx.fill();
 const tg = trayGeo();
@@ -2886,7 +2923,7 @@ const a = b.t > BANNER_LIFE - 0.3 ? (BANNER_LIFE - b.t) / 0.3 : 1;
 if (b.t < 0) continue;
 let y = BY + SHAFT_H / 2 - (b.lines.length - 1) * 10;
 for (const l of b.lines) {
-label(l.text, BX + BWID / 2, y, l.size * sc, l.color, 'rgba(20,10,0,.75)', a);
+label(l.text, BX + BWID / 2, y, l.size, l.color, 'rgba(20,10,0,.75)', a, sc);
 y += 20;
 }
 }
@@ -2915,7 +2952,7 @@ label(str, lx, ly, 9, '#fff', 'rgba(0,0,0,.7)');
 }
 }
 let last = 0, wasBusy = false, softBusy = false, lastSoft = 0;
-let LOADING = true;
+let LOADING = !(QS.has('dbg') && QS.has('noload'));
 const LOAD = { t: 0, k: 0, done: false, cycles: 0 };
 const LD_IN = 0.25, LD_MOVE = 0.6, LD_HOLD = 0.3, LD_POP = 0.15, LD_CLR = 0.65, LD_CYCLE = LD_IN + LD_MOVE + LD_HOLD + LD_POP + LD_CLR;
 function drawLoader(dt) {
@@ -3420,7 +3457,7 @@ THEME_IDS.forEach(themeThumb);
 bootStep(0.4); await tick();
 await snd;
 bootStep(0.55);
-while (LOAD.cycles < 1) await tick();
+while (LOADING && LOAD.cycles < 1) await tick();
 const rafWait = () => new Promise(r => { let d = false; const go = () => { if (!d) { d = true; r(); } };
 requestAnimationFrame(go); setTimeout(go, 400); });
 if (ovEl.hidden) {
