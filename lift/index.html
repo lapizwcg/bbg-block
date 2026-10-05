@@ -50,7 +50,7 @@ background: var(--veil, rgba(6, 9, 26, .62)); z-index: 10;
 }
 #ov[hidden] { display: none; }
 .card {
-min-width: 220px; max-width: 80vw; max-height: 92vh; overflow: auto; padding: 22px 26px 20px;
+box-sizing: border-box; width: min(94vw, 460px); max-width: 94vw; max-height: 92vh; overflow: auto; padding: 20px 14px 18px;
 border-radius: 16px; text-align: center; color: var(--cardText, #e9ecff);
 background: linear-gradient(var(--card1, #26305e), var(--card2, #1a2147));
 box-shadow: 0 10px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.12);
@@ -80,7 +80,7 @@ text-decoration: underline; text-underline-offset: 3px; }
 .card .offers { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 .card button:disabled { opacity: .45; }
 .card button.ad { background: linear-gradient(#5fd08a, #34a862); box-shadow: 0 3px 0 #1f7a42; }
-.card.set { min-width: 250px; padding: 18px 20px 18px; }
+.card.set { padding: 18px 14px 18px; }
 .set .blk { padding: 12px 14px; border-radius: 12px; background: rgba(0,0,0,.13); margin-top: 10px; }
 .set .grid { display: grid; grid-template-columns: auto 1fr; gap: 12px 16px; align-items: center;
 text-align: left; font-size: 15px; font-weight: 700; }
@@ -109,10 +109,20 @@ border-radius: 7px; opacity: .55; display: grid; place-items: center; }
 box-shadow: 0 3px 0 var(--alt3) !important; border: 2px solid transparent !important; }
 .themes button.sel { border-color: var(--gold) !important; }
 .themes img { width: 100%; max-width: 110px; aspect-ratio: 132 / 48; border-radius: 5px; display: block; }
-.crow { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: baseline; padding: 6px 4px; text-align: left; }
-.crow span { opacity: .75; font-size: 14px; }
-.crow b, .card .crow button.link { font-size: 16px; justify-self: end; margin: 0; padding: 2px 0; display: inline; }
-.crow i { grid-column: 2; justify-self: end; font-style: normal; font-size: 12px; opacity: .6; }
+.credits { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+.card button.crow, .card div.crow { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+padding: 12px 14px; border-radius: 14px; background: rgba(0,0,0,.2); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+color: inherit; font: inherit; }
+.card button.crow:active { transform: translateY(1px); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
+.crow .ci { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center;
+background: linear-gradient(var(--c1), var(--c2)); box-shadow: 0 3px 0 var(--c3), inset 0 1px 0 rgba(255,255,255,.35); }
+.crow .ci svg { width: 26px; height: 26px; fill: #fff; }
+.crow .ct { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.crow .ct small { font-size: 13px; font-weight: 600; opacity: .65; text-transform: uppercase; letter-spacing: .6px; }
+.crow .ct b { font-size: 19px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; }
+.crow .ct em { font-style: normal; font-size: 12px; opacity: .5; }
+.crow .go { flex: none; font-size: 20px; opacity: .55; color: var(--gold); }
+.credits-game { margin: -4px 0 4px; font-size: 14px; opacity: .6; letter-spacing: .5px; }
 .hstats { display: flex; gap: 8px; justify-content: center; margin: 8px 0 10px; }
 .hstats div { flex: 1; background: rgba(0,0,0,.18); border-radius: 10px; padding: 6px 4px; font-size: 12px; opacity: .9; }
 .hstats b { display: block; font-size: 20px; color: var(--gold); }
@@ -127,7 +137,6 @@ box-shadow: 0 3px 0 var(--alt3) !important; border: 2px solid transparent !impor
 .card, .hlist { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.25) transparent; }
 }
 .hrow { display: grid; grid-template-columns: 1fr auto 84px; gap: 10px; padding: 7px 10px; border-radius: 7px; }
-.card.hist { box-sizing: border-box; width: min(94vw, 460px); max-width: 94vw; padding: 20px 14px 18px; }
 .card.hist .hlist { max-height: 54vh; font-size: 15px; }
 .card.hist .hrow { grid-template-columns: 1fr 1fr 1fr; text-align: center; }
 .card.hist .hrow i { text-align: center; }
@@ -1775,20 +1784,26 @@ openOverlay(
 '<div class="btns"><button data-act="close">' + t('close') + '</button></div>',
 { close: () => { closeOverlay(); needDraw = true; } }, 'hist');
 }
+const CR_ICON = {
+game: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M7 6h10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.2 2.2L14.6 15H9.4l-1.2 1.7A3.5 3.5 0 0 1 2 14.5V11a5 5 0 0 1 5-5zM6.25 9v1.75H4.5v1.5h1.75V14h1.5v-1.75H9.5v-1.5H7.75V9zM16.5 10.25a1.25 1.25 0 1 0 0-.01zM18.75 12.75a1.25 1.25 0 1 0 0-.01z"/></svg>',
+music: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4.5 20 2v12.5a3.25 3.25 0 1 1-2-3V7.1l-7 1.6v8.3a3.25 3.25 0 1 1-2-3z"/></svg>',
+flags: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 2.5h2V22H5zM8.5 3.5H19l-2.6 4.75L19 13H8.5z"/></svg>'
+};
 const CREDITS = [
-{ k: 'creditsGame', name: 'LapizWCG', url: 'https://lapizwcg.itch.io/' },
-{ k: 'creditsMusic', name: 'chajamakesmusic', url: 'https://chajamakesmusic.itch.io/' },
-{ k: 'creditsFlags', name: 'Twemoji', url: 'https://github.com/jdecked/twemoji' }
+{ k: 'creditsGame', icon: 'game', pal: ['#ffd45e', '#e9a21f', '#9a6410'], name: 'LapizWCG', site: 'lapizwcg.itch.io', url: 'https://lapizwcg.itch.io/' },
+{ k: 'creditsMusic', icon: 'music', pal: ['#ff7a9a', '#e0466e', '#9c2848'], name: 'chajamakesmusic', site: 'chajamakesmusic.itch.io', url: 'https://chajamakesmusic.itch.io/' },
+{ k: 'creditsFlags', icon: 'flags', pal: ['#6fb3ff', '#3563d8', '#22408f'], name: 'Twemoji', site: 'github.com/jdecked/twemoji', url: 'https://github.com/jdecked/twemoji' }
 ];
 function openCredits() {
 const acts = { back: () => openSettings() };
 const rows = CREDITS.map((c, i) => {
 acts['cr_' + i] = () => { try { window.open(c.url, '_blank', 'noopener'); } catch (e) { location.href = c.url; } };
-return '<div class="crow"><span>' + t(c.k) + '</span>' +
-(PORTAL ? '<b>' + c.name + '</b>' : '<button class="link" data-act="cr_' + i + '">' + c.name + '</button>') +
-(c.note ? '<i>' + c.note + '</i>' : '') + '</div>';
+const inner = '<span class="ci" style="--c1:' + c.pal[0] + ';--c2:' + c.pal[1] + ';--c3:' + c.pal[2] + '">' + CR_ICON[c.icon] + '</span>' +
+'<span class="ct"><small>' + t(c.k) + '</small><b>' + c.name + '</b>' + (PORTAL ? '' : '<em>' + c.site + '</em>') + '</span>';
+return PORTAL ? '<div class="crow">' + inner + '</div>'
+: '<button class="crow" data-act="cr_' + i + '">' + inner + '<span class="go">↗</span></button>';
 }).join('');
-openOverlay('<h2>' + t('credits') + '</h2><div class="blk">' + rows + '</div>' +
+openOverlay('<h2>' + t('credits') + '</h2><div class="credits-game">BBG Lift</div><div class="credits">' + rows + '</div>' +
 '<div class="btns"><button data-act="back">' + t('back') + '</button></div>', acts);
 }
 function askRestart() {
