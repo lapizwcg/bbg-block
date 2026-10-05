@@ -126,7 +126,9 @@ box-shadow: 0 3px 0 var(--alt3) !important; border: 2px solid transparent !impor
 @supports not selector(::-webkit-scrollbar) {
 .card, .hlist { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.25) transparent; }
 }
-.hrow { display: grid; grid-template-columns: 1fr auto 70px; gap: 8px; padding: 5px 8px; border-radius: 7px; }
+.hrow { display: grid; grid-template-columns: 1fr auto 84px; gap: 10px; padding: 7px 10px; border-radius: 7px; }
+.card.hist { box-sizing: border-box; width: min(94vw, 460px); max-width: 94vw; padding: 20px 14px 18px; }
+.card.hist .hlist { max-height: 54vh; font-size: 15px; }
 .hrow:nth-child(odd) { background: rgba(0,0,0,.14); }
 .hrow b { color: var(--cardText); } .hrow i { font-style: normal; opacity: .65; text-align: right; }
 .hrow.top b { color: var(--gold); }
@@ -1769,7 +1771,7 @@ openOverlay(
 '<div class="hlist">' + rows + '</div>'
 : '<div class="sub">' + t('histEmpty') + '</div>') +
 '<div class="btns"><button data-act="close">' + t('close') + '</button></div>',
-{ close: () => { closeOverlay(); needDraw = true; } });
+{ close: () => { closeOverlay(); needDraw = true; } }, 'hist');
 }
 const CREDITS = [
 { k: 'creditsGame', name: 'LapizWCG', url: 'https://lapizwcg.itch.io/' },
