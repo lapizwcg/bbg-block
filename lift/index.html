@@ -225,25 +225,24 @@ VX0 = OX; VX1 = OX + DW;
 PX = OX + M; PW = DW - 2 * M;
 HY = top + Math.min(6, Math.max(0, LH - DH - top - bot) * 0.08);
 COMBO_Y = HY + 51;
-SP_Y = COMBO_Y + 9;
+ECO_Y = COMBO_Y + 9;
+SP_Y = ECO_Y + ECO_PH + ECO_G;
 const TRAY_MIN = 46, cw = (PW - SEAM - 6) / N;
-const trayFor = c => LH - bot - M - (SP_Y + LINTEL + 6 + (N + 2 * OMAX) * c + 4 + ECO_PH + ECO_G);
+const trayFor = c => LH - bot - M - (SP_Y + LINTEL + 6 + (N + 2 * OMAX) * c + 4);
 CELL = cw;
 TRAY_H = Math.min(4 * cw + 8, trayFor(cw));
 if (TRAY_H < TRAY_MIN) {
 for (let it = 0; it < 4; it++) {
 TRAY_H = Math.max(TRAY_MIN, Math.min(4 * CELL + 8, trayFor(CELL)));
 TRAY_Y = LH - bot - M - TRAY_H;
-ECO_Y = TRAY_Y - ECO_G - ECO_PH;
-SP_H = ECO_Y - 4 - SP_Y;
+SP_H = TRAY_Y - TRAY_GAP - SP_Y;
 CELL = Math.min(cw, (SP_H - LINTEL - 6) / (N + 2 * OMAX));
 }
 TRAY_H = Math.max(TRAY_MIN, Math.min(4 * CELL + 8, trayFor(CELL)));
 }
 if (LW > LH && landCell > CELL * 1.08) { LAND = true; layoutLand(top, bot); return; }
 TRAY_Y = LH - bot - M - TRAY_H;
-ECO_Y = TRAY_Y - ECO_G - ECO_PH;
-SP_H = ECO_Y - 4 - SP_Y;
+SP_H = TRAY_Y - TRAY_GAP - SP_Y;
 BWID = N * CELL + SEAM; SHAFT_H = (N + 2 * OMAX) * CELL;
 BX = OX + (DW - BWID) / 2;
 BY = SP_Y + LINTEL + (SP_H - LINTEL - SHAFT_H) / 2;
