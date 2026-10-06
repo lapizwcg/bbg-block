@@ -760,6 +760,44 @@ return false;
 go(0, d0, left0.length);
 return Math.min(found, cap);
 }
+function trayExits(board, tray, cap) {
+let nodes = 0;
+const left0 = tray.filter(i => i >= 0);
+if (!left0.length) return cap;
+const seen = new Set(), used = [false, false, false];
+const go = (lv, d, n) => {
+const B = BS.lv[lv], o = offD(d), NB = BS.lv[lv + 1];
+for (let k = 0; k < left0.length; k++) {
+if (used[k]) continue;
+const sh = SHAPES[left0[k]], bits = shapeBits(sh), h = sh.h, y0 = Y_LO(sh), y1 = Y_HI(sh);
+for (let y = y0; y <= y1; y++) for (let x = 0; x < bits.length; x++) {
+const m = bits[x];
+if (!fitsB(B, m, h, y, o)) continue;
+if (++nodes > SOLVE_CAP) return true;
+NB.set(B);
+let nd = d;
+for (let dy = 0; dy < h; dy++) {
+const ml = m[2 * dy], mr = m[2 * dy + 1];
+if (ml) { NB[y + dy] |= ml; nd += POP5[ml]; }
+if (mr) { NB[N + y + dy + STEP * o] |= mr; nd -= POP5[mr]; }
+}
+nd = settleB(NB, nd, o);
+if (n === 1) {
+seen.add(NB.join());
+if (seen.size >= cap) return true;
+continue;
+}
+used[k] = true;
+const stop = go(lv + 1, nd, n - 1);
+used[k] = false;
+if (stop) return true;
+}
+}
+return false;
+};
+if (go(0, boardBits(board, BS.lv[0]), left0.length)) return cap;
+return seen.size;
+}
 function fitsAnywhere(board, s) {
 const B = BS.lv[4], o = offD(boardBits(board, B)), bits = shapeBits(s), y1 = Y_HI(s);
 for (let y = Y_LO(s); y <= y1; y++) for (let x = 0; x < bits.length; x++) if (fitsB(B, bits[x], s.h, y, o)) return true;
@@ -794,8 +832,9 @@ go(board, left);
 return Math.min(found, cap);
 }
 const trayPlaceable = (board, tray) => traySolutions(board, tray, 1) > 0;
-const TUNE = { CANDS: 20, RAMP: 80, WAVE: 36, BASE: 1.0, AMP: 0.25, RESCUE_FILL: 0.7, SOL_CAP: 200 };
+const TUNE = { CANDS: 20, RAMP: 80, WAVE: 36, BASE: 1.0, AMP: 0.25, RESCUE_FILL: 0.7, SOL_CAP: 200, EXITS: 2 };
 let fairMiss = 0;
+let narrowDeals = 0;
 const trayDifficulty = m => Math.min(1, Math.min(1, m / TUNE.RAMP) * (TUNE.BASE + TUNE.AMP * Math.sin(2 * Math.PI * m / TUNE.WAVE)));
 function canClear(board, tray) {
 const o = offOf(board);
@@ -811,15 +850,21 @@ if (settle(c, o).length) return true;
 return false;
 }
 function refill(g, loose) {
+g.rotPaid = [];
 const pick = g.easy ? pickEasy : pickShape;
-const cands = [];
+let cands = [];
+const narrow = [];
 let tray = null, some = null;
 for (let a = 0; a < FAIR_TRIES && cands.length < (g.easy ? 1 : TUNE.CANDS); a++) {
 tray = pickDistinct(g, pick, []);
 const n = traySolutions(g.board, tray, g.easy ? 1 : TUNE.SOL_CAP);
-if (n > 0) cands.push({ tray, n });
+if (n > 0) {
+if (g.easy || trayExits(g.board, tray, TUNE.EXITS) >= TUNE.EXITS) cands.push({ tray, n });
+else narrow.push({ tray, n });
+}
 else if (!some && tray.some(i => fitsAnywhere(g.board, SHAPES[i]))) some = tray;
 }
+if (!cands.length) { cands = narrow; if (cands.length) narrowDeals++; }
 if (!cands.length) { fairMiss++; g.tray = some || tray; return; }
 if (cands.length === 1) { g.tray = cands[0].tray; return; }
 cands.sort((a, b) => b.n - a.n);
@@ -1703,7 +1748,7 @@ const k = Object.keys(bs).find(k => { const b = bs[k]; return p.x >= b.x && p.x 
 if (!k) return false;
 if (k === 'rot') {
 if (ui.rotMode) { ui.rotMode = false; }
-else if (stars < ECO.rot) { note(t('noStars')); SFX.play('back'); }
+else if (stars < ECO.rot && !(G.rotPaid || []).some(k => G.tray[k] >= 0)) { note(t('noStars')); SFX.play('back'); }
 else { ui.rotMode = true; note(t('turnIt')); SFX.play('pick'); }
 } else if (k === 'swap') {
 if (stars < ECO.swap) { note(t('noStars')); SFX.play('back'); }
@@ -1724,14 +1769,16 @@ function tapRotate(slot) {
 const si = G.tray[slot];
 if (si < 0) return;
 if (SHAPES[si].rot === si) { note(t('noRot')); SFX.play('back'); return; }
-if (stars < ECO.rot) { note(t('noStars')); SFX.play('back'); ui.rotMode = false; return; }
+G.rotPaid = G.rotPaid || [];
+const paid = G.rotPaid.includes(slot);
+if (!paid && stars < ECO.rot) { note(t('noStars')); SFX.play('back'); if (!G.rotPaid.length) ui.rotMode = false; return; }
 const wasOver = G.over;
 rotatePiece(G, slot);
-stars -= ECO.rot; saveStars();
+if (!paid) { stars -= ECO.rot; saveStars(); G.rotPaid.push(slot); }
 SFX.play('pick');
 saveRun();
 if (wasOver && !G.over) { ui.rotMode = false; resumeGame(); }
-if (stars < ECO.rot) ui.rotMode = false;
+if (stars < ECO.rot && !G.rotPaid.some(k => G.tray[k] >= 0)) ui.rotMode = false;
 if (!ui.rotMode && G.over) showGameOver();
 needDraw = true;
 }
@@ -3344,6 +3391,32 @@ place(g, m.slot, m.x, m.y);
 }
 }
 ok('честная тройка: у бота каждая выданная раскладывается', bad === fairMiss - miss0, dealt + ' троек, неразложимых ' + bad + ', поле забито ' + (fairMiss - miss0));
+let le = true;
+for (let k = 0; k < 6; k++) {
+const g = newGame(1500 + k);
+for (let m = 0; m < 12 && !g.over; m++) { const ms = allMoves(g); if (!ms.length) break; place(g, ms[(m * 7) % ms.length].slot, ms[(m * 7) % ms.length].x, ms[(m * 7) % ms.length].y); }
+if (trayExits(g.board, g.tray, 50) > traySolutions(g.board, g.tray, 50)) le = false;
+}
+ok('выходы тройки: итоговые доски, а не порядок ходов',
+trayExits(one, [shape('dot')], 2) === 1 && trayExits(new Array(N * N).fill(0), [shape('i2_0')], 2) === 2 && le);
+const nar0 = narrowDeals, miss1 = fairMiss;
+let dealt2 = 0, thin = 0;
+for (let k = 0; k < 12; k++) {
+const g = newGame(1300 + k), bot = { rng: 91 + k };
+let key = '';
+while (!g.over && g.moves < 300) {
+if (g.tray.every(i => i >= 0) && g.tray.join() !== key) {
+key = g.tray.join(); dealt2++;
+if (trayPlaceable(g.board, g.tray) && trayExits(g.board, g.tray, TUNE.EXITS) < TUNE.EXITS) thin++;
+}
+const ms = allMoves(g);
+if (!ms.length) break;
+const m = ms[Math.floor(rnd(bot) * ms.length)];
+place(g, m.slot, m.x, m.y);
+}
+}
+ok('два выхода: у бота выданные тройки не «единственное решение»', thin <= narrowDeals - nar0,
+dealt2 + ' троек, с одним выходом ' + thin + ', вынужденно ' + (narrowDeals - nar0) + ', забито ' + (fairMiss - miss1));
 }
 {
 const i2 = shape('i2_0');
@@ -3371,6 +3444,15 @@ v.tray = [shape('i4_0'), shape('i4_1'), shape('o2')]; v.over = !anyFits(v);
 const wasOver = v.over;
 revive(v);
 ok('продолжение спасает забитое поле', wasOver && !v.over && v.revives === 1);
+{
+const G0 = G, s0 = stars, m0 = ui.rotMode;
+G = newGame(11); G.tray = [shape('l3_0'), -1, -1]; G.rotPaid = []; stars = 10; ui.rotMode = true;
+tapRotate(0); tapRotate(0); tapRotate(0);
+const spent1 = 10 - stars, turned = G.tray[0] !== shape('l3_0');
+refill(G); const fresh = !G.rotPaid.length;
+G = G0; stars = s0; ui.rotMode = m0; saveStars(); if (G) saveRun();
+ok('поворот: звёзды за фигуру один раз, дальше крутится бесплатно', spent1 === ECO.rot && turned && fresh, 'потрачено ' + spent1);
+}
 }
 for (const id of THEME_IDS) {
 const th = THEMES[id];
@@ -3448,7 +3530,7 @@ return out;
 if (QS.has('dbg')) {
 window.BB = { get G() { return G; }, get ui() { return ui; },
 get layout() { const g = trayGeo(); return { LW, LH, OX, BX, BY, TRAY_Y, TRAY_H, SLOT_X, CELL, LAND, TX, TW, slotCx: g.cx, slotCy: g.cy, trayCell: g.cell, o: oShown(), frameY, cellX }; },
-offOf, cellAt, fullLines, settle, K, OMAX, HALF, update, traySolutions, traySolutionsRef, drawLoader, LOAD,
+offOf, cellAt, fullLines, settle, K, OMAX, HALF, update, traySolutions, traySolutionsRef, trayExits, drawLoader, LOAD,
 get supportUrl() { return SUPPORT_URL; }, set supportUrl(v) { SUPPORT_URL = v; }, draw, fit, SHAPES, place, predict, newGame, fits, anyFits, hashG, botGame, doPlace, startGame, SFX, settings, THEMES, applyTheme, setLang, openSettings,
 get stars() { return stars; }, set stars(v) { stars = v; saveStars(); }, ECO, PORTAL, showGameOver, traySolutions, TUNE };
 window.bbCheck = bbCheck;
